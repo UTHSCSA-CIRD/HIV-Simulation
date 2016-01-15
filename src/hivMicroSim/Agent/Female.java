@@ -144,7 +144,7 @@ public class Female extends Agent implements Steppable{
                 if(attemptCoitalInfection(sim, infection, other.getDiseaseMatrix().getStage(), network1.getCoitalFrequency(), other.ID, 1.0)){
                     //We've been infected!
                     System.out.println("DEBUG: INFECTED!!!!");
-                    infect(sim.genotypeList.get(infection.getGenotype()));
+                    if(infect(sim.genotypeList.get(infection.getGenotype()))) sim.infected++;
                 }
                 
             }

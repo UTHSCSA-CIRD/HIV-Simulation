@@ -38,11 +38,22 @@ public class HIVMicroSim extends SimState{
     /*
     * For a score of 1000 (No resistance, viral load 1000, male, uncircumcised) give a 1 in 100 chance per interaction. (1/10 for 10 interactions)
     */
-    public double perInteractionLikelihood = 0.000001; //we'll say this per 100 in viral load..? -- Obviously we'll need some adjustments here 
+    public double perInteractionLikelihood = 0.00001; //we'll say this per 100 in viral load..? -- Obviously we'll need some adjustments here 
     
     /*http://www.k-state.edu/parasitology/biology198/answers1.html 
     * Hardy-Weinberg Law - p^2 + 2pq + q^2 = 1 and p + q = 1; 
     */
+    public int getInfected(){
+        return infected;
+    }
+    public double getPerInteractionLikelihood(){
+        return perInteractionLikelihood;
+    }
+    public void setPerInteractionLikelihood(double a){
+        if(a < .1){
+            perInteractionLikelihood = a;
+        }
+    }
     public final ArrayList<Genotype> genotypeList = new ArrayList<>();
     
     public void setupGenoTypeList(){
@@ -283,7 +294,7 @@ public class HIVMicroSim extends SimState{
             }else{
                 agent = new Male(i, faithfulness, condomUse, want, lack, ccr51, ccr52, immuneFactors, age);
             }
-            agents.setObjectLocation(agent,random.nextInt(100), random.nextInt(100));
+            agents.setObjectLocation(agent,random.nextInt(gridWidth), random.nextInt(gridHeight));
             network.addNode(agent); // handles the network only! Display of nodes handled by continuous 2D
             stopper = schedule.scheduleRepeating(agent);
             agent.setStoppable(stopper);
@@ -334,6 +345,7 @@ public class HIVMicroSim extends SimState{
                     inf = s[roll].infect(genotypeList.get(0));
                 }
             }while(inf == false); //so that if we find someone resistant or if they are too young.
+            infected++;
         }
         //add network stepable- break & create networks
         Steppable n = new Steppable(){
