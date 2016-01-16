@@ -23,6 +23,8 @@ import java.awt.*;
  */
 public class Female extends Agent implements Steppable{
     private static final long serialVersionUID = 1;
+    private boolean pregnant;
+    private Pregnancy pregnancy;
     
     public Female(int id, int faithfullness, int condomUse, double wantLevel, double lack, boolean ccr51, boolean ccr52, double immuneFactors, 
             int age){
@@ -36,6 +38,12 @@ public class Female extends Agent implements Steppable{
     public Female(int id, int faithfullness, int condomUse, double wantLevel, double lack, boolean ccr51, boolean ccr52, double immuneFactors, 
             ArrayList<SeroImmunity> sero, ArrayList<AlloImmunity> allo, int age, ArrayList<Infection> coinfections, DiseaseMatrix disease){
         super(id,faithfullness, condomUse, wantLevel, lack, ccr51, ccr52, immuneFactors, true, sero, allo, age, coinfections, disease);
+    }
+    public boolean makePregnant(Pregnancy p){
+        if(pregnant) return false;
+        pregnant = true;
+        pregnancy = p;
+        return true;
     }
     @Override
     public boolean isFemale(){return true;}
@@ -79,6 +87,30 @@ public class Female extends Agent implements Steppable{
     public void step(SimState state){
         HIVMicroSim sim = (HIVMicroSim) state;
         age++;
+        int roll;
+        if(age >= 216){
+            width = 1.5;
+            height = 1.5;
+            if(pregnant){
+                if(pregnancy.step()){
+                    //a little one is born! Now.... if mom is HIV positive... 
+                    Agent littleOne = sim.createNewAgent(pregnancy);
+                    if(infected){
+                        ArrayList<HIVInfection> infs = hiv.getGenotypes();
+                        //attempt to infect the little one
+                        roll = Math.abs(sim.getGaussianRange(-(infs.size()-1), (infs.size()-1)));
+                        if(littleOne.attemptInfection(sim, infs.get(roll), hiv.getStage(), 1, Agent.MODEMOTHERCHILD)){
+                            //Poor little guy was infected :( 
+                            sim.infected++;
+                            littleOne.infect(sim.genotypeList.get(infs.get(roll).getGenotype()));
+                        }
+                    }
+                }
+            }
+        }else{
+            width = 1;
+            height = 1;
+        }
         //adjust disease
         if(infected){
             if(hiv.progress(1)){
@@ -120,8 +152,38 @@ public class Female extends Agent implements Steppable{
         for (Relationship network1 : network) {
             adj -= network1.getCoitalFrequency();
             other = network1.getMale();
+////////////////////////// TODO -- handle condom use! Least likely to use condoms with spouse, most likely to use them with one shot.
+            //for now we assume every coital act is unprotected.
+            if(!pregnant && age <= 480){
+                //attempt to become so! 
+                for(int i = 0; i< network1.getCoitalFrequency(); i++){
+                   double pg = sim.random.nextDouble();
+                    if(pg < sim.pregnancyChance){
+                    //she's pregnant! 
+                        pregnant = true;
+                        double imfac = (otherImmunityFactors + other.otherImmunityFactors) / 2;
+                        boolean rand;
+                        boolean infCCR51;
+                        boolean infCCR52;
+                        rand = sim.random.nextBoolean();
+                        if(rand){
+                            infCCR51 = ccr51;
+                        }else{
+                            infCCR51 = ccr52;
+                        }
+                        rand = sim.random.nextBoolean();
+                        if(rand){
+                            infCCR52 = other.ccr51;
+                        }else{
+                            infCCR52 = other.ccr52;
+                        }
+                        pregnancy = new Pregnancy(imfac, infCCR51, infCCR52);
+                    } 
+                }
+                
+            }
             if(other.infected){
-////////////////////////// TODO -- handle condom use! Least likely to use condoms with spouse, most likely to use them with one shot.            
+
                 
                 //select a genotype from the other 
                 ArrayList<HIVInfection> otherInfections = other.getDiseaseMatrix().getGenotypes(); 
@@ -129,7 +191,7 @@ public class Female extends Agent implements Steppable{
                 //if the other has more than one genotype, select one, otherwise use that one. 
                 if(otherInfections.size() >1){
                     //set mean of 0 with max range of list size. This makes you most likely to select an item closer to 0 or with larger virulence. 
-                    int roll = Math.abs(sim.getGaussianRange(-(otherInfections.size()-1), (otherInfections.size()-1)));
+                    roll = Math.abs(sim.getGaussianRange(-(otherInfections.size()-1), (otherInfections.size()-1)));
                     infection = otherInfections.get(roll);
                 }else{
                     infection = otherInfections.get(0);
@@ -166,7 +228,7 @@ public class Female extends Agent implements Steppable{
 ////////////////////////This needs refining.
         
         for(int i = 0; i< frequency; i++){
-            if(attemptInfection(sim, infection, stage, degree)) return true;
+            if(attemptInfection(sim, infection, stage, degree, Agent.MODEHETEROCOITIS)) return true;
         }
         return false;
     }
@@ -175,11 +237,11 @@ public class Female extends Agent implements Steppable{
     @Override
     public void draw(Object object, Graphics2D graphics, DrawInfo2D info){
         graphics.setColor(col);
-        int x = (int)(info.draw.x - (info.draw.width+1) / 2.0);
-        int y = (int)(info.draw.y - (info.draw.height+1) / 2.0);
-        int width = (int)(info.draw.width) +1;
-        int height = (int)(info.draw.height) +1;
+        int x = (int)(info.draw.x - (info.draw.width *width) / 2.0);
+        int y = (int)(info.draw.y - (info.draw.height*height) / 2.0);
+        int w = (int)((info.draw.width) * width);
+        int h = (int)((info.draw.height) * height);
         
-        graphics.fillOval(x,y,width, height);
+        graphics.fillOval(x,y,w, h);
     }
 }

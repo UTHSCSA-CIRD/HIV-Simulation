@@ -8,6 +8,7 @@ import hivMicroSim.HIV.Genotype;
 import hivMicroSim.Agent.Male;
 import hivMicroSim.Agent.Female;
 import hivMicroSim.Agent.Agent;
+import hivMicroSim.Agent.Pregnancy;
 import sim.engine.*;
 import sim.field.network.*;
 import java.util.ArrayList;
@@ -32,17 +33,40 @@ public class HIVMicroSim extends SimState{
     public int maleWant = 6; // 0-10
     public int femaleWant = 5; // 0-10
     public double ccr5Resistance = .01; //.00-1 - decimal percentage of population with ccr5 resistance.
-    
-    public double femaleLikelinessFactor = 1.5; //the increased likelihood of females to aquire the virus. 
-    public double circumcisionLikelinessFactor = .5;
-    /*
-    * For a score of 1000 (No resistance, viral load 1000, male, uncircumcised) give a 1 in 100 chance per interaction. (1/10 for 10 interactions)
-    */
-    public double perInteractionLikelihood = 0.00001; //we'll say this per 100 in viral load..? -- Obviously we'll need some adjustments here 
-    
     /*http://www.k-state.edu/parasitology/biology198/answers1.html 
     * Hardy-Weinberg Law - p^2 + 2pq + q^2 = 1 and p + q = 1; 
     */
+    public double femaleLikelinessFactor = 1.5; //the increased likelihood of females to aquire the virus. 
+    public double circumcisionLikelinessFactor = .5;
+    /*
+    * For a score of 1000 (No resistance, viral load 1000, male, uncircumcised) give a 1 in 10 chance per interaction.
+    */
+    public double perInteractionLikelihood = 0.00001; //we'll say this per 100 in viral load..? -- Obviously we'll need some adjustments here 
+    public double motherToChildInfection = .1;
+    //Population statistics
+    public int averageAge = 300;//in months
+    public int averageLifeSpan = 780;
+    public double pregnancyChance = .008;
+    
+    public double getMotherToChildInfection(){
+        return motherToChildInfection;
+    }
+    public int getAverageAge(){
+        return averageAge;
+    }
+    public int getAverageLifeSpan(){
+        return averageLifeSpan;
+    }
+    public void setAverageAge(int a){
+        if(a > 1 && a < averageLifeSpan){
+            averageAge = a;
+        }
+    }
+    public void setAverageLifeSpan(int a){
+        if(a > 20 && a> averageAge){
+            averageAge = a;
+        }
+    }
     public int getInfected(){
         return infected;
     }
@@ -206,7 +230,63 @@ public class HIVMicroSim extends SimState{
         network = new Network();
         infected = 0;
     }
-    
+    public Agent createNewAgent(Pregnancy p){
+        boolean female;
+        ArrayList<Infection> infections = new ArrayList<>();
+        ArrayList<AlloImmunity> allo = new ArrayList<>();
+        ArrayList<SeroImmunity> sero = new ArrayList<>();
+        int offsetF;
+        int offsetW;
+        int condomUse;
+        double want;
+        int offsetCondom = percentCondomUse - 50;
+        int faithfulness;
+        
+        Stoppable stopper;
+        female = random.nextBoolean();
+        if(female){
+            offsetF = femaleFaithfulness -5;
+            offsetW = femaleWant - 5;
+        }else{
+            offsetF = maleFaithfulness -5;
+            offsetW = maleWant - 5;
+        }
+        
+        try{
+
+            faithfulness = getGaussianRange(offsetF, 0, 10);
+        }catch(OffSetOutOfRangeException e){
+            System.err.println("OffsetFaithfulness");
+            faithfulness = getGaussianRange(0, 10);
+        }
+        try{
+            want = getGaussianRangeDouble(offsetW, 0, 10);
+        }catch(OffSetOutOfRangeException e){
+            System.err.println("OffsetWant");
+            want = getGaussianRangeDouble(0, 10);
+        }
+        try{
+            condomUse = getGaussianRange(offsetCondom, 0, 100);
+        }catch(OffSetOutOfRangeException e){
+            System.err.println("CondomUse offset");
+            condomUse = getGaussianRange(0,100);
+        }
+        Agent agent;
+        int i = agents.allObjects.size();
+        if(female){
+            agent = new Female(i, faithfulness, condomUse, want, 0, p.getCCR51(), p.getCCR52(), p.getImmuneFactors(), 0);
+        }else{
+            agent = new Male(i, faithfulness, condomUse, want, 0, p.getCCR51(), p.getCCR52(), p.getImmuneFactors(), 0);
+        }
+        //add to grids
+        agents.setObjectLocation(agent,random.nextInt(gridWidth), random.nextInt(gridHeight));
+        network.addNode(agent); // handles the network only! Display of nodes handled by continuous 2D
+        //add to schedule
+        stopper = schedule.scheduleRepeating(agent);
+        //set stoppable
+        agent.setStoppable(stopper);
+        return agent;
+    }
     @Override
     public void start(){
         super.start();
@@ -236,9 +316,10 @@ public class HIVMicroSim extends SimState{
         boolean ccr52;
         double immuneFactors;
         double lack;
+        int age;
+        int ageOffset = averageAge - averageLifeSpan; //should be negative. 
         //currently fudged variables
         
-        int age = 220;//over 18 for now
         ArrayList<Infection> infections = new ArrayList<>();
         ArrayList<AlloImmunity> allo = new ArrayList<>();
         ArrayList<SeroImmunity> sero = new ArrayList<>();
@@ -271,6 +352,14 @@ public class HIVMicroSim extends SimState{
             }catch(OffSetOutOfRangeException e){
                 System.err.println("CondomUse offset");
                 condomUse = getGaussianRange(0,100);
+            }
+            try{
+  ///////////////////Note that this is a bad fit 2* averageLifeSpan is not a good range and may result in an older population than
+                //desired. 
+                age = getGaussianRange(ageOffset, 0, (2*averageLifeSpan));
+            }catch(OffSetOutOfRangeException e){
+                System.err.println("Age offset out of bounds");
+                age = getGaussianRange(1, averageLifeSpan);
             }
             ccr5 = random.nextDouble(); // next double between 0 and 1(exclusive)
             if(ccr5 < ccr5GenePrevalence){
@@ -308,7 +397,7 @@ public class HIVMicroSim extends SimState{
         Relationship edge;
         int edgeVal;
         for (Agent me : s) {
-            if(age<216)continue;//18 years * 12 months
+            if(me.getAge()<216)continue;//18 years * 12 months
             roll = random.nextInt(11);
             if(roll < me.getLack()){
                 do{//repeat until we find a
@@ -341,7 +430,7 @@ public class HIVMicroSim extends SimState{
             boolean inf = false;
             do{
                 roll = random.nextInt(numAgents);
-                if(s[roll].getAge() >= 216){
+                if(s[roll].getAge() >= 216){//lets assume children aren't doing things to become patient 0.
                     inf = s[roll].infect(genotypeList.get(0));
                 }
             }while(inf == false); //so that if we find someone resistant or if they are too young.
@@ -356,8 +445,10 @@ public class HIVMicroSim extends SimState{
                 double diff;
                 int ii;
                 Agent connect;
+                Agent agent;
                 Relationship e;
-                for(Agent agent : s){
+                for(Object o : agents.allObjects){
+                    agent = (Agent) o;
                     if(!agent.alive) continue;
                     if(agent.getAge() < 216) continue;
                     if(agent.getNetworkSize()>0){// if < =0 no network.

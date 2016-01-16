@@ -48,7 +48,13 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     protected final ArrayList<Infection> infections;
     protected int age; // measured in months/ ticks. 
     protected Color col = Color.gray;
+    protected double width = 1;
+    protected double height = 1;
     protected Stoppable stopper;
+    
+    //infection modes
+    public static final int MODEHETEROCOITIS = 1;
+    public static final int MODEMOTHERCHILD = 2;
     
     public void setStoppable(Stoppable stop){
         stopper = stop;
@@ -304,7 +310,7 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     
     @Override
     public abstract void draw(Object object, Graphics2D graphics, DrawInfo2D info);
-    public boolean attemptInfection(HIVMicroSim sim, HIVInfection infection, int stage, double degree){
+    public boolean attemptInfection(HIVMicroSim sim, HIVInfection infection, int stage, double degree, int mode){
 //////////////////////Basic infection algorithm will need refining.
         //degree could refer to alloimmunity or the effect of antiretroviral therapy.
         //CCR5 immunity
@@ -331,7 +337,14 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         if(stage == 1) degree = degree * DiseaseMatrix.ACUTEXFACTOR; //int passed by value
         else if (stage == 2) degree = degree * DiseaseMatrix.AIDSXFACTOR;
         degree = infection.getVirulence() * degree; //now this is the infectivity of this contact.
-        degree = degree * sim.perInteractionLikelihood;
+        switch(mode){
+            case MODEHETEROCOITIS:
+                degree = degree * sim.perInteractionLikelihood;
+                break;
+            case MODEMOTHERCHILD:
+                degree = degree * sim.motherToChildInfection;
+                break;        
+        }
         double roll = sim.random.nextDouble(); // next double between 0 and 1 (noninclusive)
         return (roll<degree); //as degree increases the chance of having a double below that increases. 
     }

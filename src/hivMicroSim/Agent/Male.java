@@ -80,6 +80,13 @@ public class Male extends Agent implements Steppable{
     public void step(SimState state){
         HIVMicroSim sim = (HIVMicroSim) state;
         age++;
+        if(age >= 216){
+            width = 2;
+            height = 2;
+        }else{
+            width = 1;
+            height = 1;
+        }
         //adjust disease
         if(infected){
             if(hiv.progress(1)){
@@ -168,7 +175,7 @@ public class Male extends Agent implements Steppable{
 ////////////////////////This needs refining.
         
         for(int i = 0; i< frequency; i++){
-            if(attemptInfection(sim, infection, stage, degree)) return true;
+            if(attemptInfection(sim, infection, stage, degree, Agent.MODEHETEROCOITIS)) return true;
         }
         return false;
     }
@@ -176,11 +183,11 @@ public class Male extends Agent implements Steppable{
     @Override
     public void draw(Object object, Graphics2D graphics, DrawInfo2D info){
         graphics.setColor(col);
-        int x = (int)(info.draw.x - (info.draw.width +1) / 2.0);
-        int y = (int)(info.draw.y - (info.draw.height+1) / 2.0);
-        int width = (int)(info.draw.width) +1;
-        int height = (int)(info.draw.height) +1;
+        int x = (int)(info.draw.x - (info.draw.width *width) / 2.0);
+        int y = (int)(info.draw.y - (info.draw.height*height) / 2.0);
+        int w = (int)((info.draw.width) * width);
+        int h = (int)((info.draw.height) * height);
         
-        graphics.fillRect(x,y,width, height);
+        graphics.fillRect(x,y,w, h);
     }
 }
