@@ -32,6 +32,7 @@ public class Pregnancy implements java.io.Serializable{
         this.immuneFactors = immuneFactors;
         this.ccr51 = ccr51;
         this.ccr52 = ccr52;
+        month = 0;
     }
     
     

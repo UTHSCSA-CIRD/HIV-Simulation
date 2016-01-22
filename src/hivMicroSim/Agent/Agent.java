@@ -27,11 +27,12 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     //Behavioral Factors
     public final int ID;
     protected final int faithfulness; // between 1 and 10
-    protected int condomUse; //between 1 and 100
+    protected double condomUse; //between 0 and 1 inclusive
     protected final double wantLevel;
     protected double networkLevel;
     protected double lack; //lack of fulfillment in current relationships
     public boolean alive = true;
+    protected boolean married;
     
     //Genetic factors
     private final boolean female;
@@ -47,6 +48,11 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     protected DiseaseMatrix hiv = null;
     protected final ArrayList<Infection> infections;
     protected int age; // measured in months/ ticks. 
+    protected int life; // cheap way to say- how long this person should live without HIV/AIDS. This should probably
+    //be changed by a statistician to use Gompertz or some other algorithm/source, but for now it is assigned using a
+    //gaussian distribution from 0 to life expectancy + .5(life expectancy) offset to mean of life expectancly.
+    //This ignores infant morality as does Gompertz (since it seems to best model rate of death after a certain age... and potentially
+    //also up to a certain age.) -- again. statistician. ^.^;; 
     protected Color col = Color.gray;
     protected double width = 1;
     protected double height = 1;
@@ -61,10 +67,12 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     }
     
     
+    
+    public boolean isMarried(){return married;}
     protected final ArrayList<Relationship> network;
     
-    public Agent(int id, int faithfullness, int condomUse, double wantLevel, double lack, boolean ccr51, boolean ccr52, double immuneFactors, boolean female,
-            int age){
+    public Agent(int id, int faithfullness, double condomUse, double wantLevel, double lack, boolean ccr51, boolean ccr52, double immuneFactors, boolean female,
+            int age, int life){
         ID = id;
         faithfulness = faithfullness;// because the programmer can't spell... 
         this.condomUse = condomUse;
@@ -79,13 +87,14 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         alloImmunity = new ArrayList<>();
         infections = new ArrayList<>();
         this.age = age;
+        this.life = life;
         
         infected = false;
         network = new ArrayList<>();
         networkLevel = 0;
     }
-    public Agent(int id, int faithfullness, int condomUse, double wantLevel, double lack, boolean ccr51, boolean ccr52, double immuneFactors, boolean female,
-            ArrayList<SeroImmunity> sero, ArrayList<AlloImmunity> allo, int age, ArrayList<Infection> coinfections ){
+    public Agent(int id, int faithfullness, double condomUse, double wantLevel, double lack, boolean ccr51, boolean ccr52, double immuneFactors, boolean female,
+            ArrayList<SeroImmunity> sero, ArrayList<AlloImmunity> allo, int age, int life, ArrayList<Infection> coinfections ){
         ID = id;
         faithfulness = faithfullness;// because the programmer can't spell... 
         this.condomUse = condomUse;
@@ -99,14 +108,15 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         seroImmunity = sero;
         alloImmunity = allo;
         this.age = age;
+        this.life = life;
         infections = coinfections;
         
         infected = false;
         network = new ArrayList<>();
         networkLevel = 0;
     }
-    public Agent(int id, int faithfullness, int condomUse, double wantLevel, double lack, boolean ccr51, boolean ccr52, double immuneFactors, boolean female,
-            ArrayList<SeroImmunity> sero, ArrayList<AlloImmunity> allo, int age, ArrayList<Infection> coinfections, DiseaseMatrix disease){
+    public Agent(int id, int faithfullness, double condomUse, double wantLevel, double lack, boolean ccr51, boolean ccr52, double immuneFactors, boolean female,
+            ArrayList<SeroImmunity> sero, ArrayList<AlloImmunity> allo, int age, int life, ArrayList<Infection> coinfections, DiseaseMatrix disease){
         
         ID = id;
         faithfulness = faithfullness;// because the programmer can't spell... 
@@ -121,6 +131,7 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         seroImmunity = sero;
         alloImmunity = allo;
         this.age = age;
+        this.life = life;
         infections = coinfections;
         
         hiv = disease;
@@ -147,11 +158,14 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     public int getFaithfulness(){
         return faithfulness;
     }
-    public int getCondomUse(){return condomUse;}
-    public void setCondomUse(int a){
-        if(a >= 0 && a <= 100){
+    public double getCondomUse(){return condomUse;}
+    public void setCondomUse(double a){
+        if(a >= 0 && a <= 1){
             condomUse = a;
         }
+    }
+    public int getLifeSpan(){
+        return life;
     }
     public double getWantLevel(){return wantLevel;}
     public double getLack(){
@@ -297,12 +311,19 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     public double getNetworkLevel(){
         return networkLevel;
     }
-    public boolean wantsConnection(){
-        return networkLevel < wantLevel;
+    public boolean wantsConnection(double roll){
+        if(age <216) return false;
+        if(networkLevel >= wantLevel) return false;
+        if(married){
+            return (roll+faithfulness) < (lack-networkLevel);
+        }else{
+            return((roll+faithfulness) < lack);
+        }
     }
     public int getNetworkSize(){
         return network.size();
     }
+    public abstract void removeOneShots(SimState state);
     public abstract boolean addEdge(Relationship a);
     public abstract boolean removeEdge(Relationship a);
     @Override
@@ -348,4 +369,5 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         double roll = sim.random.nextDouble(); // next double between 0 and 1 (noninclusive)
         return (roll<degree); //as degree increases the chance of having a double below that increases. 
     }
+    public abstract void deathFromOtherCauses(SimState state);
 }

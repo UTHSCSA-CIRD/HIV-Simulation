@@ -14,9 +14,9 @@ public class Relationship extends Edge implements java.io.Serializable{
     private final static long serialVersionUID = 1;
     
     private final int type;
-        public static final int MARRIAGE = 1;
+        public static final int MARRIAGE = 3;
         public static final int RELATIONSHIP = 2;
-        public static final int ONETIME = 3;
+        public static final int ONETIME = 1;
     private final int coitalFrequency;
     private final Agent m,f;
     

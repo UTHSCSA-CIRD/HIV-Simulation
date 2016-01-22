@@ -6,8 +6,8 @@
 package hivMicroSim.Agent;
 import hivMicroSim.AlloImmunity;
 import hivMicroSim.HIV.DiseaseMatrix;
-import hivMicroSim.HIV.Genotype;
 import hivMicroSim.HIV.HIVInfection;
+import hivMicroSim.HIVLogger;
 import hivMicroSim.HIVMicroSim;
 import hivMicroSim.Infection;
 import hivMicroSim.Relationship;
@@ -26,18 +26,18 @@ public class Female extends Agent implements Steppable{
     private boolean pregnant;
     private Pregnancy pregnancy;
     
-    public Female(int id, int faithfullness, int condomUse, double wantLevel, double lack, boolean ccr51, boolean ccr52, double immuneFactors, 
-            int age){
-        super(id, faithfullness, condomUse, wantLevel, lack, ccr51, ccr52, immuneFactors, true, age);
+    public Female(int id, int faithfullness, double condomUse, double wantLevel, double lack, boolean ccr51, boolean ccr52, double immuneFactors, 
+            int age, int life){
+        super(id, faithfullness, condomUse, wantLevel, lack, ccr51, ccr52, immuneFactors, true, age, life);
         
     }
-    public Female(int id, int faithfullness, int condomUse, double wantLevel, double lack, boolean ccr51, boolean ccr52, double immuneFactors, 
-            ArrayList<SeroImmunity> sero, ArrayList<AlloImmunity> allo, int age, ArrayList<Infection> coinfections ){
-        super(id, faithfullness, condomUse, wantLevel, lack, ccr51, ccr52, immuneFactors, true, sero, allo, age, coinfections);
+    public Female(int id, int faithfullness, double condomUse, double wantLevel, double lack, boolean ccr51, boolean ccr52, double immuneFactors, 
+            ArrayList<SeroImmunity> sero, ArrayList<AlloImmunity> allo, int age, int life, ArrayList<Infection> coinfections ){
+        super(id, faithfullness, condomUse, wantLevel, lack, ccr51, ccr52, immuneFactors, true, sero, allo, age, life, coinfections);
     }
-    public Female(int id, int faithfullness, int condomUse, double wantLevel, double lack, boolean ccr51, boolean ccr52, double immuneFactors, 
-            ArrayList<SeroImmunity> sero, ArrayList<AlloImmunity> allo, int age, ArrayList<Infection> coinfections, DiseaseMatrix disease){
-        super(id,faithfullness, condomUse, wantLevel, lack, ccr51, ccr52, immuneFactors, true, sero, allo, age, coinfections, disease);
+    public Female(int id, int faithfullness, double condomUse, double wantLevel, double lack, boolean ccr51, boolean ccr52, double immuneFactors, 
+            ArrayList<SeroImmunity> sero, ArrayList<AlloImmunity> allo, int age, int life, ArrayList<Infection> coinfections, DiseaseMatrix disease){
+        super(id,faithfullness, condomUse, wantLevel, lack, ccr51, ccr52, immuneFactors, true, sero, allo, age, life, coinfections, disease);
     }
     public boolean makePregnant(Pregnancy p){
         if(pregnant) return false;
@@ -57,29 +57,32 @@ public class Female extends Agent implements Steppable{
         //make sure we're not duplicating a relationship
         int o = a.getMale().ID;
         if (!network.stream().noneMatch((f) -> (f.getMale().ID == o))) return false;
-        
         network.add(a);
         
         //System.out.print("DEBUG: Add Relationship. Network Level: " + networkLevel + " added: " + a.getCoitalFrequency());
         networkLevel += a.getCoitalFrequency();
+        if(a.getType() == Relationship.MARRIAGE){
+            married = true;
+        }
         //System.out.print(" new Network Level: " + networkLevel + "\n");
-        adjustLack(-a.getCoitalFrequency());
         return true;
     }
     @Override
     public boolean removeEdge(Relationship a){
-        
         int o = a.getMale().ID;
         for(int i = 0; i<network.size();i++){
-            if(network.get(i).getMale().ID == o){
+            Relationship r = network.get(i);
+            if(r.getMale().ID == o){
                 //System.out.print("DEBUG: Delete Relationship: " + networkLevel + " removed " + network.get(i).getCoitalFrequency());
-                networkLevel -= network.get(i).getCoitalFrequency();
+                networkLevel -= r.getCoitalFrequency();
+                if(r.getType() == Relationship.MARRIAGE){
+                    married = false;
+                }
                 network.remove(i);
                 //System.out.print(" new Network Level: " + networkLevel + "\n");
                 return true;
             }
         }
-        
         return false;// could not find the edge! 
     }
    
@@ -87,6 +90,10 @@ public class Female extends Agent implements Steppable{
     public void step(SimState state){
         HIVMicroSim sim = (HIVMicroSim) state;
         age++;
+        if(age > life){
+            deathFromOtherCauses(state);
+            return;
+        }
         int roll;
         if(age >= 216){
             width = 1.5;
@@ -95,13 +102,19 @@ public class Female extends Agent implements Steppable{
                 if(pregnancy.step()){
                     //a little one is born! Now.... if mom is HIV positive... 
                     Agent littleOne = sim.createNewAgent(pregnancy);
+                    pregnant = false;
+                    pregnancy = null;
                     if(infected){
                         ArrayList<HIVInfection> infs = hiv.getGenotypes();
                         //attempt to infect the little one
-                        roll = Math.abs(sim.getGaussianRange(-(infs.size()-1), (infs.size()-1)));
+                        if(infs.size() > 1){
+                            roll = Math.abs(sim.getGaussianRange(-(infs.size()-1), (infs.size()-1)));
+                        }else{
+                            roll = 0;
+                        }
                         if(littleOne.attemptInfection(sim, infs.get(roll), hiv.getStage(), 1, Agent.MODEMOTHERCHILD)){
                             //Poor little guy was infected :( 
-                            sim.infected++;
+                            sim.logger.insertInfection(HIVLogger.INFECT_MOTHERTOCHILD, ID, littleOne.ID, infs.get(roll).getGenotype(), true);
                             littleOne.infect(sim.genotypeList.get(infs.get(roll).getGenotype()));
                         }
                     }
@@ -113,53 +126,75 @@ public class Female extends Agent implements Steppable{
         }
         //adjust disease
         if(infected){
-            if(hiv.progress(1)){
+            if(hiv.progress(age<216?2:1)){//if young, the disease progresses more rapidly. 
                 //we have progressed in the infection. 
                 int stage = hiv.getStage();
-                //temporary debug
                 switch(stage){
                     case 1:
                         col = Color.red;
                         break;
                     case 2:
                         col = Color.GREEN;
+                        sim.logger.insertProgression(ID, stage);
                         break;
                     case 3: 
                         col = Color.orange;
+                        sim.logger.insertProgression(ID, stage);
                         break;
                     case 4: 
                         col = Color.black;
+                        sim.logger.insertDeath(ID, false, true, (ccr51&ccr52));
                         //remove all relationships.
-                        Relationship r;
-                        int ns = network.size();
-                        ns--;
-                        for(int i = ns; i>= 0; i--){//start with the last element and work down to empty out the list
-                            r = network.get(i);
+                        for(Relationship r : network){//start with the last element and work down to empty out the list
                             r.getMale().removeEdge(r);
                             sim.network.removeEdge(r);
                         }
+                        sim.network.removeNode(this);
+                        networkLevel = 0;
                         network.clear();
                         alive = false;
                         stopper.stop();
                 }
-                System.out.println("DEBUG: Agent changed to stage " + stage);
             }
         }
         //adjust for network edges (note, this does not change the edges, just adds their effect and potential infection. 
+        if(age <216) return;// network processing for children should be skipped. 
         double adj = wantLevel;
         Agent other;
+        int PFC; //protection-free coitis
+        double PFCRoll;
         forEachRelationship:
         for (Relationship network1 : network) {
             adj -= network1.getCoitalFrequency();
             other = network1.getMale();
-////////////////////////// TODO -- handle condom use! Least likely to use condoms with spouse, most likely to use them with one shot.
-            //for now we assume every coital act is unprotected.
-            if(!pregnant && age <= 480){
+            switch(network1.getType()){
+                case Relationship.MARRIAGE: // less likely to use condoms
+                    PFCRoll = (sim.getGaussianRangeDouble(-.25, 0) + ((other.condomUse+condomUse)/2));//average of partners + a random + or - between .25;
+                    if(PFCRoll < 0) PFCRoll = 0;
+                    if(PFCRoll > 1) PFCRoll = 1;
+                    PFCRoll = 1-PFCRoll; // switch this around to likelihood of NOT using vs Using condoms. 
+                    PFC = (int)(PFCRoll * network1.getCoitalFrequency());//PFCRoll is the percentage of time using condoms PFC is the number of times without using condoms - Java rounds down.
+                    break;
+                case Relationship.RELATIONSHIP:
+                    PFCRoll = (sim.getGaussianRangeDouble(-.25, .25) + ((other.condomUse+condomUse)/2));//average of partners + a random + or - between .25;
+                    if(PFCRoll < 0) PFCRoll = 0;
+                    if(PFCRoll > 1) PFCRoll = 1;
+                    PFCRoll = 1-PFCRoll; // switch this around to likelihood of NOT using vs Using condoms. 
+                    PFC = (int)(PFCRoll * network1.getCoitalFrequency());//PFCRoll is the percentage of time using condoms PFC is the number of times without using condoms - Java rounds down.
+                    break;
+                default: //one shot - more likely to use condoms
+                    PFCRoll = (sim.getGaussianRangeDouble(0, .25) + ((other.condomUse+condomUse)/2));//average of partners + a random + or - between .25;
+                    //because java rounds down x<1 results in 0 PFC, thus we use the halfway mark and simply assign the single action. 
+                    if(PFCRoll < .5) PFC = 1;
+                    else PFC = 0; 
+            }
+            if(!pregnant && age <= 480 && PFC > 0){
                 //attempt to become so! 
-                for(int i = 0; i< network1.getCoitalFrequency(); i++){
+                for(int i = 0; i< PFC; i++){
                    double pg = sim.random.nextDouble();
                     if(pg < sim.pregnancyChance){
                     //she's pregnant! 
+                        sim.logger.insertConception(ID, other.ID);
                         pregnant = true;
                         double imfac = (otherImmunityFactors + other.otherImmunityFactors) / 2;
                         boolean rand;
@@ -182,9 +217,8 @@ public class Female extends Agent implements Steppable{
                 }
                 
             }
-            if(other.infected){
-
-                
+            if(PFC > 0) addAlloImmunity(other.ID, PFC);
+            if(other.infected && PFC >0){
                 //select a genotype from the other 
                 ArrayList<HIVInfection> otherInfections = other.getDiseaseMatrix().getGenotypes(); 
                 HIVInfection infection;
@@ -203,22 +237,23 @@ public class Female extends Agent implements Steppable{
                 }
                 //attempt infection
 ///////////////////Calculated frequency of unprotected coitus. 
-                if(attemptCoitalInfection(sim, infection, other.getDiseaseMatrix().getStage(), network1.getCoitalFrequency(), other.ID, 1.0)){
+                if(attemptCoitalInfection(sim, infection, other.getDiseaseMatrix().getStage(), PFC, other.ID, 1.0)){
                     //We've been infected!
-                    System.out.println("DEBUG: INFECTED!!!!");
-                    if(infect(sim.genotypeList.get(infection.getGenotype()))) sim.infected++;
+                    boolean pre = !infected;
+                    if(infect(sim.genotypeList.get(infection.getGenotype()))) {
+                        sim.logger.insertInfection(HIVLogger.INFECT_HETERO, ID, other.ID, infection.getGenotype(), pre);
+                    }
                 }
                 
             }
         }
         //System.out.print("DEBUG: Lack: " + lack + " want: " + wantLevel + " Network Level: " + networkLevel + " of size " + network.size() + " produced: " );
-        adjustLack(adj);
+        adjustLack((adj/12));
         //System.out.print(" new lack: " + lack + "\n");
     }
     public boolean attemptCoitalInfection(HIVMicroSim sim, HIVInfection infection, int stage, int frequency, int agent, double degree){
         //this calculates the potential reduction from alloimmunity, then passes it on to attemptInfection. 
         int alloImmunity = getAlloImmunity(agent);
-        addAlloImmunity(agent, frequency);
         if(alloImmunity > 100){
             degree= 1/(alloImmunity *.01);
         }
@@ -243,5 +278,40 @@ public class Female extends Agent implements Steppable{
         int h = (int)((info.draw.height) * height);
         
         graphics.fillOval(x,y,w, h);
+    }
+    @Override
+    public void removeOneShots(SimState state){
+        HIVMicroSim sim = (HIVMicroSim) state;
+        for(int i = network.size()-1; i >=0; i--){
+            Relationship r = network.get(i);
+            if(r.getType() == Relationship.ONETIME){
+                r.getMale().removeEdge(r);
+                sim.network.removeEdge(r);
+                networkLevel -= r.getCoitalFrequency();
+                network.remove(i);
+            }
+        }
+    }
+    @Override
+    public void deathFromOtherCauses(SimState state){
+        
+        //3 steps
+        HIVMicroSim sim = (HIVMicroSim)state;
+        sim.logger.insertDeath(ID, true, infected, (ccr51&ccr52));
+        //1- remove networks
+        Agent other;
+        for(Relationship r : network){
+            other = r.getMale();
+            other.removeEdge(r);
+            sim.network.removeEdge(r);
+        }
+        sim.network.removeNode(this);
+        //note- no need to remove this agent's network edges right now because it will be garbabe collected. 
+        //-also no reason to change it to dead, but just in case something funky happens, lets debug it to color yellow or something.
+        col = Color.CYAN;
+        //2- remove from sparse plot
+        sim.agents.remove(this);
+        //3- Remove from schedule
+        stopper.stop();
     }
 }
