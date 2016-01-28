@@ -50,6 +50,19 @@ public class HIVMicroSim extends SimState{
     public int averageLifeSpan = 780;
     public double pregnancyChance = .008;
     public HIVLogger logger;
+    public int initializationOnTick = 300; // the tick on which we will initiate infection. 
+    
+    public int getStartInfected(){
+        return numInfect;
+    }
+    public int getInitializationTick(){
+        return initializationOnTick;
+    }
+    public void setInitializationTick(int a){
+        if(a >0){
+            initializationOnTick = a;
+        }
+    }
     
     public double getMotherToChildInfection(){
         return motherToChildInfection;
@@ -306,12 +319,8 @@ public class HIVMicroSim extends SimState{
     @Override
     public void start(){
         super.start();
-        try{
-            logger = new HIVLogger(HIVLogger.LOG_ALL, "eventLog.txt", "yearLog.txt","agentLog.txt", numAgents, numInfect);
-        }catch(IOException e){
-            System.err.println("Exception when creating logger!! ");
-            logger = new HIVLogger();
-        }
+        logger = new HIVLogger();
+        
         setupGenoTypeList();
         agents = new SparseGrid2D(gridWidth, gridHeight);
         network = new Network(false);
@@ -424,7 +433,6 @@ public class HIVMicroSim extends SimState{
             agent.setStoppable(stopper);
             s[i] = agent;
         }
-        logger.firstSet(s);
         //generate initial network.
         int roll;
         double rollD;
@@ -479,16 +487,7 @@ public class HIVMicroSim extends SimState{
                 }
             }
         }
-        //Setup initial infection
-        for(int i = 0; i<numInfect;i++){
-            boolean inf = false;
-            do{
-                roll = random.nextInt(numAgents);
-                if(s[roll].getAge() >= 216){//lets assume children aren't doing things to become patient 0.
-                    inf = s[roll].infect(genotypeList.get(0));
-                }
-            }while(inf == false); //so that if we find someone resistant or if they are too young.
-        }
+       
         //add network stepable- break & create networks
         Steppable n = new Steppable(){
             private static final long serialVersionUID = 1;
@@ -579,7 +578,10 @@ public class HIVMicroSim extends SimState{
             }//end step
         };
         schedule.scheduleRepeating(Schedule.EPOCH, 2, n);
-        schedule.scheduleRepeating(Schedule.EPOCH, 0, logger);
+        
+        //create and schedule the infect timer. 
+        Infector infectTimer = new Infector(initializationOnTick, numInfect);
+        infectTimer.setStopper(schedule.scheduleRepeating(Schedule.EPOCH, 4, infectTimer));
     }
     public static void main(String[] args){
         doLoop(HIVMicroSim.class, args);
