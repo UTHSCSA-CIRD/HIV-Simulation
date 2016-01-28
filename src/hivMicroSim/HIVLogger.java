@@ -167,8 +167,10 @@ public class HIVLogger implements sim.engine.Steppable{
         }
         eventQueue.add(log);
     }
-    public void firstSet(Agent[] agents){// for setting up that initial number of homozygous CCR5Delta32 mutations. 
-        for(Agent a : agents){
+    public void firstSet(sim.util.Bag agents){// for setting up that initial number of homozygous CCR5Delta32 mutations. 
+        Agent a;
+        for(Object o : agents){
+            a = (Agent)o;
             if(a.getCCR5Resistance() == 100) CCR5Homozygous++;
             if(logLevel < LOG_INFECT)continue;
             String log = a.ID + "\t";
