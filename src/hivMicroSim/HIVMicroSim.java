@@ -80,7 +80,7 @@ public class HIVMicroSim extends SimState{
     }
     public void setAverageLifeSpan(int a){
         if(a > 20 && a> averageAge){
-            averageAge = a;
+            averageLifeSpan = a;
         }
     }
     public double getPerInteractionLikelihood(){
