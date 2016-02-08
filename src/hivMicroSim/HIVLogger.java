@@ -10,6 +10,7 @@ import java.io.IOException;
 import sim.engine.SimState;
 import java.util.ArrayDeque;
 import hivMicroSim.Agent.Agent;
+import hivMicroSim.Agent.Gene;
 
 /**
  *
@@ -50,7 +51,6 @@ public class HIVLogger implements sim.engine.Steppable{
     private int yearInfect = 0;
     private int yearPrevalence = 0;
     private int yearLiving = 0; //the number of agents alive at the start of the year for rate calculations;
-    private int CCR5Homozygous = 0;
     private int livingAgents = 0;
     
     //note that 
@@ -74,7 +74,7 @@ public class HIVLogger implements sim.engine.Steppable{
         turn++;
         month++;
         if(month > 12){
-            String log = year + "\t"+ yearLiving + "\t" + yearInfect + "\t" + yearPrevalence + "\t" + yearMortality + "\t" + yearBirth + "\t" + yearDeath+ "\t" + CCR5Homozygous;
+            String log = year + "\t"+ yearLiving + "\t" + yearInfect + "\t" + yearPrevalence + "\t" + yearMortality + "\t" + yearBirth + "\t" + yearDeath;
             try{
                 yearOut.newLine();
                 yearOut.write(log);
@@ -127,20 +127,21 @@ public class HIVLogger implements sim.engine.Steppable{
         String log = agent1 + "\tConceived\t\t" +agent2 + "\t" + turn; 
         eventQueue.add(log);
     }
-    public void insertBirth(Agent a, boolean CCR5Homo){
+    public void insertBirth(Agent a){
         livingAgents++;
         yearBirth++;
-        if(CCR5Homo) CCR5Homozygous++;
         if(logLevel < LOG_BIRTH) return;
         String log = a.ID + "\tBorn\t\t\t" + turn; 
         eventQueue.add(log);
-        log = a.ID + "\t";
+        log = a.ID + "\t" + turn + "\t";
         if(a.isFemale()){
             log = log + "F\t";
         }else{
             log = log + "M\t";
         }
-        log = log + a.getFaithfulness() + "\t" + a.getWantLevel() + "\t" + a.getCondomUse() + "\t" + a.getCCR5Resistance() + "\t" + a.getImmunityFactors();
+        log = log + a.getFaithfulness() + "\t" + a.getWantLevel() + "\t" + a.getCondomUse() + "\t" + Gene.getCCR5(a.ccr51)+ "\t" + Gene.getCCR5(a.ccr52)+ "\t" + Gene.getCCR2(a.ccr21)+ "\t" + Gene.getCCR2(a.ccr22) +
+                "\t" + Gene.getHLA_A(a.HLA_A1) + "\t" + Gene.getHLA_A(a.HLA_A2)+ "\t" + Gene.getHLA_B(a.HLA_B1)+ "\t" + Gene.getHLA_B(a.HLA_B2) + "\t" + Gene.getHLA_C(a.HLA_C1) + "\t" + Gene.getHLA_C(a.HLA_C2) +
+                "\t" + a.getCCR5SusceptibilityFactor() + "\t" + a.getHLAImmuneFactor();
         try{
             agentOut.newLine();
             agentOut.write(log);
@@ -148,10 +149,9 @@ public class HIVLogger implements sim.engine.Steppable{
             System.err.println("Could not print to agent: " + e.getLocalizedMessage() + "\n" + log);
         }
     }
-    public void insertDeath(int agent1, boolean natural, boolean infected, boolean CCR5Homo){
+    public void insertDeath(int agent1, boolean natural, boolean infected){
         yearDeath++;
         livingAgents--;
-        if(CCR5Homo) CCR5Homozygous--;
         if(logLevel < LOG_DEATH) return;
         String log = agent1 + "\t";
         if(natural){
@@ -171,16 +171,17 @@ public class HIVLogger implements sim.engine.Steppable{
         Agent a;
         for(Object o : agents){
             a = (Agent)o;
-            if(a.getCCR5Resistance() == 100) CCR5Homozygous++;
             if(logLevel < LOG_INFECT)continue;
-            String log = a.ID + "\t";
+            String log = a.ID + "\t0\t";
             if(a.isFemale()){
                 log = log + "F\t";
             }else{
                 log = log + "M\t";
             }
             
-            log = log + a.getFaithfulness() + "\t" + a.getWantLevel() + "\t" + a.getCondomUse() + "\t" + a.getCCR5Resistance() + "\t" + a.getImmunityFactors();
+            log = log + a.getFaithfulness() + "\t" + a.getWantLevel() + "\t" + a.getCondomUse() + "\t" + Gene.getCCR5(a.ccr51)+ "\t" + Gene.getCCR5(a.ccr52)+ "\t" + Gene.getCCR2(a.ccr21)+ "\t" + Gene.getCCR2(a.ccr22) +
+                "\t" + Gene.getHLA_A(a.HLA_A1) + "\t" + Gene.getHLA_A(a.HLA_A2)+ "\t" + Gene.getHLA_B(a.HLA_B1)+ "\t" + Gene.getHLA_B(a.HLA_B2) + "\t" + Gene.getHLA_C(a.HLA_C1) + "\t" + Gene.getHLA_C(a.HLA_C2) +
+                "\t" + a.getCCR5SusceptibilityFactor() + "\t" + a.getHLAImmuneFactor();
             try{
                 agentOut.newLine();
                 agentOut.write(log);
@@ -197,13 +198,13 @@ public class HIVLogger implements sim.engine.Steppable{
         livingAgents = yearLiving= numAgents;
         
         yearOut = new BufferedWriter(new FileWriter(year, false),(8*1024)); // second argument F means will overwrite if exists. 
-        yearOut.write("Year\tStarting Population\tIncidence\tPrevelance\tMortality\tBirth Rate\tDeath Rate\tCCR5 Homozygous");
+        yearOut.write("Year\tStarting.Population\tIncidence\tPrevelance\tMortality\tBirth.Rate\tDeath.Rate");
         
         eventOut = new BufferedWriter(new FileWriter(event, false),(8*1024)); // second argument F means will overwrite if exists. 
         eventOut.write("Agent\tAction\tGenoType/Stage\tAgent\tStep");
         
         agentOut = new BufferedWriter(new FileWriter(agent, false),(8*1024)); // second argument F means will overwrite if exists. 
-        agentOut.write("ID\tGender\tFaithfulness\tWant\tCondom Usage\tCCR5\tImmune Factors");
+        agentOut.write("ID\tEntry.Step\tGender\tFaithfulness\tWant\tCondom.Usage\tCCR51\tCCR52\tCCR21\tCCR22\tHLA_A1\tHLA_A2\tHLA_B1\tHLA_B2\tHLA_C1\tHLA_C2\tCCR5Factor\tHLAFactor");
         
         eventQueue = new ArrayDeque();
     }

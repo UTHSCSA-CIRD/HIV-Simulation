@@ -23,10 +23,6 @@ public class AlloImmunity implements java.io.Serializable{
     }
     public int addResistance(int a){
         resistance += a;
-        if(resistance > 100){
-            resistance = 100;
-            return 100;
-        }
         if(resistance < 0){
             resistance = 0;
         }

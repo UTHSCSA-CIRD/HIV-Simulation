@@ -25,18 +25,10 @@ import java.awt.*;
 public class Male extends Agent implements Steppable{
     private boolean circumcised = false; //this will be implemented later, but for now we'll just say all men are uncirumcised. 
     
-    public Male(int id, int faithfullness, double condomUse, double wantLevel, double lack, boolean ccr51, boolean ccr52, double immuneFactors, 
-            int age, int life){
-        super(id, faithfullness, condomUse, wantLevel, lack, ccr51, ccr52, immuneFactors, false, age, life);
-        
-    }
-    public Male(int id, int faithfullness, double condomUse, double wantLevel, double lack, boolean ccr51, boolean ccr52, double immuneFactors, 
-            ArrayList<SeroImmunity> sero, ArrayList<AlloImmunity> allo, int age, int life, ArrayList<Infection> coinfections ){
-        super(id, faithfullness, condomUse, wantLevel, lack, ccr51, ccr52, immuneFactors, false, sero, allo, age, life, coinfections);
-    }
-    public Male(int id, int faithfullness, double condomUse, double wantLevel, double lack, boolean ccr51, boolean ccr52, double immuneFactors, 
-            ArrayList<SeroImmunity> sero, ArrayList<AlloImmunity> allo, int age, int life, ArrayList<Infection> coinfections, DiseaseMatrix disease){
-        super(id,faithfullness, condomUse, wantLevel, lack, ccr51, ccr52, immuneFactors, false, sero, allo, age, life, coinfections, disease);
+    public Male(int id, int faithfullness, double condomUse, double wantLevel, double lack, byte ccr51, byte ccr52, byte ccr21, byte ccr22,byte HLAA1, byte HLAA2,
+            byte HLAB1, byte HLAB2, byte HLAC1, byte HLAC2, int age, int life){
+        super(id, faithfullness, condomUse, wantLevel, lack, ccr51, ccr52, ccr21, ccr22, HLAA1, HLAA2,
+            HLAB1, HLAB2, HLAC1, HLAC2, false, age, life);
     }
     @Override
     public boolean isFemale(){return false;}
@@ -116,7 +108,7 @@ public class Male extends Agent implements Steppable{
                         break;
                     case 4: 
                         col = Color.black;
-                        sim.logger.insertDeath(ID, false, true, (ccr51&ccr52));
+                        sim.logger.insertDeath(ID, false, true);
                         //remove all relationships.
                         for(Relationship r :network){//start with the last element and work down to empty out the list
                             r.getFemale().removeEdge(r);
@@ -184,7 +176,7 @@ public class Male extends Agent implements Steppable{
                 }
                 //attempt infection
 ///////////////////Calculate frequency of unprotected coitus. 
-                if(attemptCoitalInfection(sim, infection, other.getDiseaseMatrix().getStage(), network1.getCoitalFrequency(), other.ID, 1.0)){
+                if(attemptCoitalInfection(sim, infection, other.getDiseaseMatrix().getStage(), network1.getCoitalFrequency(), other, 1.0)){
                     //We've been infected!
                     boolean pre = !infected;
                     if(infect(sim.genotypeList.get(infection.getGenotype()))) {
@@ -198,9 +190,9 @@ public class Male extends Agent implements Steppable{
         adjustLack((adj/12));
         //System.out.print(" new lack: " + lack + "\n");
     }
-     public boolean attemptCoitalInfection(HIVMicroSim sim, HIVInfection infection, int stage, int frequency, int agent, double degree){
+     public boolean attemptCoitalInfection(HIVMicroSim sim, HIVInfection infection, int stage, int frequency, Agent agent, double degree){
         //this calculates the potential reduction from alloimmunity, then passes it on to attemptInfection. 
-        int alloImmunity = getAlloImmunity(agent);
+        int alloImmunity = getAlloImmunity(agent.ID);
         addAlloImmunity(agent, frequency);
         if(alloImmunity > 100){
             degree= 1/(alloImmunity *.01);
@@ -210,7 +202,6 @@ public class Male extends Agent implements Steppable{
             degree = degree*sim.circumcisionLikelinessFactor;
         }
 ////////////////////////This needs refining.
-        
         for(int i = 0; i< frequency; i++){
             if(attemptInfection(sim, infection, stage, degree, Agent.MODEHETEROCOITIS)) return true;
         }
@@ -244,7 +235,7 @@ public class Male extends Agent implements Steppable{
     public void deathFromOtherCauses(SimState state){
         //3 steps
         HIVMicroSim sim = (HIVMicroSim)state;
-        sim.logger.insertDeath(ID, true, infected, (ccr51&ccr52));
+        sim.logger.insertDeath(ID, true, infected);
         //1- remove networks
         Agent other;
         for(Relationship r : network){

@@ -8,6 +8,7 @@ import hivMicroSim.HIV.Genotype;
 import hivMicroSim.Agent.Male;
 import hivMicroSim.Agent.Female;
 import hivMicroSim.Agent.Agent;
+import hivMicroSim.Agent.Gene;
 import hivMicroSim.Agent.Pregnancy;
 import sim.engine.*;
 import sim.field.network.*;
@@ -34,7 +35,9 @@ public class HIVMicroSim extends SimState{
     public int femaleFaithfulness = 6; // 0-10
     public int maleWant = 6; // 0-10
     public int femaleWant = 5; // 0-10
-    public double ccr5Resistance = .01; //.00-1 - decimal percentage of population with ccr5 resistance.
+    //Gene prevelence = the prevelence of the alleles- this makes it a little easier to assign alleles. so 0-1 the sum of all versions of the alleles can't be > 1
+    
+    
     /*http://www.k-state.edu/parasitology/biology198/answers1.html 
     * Hardy-Weinberg Law - p^2 + 2pq + q^2 = 1 and p + q = 1; 
     */
@@ -221,12 +224,6 @@ public class HIVMicroSim extends SimState{
             percentCondomUse = a;
         }
     }
-    public double getCCR5Resistance(){return ccr5Resistance;}
-    public void setCCR5Resistance(double a){
-        if(a >=0 && a <=1){
-            ccr5Resistance = a; 
-        }
-    }
     
     public int getNumAgents(){
         return numAgents;
@@ -300,12 +297,11 @@ public class HIVMicroSim extends SimState{
         }
         Agent agent;
         if(female){
-            agent = new Female(currentID, faithfulness, condomUse, want, 0, p.getCCR51(), p.getCCR52(), p.getImmuneFactors(), 0, life);
+            agent = new Female(currentID, faithfulness, condomUse, want, 0, p.getCCR51(), p.getCCR52(),p.getCCR21(), p.getCCR22(), p.getHLAA1(), p.getHLAA2(), p.getHLAB1(), p.getHLAB2(), p.getHLAC1(),p.getHLAC2(), 0, life);
         }else{
-            agent = new Male(currentID, faithfulness, condomUse, want, 0, p.getCCR51(), p.getCCR52(), p.getImmuneFactors(), 0, life);
+            agent = new Male(currentID, faithfulness, condomUse, want, 0, p.getCCR51(), p.getCCR52(),p.getCCR21(), p.getCCR22(), p.getHLAA1(), p.getHLAA2(), p.getHLAB1(), p.getHLAB2(), p.getHLAC1(),p.getHLAC2(), 0, life);
         }
-        if(agent.getCCR5Resistance()==100)logger.insertBirth(agent,true);
-        else logger.insertBirth(agent, false);
+        logger.insertBirth(agent);
         currentID++;
         //add to grids
         agents.setObjectLocation(agent,random.nextInt(gridWidth), random.nextInt(gridHeight));
@@ -335,23 +331,29 @@ public class HIVMicroSim extends SimState{
         int offsetFW = femaleWant - 5;
         int maxLife = averageLifeSpan + (int)(averageLifeSpan*.5);
         double offsetCondom = percentCondomUse - .5;
-        double ccr5GenePrevalence = Math.sqrt(ccr5Resistance);
         
         //currently used variables
         int faithfulness;
         double condomUse;
         double want;
         boolean female;
-        double ccr5; // to hold the roll
-        boolean ccr51;
-        boolean ccr52;
-        double immuneFactors;
+        double geneRoll; // to hold the roll
+        byte ccr51;
+        byte ccr52;
+        byte ccr21;
+        byte ccr22;
+        byte HLA_A1;
+        byte HLA_A2;
+        byte HLA_B1;
+        byte HLA_B2;
+        byte HLA_C1;
+        byte HLA_C2;
+        
         double lack;
         int age;
         int ageOffset = -((maxLife/2) - averageAge); //should be negative. 
         int life;
         int offsetLife;
-
         
         Stoppable stopper;
         for(int i=0; i<numAgents; i++){
@@ -405,27 +407,34 @@ public class HIVMicroSim extends SimState{
                 System.err.println("Life Expectancy offset out of bounds!");
                 life = getGaussianRange(age, maxLife);
             }
-            ccr5 = random.nextDouble(); // next double between 0 and 1(exclusive)
-            if(ccr5 < ccr5GenePrevalence){
-                if(ccr5 < ccr5Resistance){
-                    ccr51 = true;
-                    ccr52 = true;
-                }else{
-                    ccr51 = true;
-                    ccr52 = false;
-                }
-            }else{
-                ccr51 = false;
-                ccr52 = false;
-            }
+            geneRoll = random.nextDouble(); // next double between 0 and 1(exclusive)
+            ccr51 = Gene.getCCR5(geneRoll);
+            geneRoll = random.nextDouble(); // next double between 0 and 1(exclusive)
+            ccr52 = Gene.getCCR5(geneRoll);
+            geneRoll = random.nextDouble(); // next double between 0 and 1(exclusive)
+            ccr21 = Gene.getCCR2(geneRoll);
+            geneRoll = random.nextDouble(); // next double between 0 and 1(exclusive)
+            ccr22 = Gene.getCCR2(geneRoll);
+            geneRoll = random.nextDouble(); // next double between 0 and 1(exclusive)
+            HLA_A1 = Gene.getHLA_A(geneRoll);
+            geneRoll = random.nextDouble(); // next double between 0 and 1(exclusive)
+            HLA_A2 = Gene.getHLA_A(geneRoll);
+            geneRoll = random.nextDouble(); // next double between 0 and 1(exclusive)
+            HLA_B1 = Gene.getHLA_B(geneRoll);
+            geneRoll = random.nextDouble(); // next double between 0 and 1(exclusive)
+            HLA_B2 = Gene.getHLA_B(geneRoll);
+            geneRoll = random.nextDouble(); // next double between 0 and 1(exclusive)
+            HLA_C1 = Gene.getHLA_C(geneRoll);
+            geneRoll = random.nextDouble(); // next double between 0 and 1(exclusive)
+            HLA_C2 = Gene.getHLA_C(geneRoll);
+            
             lack = random.nextDouble()*10;//random number from 0-10 (inclusive)
-            immuneFactors = Math.abs(random.nextGaussian()/3); // centers at 0- sets the first 3 standard deviations between 0 and 1. 
-            if(immuneFactors > 1) immuneFactors = 0; // if not between 0 and 1, set to 0. 
+            
             Agent agent; 
             if(female){
-                agent = new Female(i, faithfulness, condomUse, want, lack, ccr51, ccr52, immuneFactors, age, life);
+                agent = new Female(i, faithfulness, condomUse, want, lack, ccr51, ccr52, ccr21, ccr22, HLA_A1, HLA_A2, HLA_B1, HLA_B2, HLA_C1, HLA_C2, age, life);
             }else{
-                agent = new Male(i, faithfulness, condomUse, want, lack, ccr51, ccr52, immuneFactors, age, life);
+                agent = new Male(i, faithfulness, condomUse, want, lack, ccr51, ccr52, ccr21, ccr22, HLA_A1, HLA_A2, HLA_B1, HLA_B2, HLA_C1, HLA_C2, age, life);
             }
             agents.setObjectLocation(agent,random.nextInt(gridWidth), random.nextInt(gridHeight));
             network.addNode(agent); // handles the network only! Display of nodes handled by continuous 2D
