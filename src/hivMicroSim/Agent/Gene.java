@@ -32,7 +32,12 @@ public abstract class Gene {
     /*
     CCR2- V64I - Linked with CCR5 SNP -- 13%
     */
-    
+    public static final String CCR2EffectString = "R5 Suceptibility and progression";
+    public static final char CCR2Effect = 'b';
+    public static final byte CCR2EffectZone = 5; //R5
+    public static final byte CCR2WildType = 0;
+    public static final byte CCR2V64I = 1;
+    public static final double CCR2V64IEffect = .8;
     //SDF1-3A --X 4 resistance .289 in asians
     //http://www.ncbi.nlm.nih.gov/pubmed/15192272
     //HLA
@@ -64,7 +69,7 @@ public abstract class Gene {
             + " May have increased progression with subtype C.";
     public static final char HLA6802SiteEffect = 'b';
     public static final double HLA6802Effect = .45;
-    public static final byte HLA02 = 2;//supertype HLA A02 contains HLA A2-6802
+    public static final byte HLAA02 = 2;//supertype HLA A02 contains HLA A2-6802
     public static final byte HLAA01 = 1;
     public static final byte HLAA01A03 = 13;
     public static final byte HLAA01A24 = 124;
@@ -86,7 +91,7 @@ public abstract class Gene {
     public static final double HLAB27Effect = .5;
     public static final byte HLAB44 = 44;
     public static final byte HLAB58 = 58; //contains B57
-    public static final double HLA58Effect = .5;
+    public static final double HLAB58Effect = .5;
     public static final byte HLAB62 = 62;
     
     //C
@@ -99,4 +104,150 @@ public abstract class Gene {
     public static final byte HLAC5 = 5;
     public static final byte HLAC6 = 6;
     
+    //Prevalences:
+    //CCR5
+    public static final double ccr5Delta32Prev = .08; //.00-1 - decimal percentage of population with ccr5 resistance.
+    public static final double ccr5HHEPrev = .32;
+    //ccr2
+    public static final double ccr264IPrev = .13;
+    //hla factors
+    //HLA A
+    public static final double hlaA02Prev = .16;
+    //HLA B
+    public static final double hlaB7Prev = .04;
+    public static final double hlaB27Prev = .061;
+    public static final double hlaB58Prev = .047;
+    //HLA C
+    public static final double hlaCw0303Prev = .04; //need data for this 
+    
+    //I'm creating these methods to simplify initial gene creation in the main method. 
+    //I don't want to have to program all of these into the main method, easier to call it from here and keep 
+    //all of the gene stuff in one place. 
+    public static byte getCCR5(double roll){
+        double L = ccr5Delta32Prev;
+        if(roll < L) return CCR5D32;
+        L += ccr5HHEPrev;
+        if(roll < L) return CCR5HHEP1;
+        return CCR5WildType;
+    }
+    public static byte getCCR2(double roll){
+        if(roll < ccr264IPrev) return CCR2V64I;
+        return CCR2WildType;
+    }
+    public static byte getHLA_A(double roll){
+        double L = hlaA02Prev;
+        if(roll < L) return HLAA02;
+        double b = (1-L)/5;
+        L += b;
+        if(roll < L) return HLAA01;
+        L += b;
+        if(roll < L) return HLAA01A03;
+        L += b;
+        if(roll < L) return HLAA01A24;
+        L += b;
+        if(roll < L) return HLAA03;
+        return HLAA24;
+    }
+    public static byte getHLA_B(double roll){
+        double L = hlaB7Prev;
+        if(roll < L) return HLAB07;
+        L += hlaB27Prev;
+        if(roll < L) return HLAB27;
+        L += hlaB58Prev;
+        if(roll < L) return HLAB58;
+        double b = (1-L)/3;
+        L += b;
+        if(roll < L) return HLAB8;
+        L += b;
+        if(roll < L) return HLAB44;
+        return HLAB62;
+    }
+    public static byte getHLA_C(double roll){
+        double L = hlaCw0303Prev;
+        if(roll < L) return HLACw0303;
+        double b = (1-L)/5;
+        L += b;
+        if(roll < L) return HLAC1;
+        L += b;
+        if(roll < L) return HLAC2;
+        L += b;
+        if(roll < L) return HLAC4;
+        L += b;
+        if(roll < L) return HLAC5;
+        return HLAC6;
+    }
+    
+    public static String getCCR5(byte val){
+        switch(val){
+            case CCR5D32:
+                return "CCR5 Delta 32";
+            case CCR5HHEP1:
+                return "CCR5 Haplotype HHE";
+            default:
+                return "CCR5 Wild Type";
+        }
+    }
+    public static String getCCR2(byte val){
+        switch(val){
+            case CCR2V64I:
+                return "CCR2 V64I";
+            
+            default:
+                return "CCR2 Wild Type";
+        }
+    }
+    public static String getHLA_A(byte val){
+        switch(val){
+            case HLAA01:
+                return "HLA A01";
+            case HLAA02:
+                return "HLA A02";
+            case HLAA03:
+                return "HLA A03";
+            case HLAA24:
+                return "HLA A24";
+            case HLAA01A03:
+                return "HLA A01 A03";
+            case HLAA01A24:
+                return "HLA A01 A24";
+            default:
+                return "Error " + val + " not valid for HLA A!";
+        }
+    }
+    public static String getHLA_B(byte val){
+        switch(val){
+            case HLAB07:
+                return "HLA B07";
+            case HLAB27:
+                return "HLA B27";
+            case HLAB44:
+                return "HLA B44";
+            case HLAB58:
+                return "HLA B58";
+            case HLAB62:
+                return "HLA B62";
+            case HLAB8:
+                return "HLA B8";
+            default:
+                return "Error " + val + " not valid for HLA B!";
+        }
+    }
+    public static String getHLA_C(byte val){
+        switch(val){
+            case HLAC1:
+                return "HLA C1";
+            case HLAC2:
+                return "HLA C2";
+            case HLACw0303:
+                return "HLA Cw0303";
+            case HLAC4:
+                return "HLA C4";
+            case HLAC5:
+                return "HLA C5";
+            case HLAC6:
+                return "HLA C6";
+            default:
+                return "Error " + val + " not valid for HLA C!";
+        }
+    }
 }

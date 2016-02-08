@@ -26,18 +26,11 @@ public class Female extends Agent implements Steppable{
     private boolean pregnant;
     private Pregnancy pregnancy;
     
-    public Female(int id, int faithfullness, double condomUse, double wantLevel, double lack, boolean ccr51, boolean ccr52, double immuneFactors, 
-            int age, int life){
-        super(id, faithfullness, condomUse, wantLevel, lack, ccr51, ccr52, immuneFactors, true, age, life);
+    public Female(int id, int faithfullness, double condomUse, double wantLevel, double lack, byte ccr51, byte ccr52, byte ccr21, byte ccr22,byte HLAA1, byte HLAA2,
+            byte HLAB1, byte HLAB2, byte HLAC1, byte HLAC2, int age, int life){
+        super(id, faithfullness, condomUse, wantLevel, lack, ccr51, ccr52, ccr21, ccr22, HLAA1, HLAA2,
+            HLAB1, HLAB2, HLAC1, HLAC2, true, age, life);
         
-    }
-    public Female(int id, int faithfullness, double condomUse, double wantLevel, double lack, boolean ccr51, boolean ccr52, double immuneFactors, 
-            ArrayList<SeroImmunity> sero, ArrayList<AlloImmunity> allo, int age, int life, ArrayList<Infection> coinfections ){
-        super(id, faithfullness, condomUse, wantLevel, lack, ccr51, ccr52, immuneFactors, true, sero, allo, age, life, coinfections);
-    }
-    public Female(int id, int faithfullness, double condomUse, double wantLevel, double lack, boolean ccr51, boolean ccr52, double immuneFactors, 
-            ArrayList<SeroImmunity> sero, ArrayList<AlloImmunity> allo, int age, int life, ArrayList<Infection> coinfections, DiseaseMatrix disease){
-        super(id,faithfullness, condomUse, wantLevel, lack, ccr51, ccr52, immuneFactors, true, sero, allo, age, life, coinfections, disease);
     }
     public boolean makePregnant(Pregnancy p){
         if(pregnant) return false;
@@ -143,7 +136,7 @@ public class Female extends Agent implements Steppable{
                         break;
                     case 4: 
                         col = Color.black;
-                        sim.logger.insertDeath(ID, false, true, (ccr51&ccr52));
+                        sim.logger.insertDeath(ID, false, true);
                         //remove all relationships.
                         for(Relationship r : network){//start with the last element and work down to empty out the list
                             r.getMale().removeEdge(r);
@@ -188,64 +181,126 @@ public class Female extends Agent implements Steppable{
                     if(PFCRoll < .5) PFC = 1;
                     else PFC = 0; 
             }
-            if(!pregnant && age <= 480 && PFC > 0){
-                //attempt to become so! 
-                for(int i = 0; i< PFC; i++){
-                   double pg = sim.random.nextDouble();
-                    if(pg < sim.pregnancyChance){
-                    //she's pregnant! 
-                        sim.logger.insertConception(ID, other.ID);
-                        pregnant = true;
-                        double imfac = (otherImmunityFactors + other.otherImmunityFactors) / 2;
-                        boolean rand;
-                        boolean infCCR51;
-                        boolean infCCR52;
-                        rand = sim.random.nextBoolean();
-                        if(rand){
-                            infCCR51 = ccr51;
-                        }else{
-                            infCCR51 = ccr52;
-                        }
-                        rand = sim.random.nextBoolean();
-                        if(rand){
-                            infCCR52 = other.ccr51;
-                        }else{
-                            infCCR52 = other.ccr52;
-                        }
-                        pregnancy = new Pregnancy(imfac, infCCR51, infCCR52);
-                    } 
+            if(PFC >0){
+                if(!pregnant && age <= 480){
+                    //attempt to become so! 
+                    for(int i = 0; i< PFC; i++){
+                       double pg = sim.random.nextDouble();
+                        if(pg < sim.pregnancyChance){
+                        //she's pregnant! 
+                            sim.logger.insertConception(ID, other.ID);
+                            pregnant = true;
+                            boolean rand;
+                            byte infCCR51;
+                            byte infCCR52;
+                            rand = sim.random.nextBoolean();
+                            //CCR5
+                            if(rand){
+                                infCCR51 = ccr51;
+                            }else{
+                                infCCR51 = ccr52;
+                            }
+                            rand = sim.random.nextBoolean();
+                            if(rand){
+                                infCCR52 = other.ccr51;
+                            }else{
+                                infCCR52 = other.ccr52;
+                            }
+                            //CCR2
+                            byte infCCR21;
+                            byte infCCR22;
+                            rand = sim.random.nextBoolean();
+                            if(rand){
+                                infCCR21 = ccr21;
+                            }else{
+                                infCCR21 = ccr22;
+                            }
+                            rand = sim.random.nextBoolean();
+                            if(rand){
+                                infCCR22 = other.ccr21;
+                            }else{
+                                infCCR22 = other.ccr22;
+                            }
+                            //HLA_A
+                            byte infHLAA1;
+                            byte infHLAA2;
+                            rand = sim.random.nextBoolean();
+                            if(rand){
+                                infHLAA1 = HLA_A1;
+                            }else{
+                                infHLAA1 = HLA_A2;
+                            }
+                            rand = sim.random.nextBoolean();
+                            if(rand){
+                                infHLAA2 = other.HLA_A1;
+                            }else{
+                                infHLAA2 = other.HLA_A2;
+                            }
+                            //HLA_B
+                            byte infHLAB1;
+                            byte infHLAB2;
+                            rand = sim.random.nextBoolean();
+                            if(rand){
+                                infHLAB1 = HLA_B1;
+                            }else{
+                                infHLAB1 = HLA_B2;
+                            }
+                            rand = sim.random.nextBoolean();
+                            if(rand){
+                                infHLAB2 = other.HLA_B1;
+                            }else{
+                                infHLAB2 = other.HLA_B2;
+                            }
+                            //HLA_C
+                            byte infHLAC1;
+                            byte infHLAC2;
+                            rand = sim.random.nextBoolean();
+                            if(rand){
+                                infHLAC1 = HLA_C1;
+                            }else{
+                                infHLAC1 = HLA_C2;
+                            }
+                            rand = sim.random.nextBoolean();
+                            if(rand){
+                                infHLAC2 = other.HLA_C1;
+                            }else{
+                                infHLAC2 = other.HLA_C2;
+                            }
+                            pregnancy = new Pregnancy(infCCR51, infCCR52, infCCR21, infCCR22, infHLAA1, infHLAA2, infHLAB1, infHLAB2, infHLAC1, infHLAC2);
+                        } 
+                    }
+
                 }
-                
-            }
-            if(PFC > 0) addAlloImmunity(other.ID, PFC);
-            if(other.infected && PFC >0){
-                //select a genotype from the other 
-                ArrayList<HIVInfection> otherInfections = other.getDiseaseMatrix().getGenotypes(); 
-                HIVInfection infection;
-                //if the other has more than one genotype, select one, otherwise use that one. 
-                if(otherInfections.size() >1){
-                    //set mean of 0 with max range of list size. This makes you most likely to select an item closer to 0 or with larger virulence. 
-                    roll = Math.abs(sim.getGaussianRange(-(otherInfections.size()-1), (otherInfections.size()-1)));
-                    infection = otherInfections.get(roll);
-                }else{
-                    infection = otherInfections.get(0);
-                }
-                if(infected){
-                    for (HIVInfection mine : hiv.getGenotypes()) {
-                        if(mine.getGenotype() == infection.getGenotype())continue forEachRelationship;
+                addAlloImmunity(other, PFC);
+                if(other.infected){
+                    //select a genotype from the other 
+                    ArrayList<HIVInfection> otherInfections = other.getDiseaseMatrix().getGenotypes(); 
+                    HIVInfection infection;
+                    //if the other has more than one genotype, select one, otherwise use that one. 
+                    if(otherInfections.size() >1){
+                        //set mean of 0 with max range of list size. This makes you most likely to select an item closer to 0 or with larger virulence. 
+                        roll = Math.abs(sim.getGaussianRange(-(otherInfections.size()-1), (otherInfections.size()-1)));
+                        infection = otherInfections.get(roll);
+                    }else{
+                        infection = otherInfections.get(0);
+                    }
+                    if(infected){
+                        for (HIVInfection mine : hiv.getGenotypes()) {
+                            if(mine.getGenotype() == infection.getGenotype())continue forEachRelationship;
+                        }
+                    }
+                    //attempt infection
+    ///////////////////Calculated frequency of unprotected coitus. 
+                    if(attemptCoitalInfection(sim, infection, other.getDiseaseMatrix().getStage(), PFC, other.ID, 1.0)){
+                        //We've been infected!
+                        boolean pre = !infected;
+                        if(infect(sim.genotypeList.get(infection.getGenotype()))) {
+                            sim.logger.insertInfection(HIVLogger.INFECT_HETERO, ID, other.ID, infection.getGenotype(), pre);
+                        }
                     }
                 }
-                //attempt infection
-///////////////////Calculated frequency of unprotected coitus. 
-                if(attemptCoitalInfection(sim, infection, other.getDiseaseMatrix().getStage(), PFC, other.ID, 1.0)){
-                    //We've been infected!
-                    boolean pre = !infected;
-                    if(infect(sim.genotypeList.get(infection.getGenotype()))) {
-                        sim.logger.insertInfection(HIVLogger.INFECT_HETERO, ID, other.ID, infection.getGenotype(), pre);
-                    }
-                }
-                
             }
+            
         }
         //System.out.print("DEBUG: Lack: " + lack + " want: " + wantLevel + " Network Level: " + networkLevel + " of size " + network.size() + " produced: " );
         adjustLack((adj/12));
@@ -261,7 +316,6 @@ public class Female extends Agent implements Steppable{
         //for the female in heterosexual coitus. -- later additional factors may be added for homosexual coitus for males. 
         degree = degree*sim.femaleLikelinessFactor;
 ////////////////////////This needs refining.
-        
         for(int i = 0; i< frequency; i++){
             if(attemptInfection(sim, infection, stage, degree, Agent.MODEHETEROCOITIS)) return true;
         }
@@ -297,7 +351,7 @@ public class Female extends Agent implements Steppable{
         
         //3 steps
         HIVMicroSim sim = (HIVMicroSim)state;
-        sim.logger.insertDeath(ID, true, infected, (ccr51&ccr52));
+        sim.logger.insertDeath(ID, true, infected);
         //1- remove networks
         Agent other;
         for(Relationship r : network){

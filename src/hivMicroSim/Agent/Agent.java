@@ -36,8 +36,11 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     
     //Genetic factors
     private final boolean female;
-    protected final boolean ccr51, ccr52;//first and second allele ccr5 one is randomly chosen to be passed on.
-    protected final double otherImmunityFactors; //Averaged between parents - value between 0 and 1
+    public final byte ccr51, ccr52;//first and second allele ccr5 one is randomly chosen to be passed on.
+    public final byte ccr21, ccr22;
+    public final byte HLA_A1, HLA_A2;
+    public final byte HLA_B1, HLA_B2;
+    public final byte HLA_C1, HLA_C2;
     
     //Adaptable Immunity
     private final ArrayList<SeroImmunity> seroImmunity;
@@ -71,8 +74,8 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     public boolean isMarried(){return married;}
     protected final ArrayList<Relationship> network;
     
-    public Agent(int id, int faithfullness, double condomUse, double wantLevel, double lack, boolean ccr51, boolean ccr52, double immuneFactors, boolean female,
-            int age, int life){
+    public Agent(int id, int faithfullness, double condomUse, double wantLevel, double lack, byte ccr51, byte ccr52, byte ccr21, byte ccr22,byte HLAA1, byte HLAA2,
+            byte HLAB1, byte HLAB2, byte HLAC1, byte HLAC2, boolean female, int age, int life){
         ID = id;
         faithfulness = faithfullness;// because the programmer can't spell... 
         this.condomUse = condomUse;
@@ -80,7 +83,9 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         this.lack = lack;
         this.ccr51 = ccr51;
         this.ccr52 = ccr52;
-        this.otherImmunityFactors = immuneFactors;
+        this.ccr21 = ccr21;
+        this.ccr22 = ccr22;
+        HLA_A1 = HLAA1; HLA_A2 = HLAA2; HLA_B1 = HLAB1; HLA_B2 = HLAB2; HLA_C1 = HLAC1; HLA_C2 = HLAC2;
         this.female = female;
         
         seroImmunity = new ArrayList<>();
@@ -92,66 +97,6 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         infected = false;
         network = new ArrayList<>();
         networkLevel = 0;
-    }
-    public Agent(int id, int faithfullness, double condomUse, double wantLevel, double lack, boolean ccr51, boolean ccr52, double immuneFactors, boolean female,
-            ArrayList<SeroImmunity> sero, ArrayList<AlloImmunity> allo, int age, int life, ArrayList<Infection> coinfections ){
-        ID = id;
-        faithfulness = faithfullness;// because the programmer can't spell... 
-        this.condomUse = condomUse;
-        this.wantLevel = wantLevel;
-        this.lack = lack;
-        this.ccr51 = ccr51;
-        this.ccr52 = ccr52;
-        this.otherImmunityFactors = immuneFactors;
-        this.female = female;
-        
-        seroImmunity = sero;
-        alloImmunity = allo;
-        this.age = age;
-        this.life = life;
-        infections = coinfections;
-        
-        infected = false;
-        network = new ArrayList<>();
-        networkLevel = 0;
-    }
-    public Agent(int id, int faithfullness, double condomUse, double wantLevel, double lack, boolean ccr51, boolean ccr52, double immuneFactors, boolean female,
-            ArrayList<SeroImmunity> sero, ArrayList<AlloImmunity> allo, int age, int life, ArrayList<Infection> coinfections, DiseaseMatrix disease){
-        
-        ID = id;
-        faithfulness = faithfullness;// because the programmer can't spell... 
-        this.condomUse = condomUse;
-        this.wantLevel = wantLevel;
-        this.lack = lack;
-        this.ccr51 = ccr51;
-        this.ccr52 = ccr52;
-        this.otherImmunityFactors = immuneFactors;
-        this.female = female;
-        
-        seroImmunity = sero;
-        alloImmunity = allo;
-        this.age = age;
-        this.life = life;
-        infections = coinfections;
-        
-        hiv = disease;
-        
-        infected = true;
-        network = new ArrayList<>();
-        networkLevel = 0;
-        switch(disease.getStage()){
-            case 1:
-                col = Color.red;
-                break;
-            case 2:
-                col = Color.GREEN;
-                break;
-            case 3:
-                col = Color.ORANGE;
-                break;
-            case 4:
-                col = Color.black;//should not be passed a dead agent, but... *shrug*              
-        }
     }
     
     
@@ -184,15 +129,67 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     }
     
     public boolean isFemale(){return female;}
-    public int getCCR5Resistance(){
-        int ret = 0;
-        if(ccr51)
-            ret += 50;
-        if(ccr52)
-            ret += 50;
+    
+    public double getCCR5SusceptibilityFactor(){
+        double ret = 1;
+        //delta 32
+        if(ccr51 == Gene.CCR5D32)
+            ret *= Gene.CCR5D32Effect;
+        else if(ccr51 == Gene.CCR5HHEP1)
+            ret *= Gene.CCR5HHEP1Effect;
+        if(ccr52 == Gene.CCR5D32)
+            ret *= Gene.CCR5D32Effect;
+        else if(ccr52 == Gene.CCR5HHEP1)
+            ret *= Gene.CCR5HHEP1Effect;
+        
+        //CCR2 - increased CCR5 resistance 
+        if(ccr21 == Gene.CCR2V64I)
+            ret *= Gene.CCR2V64IEffect;
+        if(ccr22 == Gene.CCR2V64I)
+            ret *= Gene.CCR2V64IEffect;
         return ret;
     }
-    public double getImmunityFactors(){return otherImmunityFactors;}
+    public double getHLAImmuneFactor(){
+        double ret = 1;
+        //look for impactful HLAs
+        if(HLA_A1 == Gene.HLAA02){
+            ret = ret*Gene.HLA6802Effect;
+        }
+        if(HLA_A2 == Gene.HLAA02){
+            ret = ret*Gene.HLA6802Effect;
+        }
+        if(HLA_B1 == Gene.HLAB07){
+            ret = ret*Gene.HLAB07Effect;
+        }else if(HLA_B1 == Gene.HLAB27){
+            ret = ret*Gene.HLAB27Effect;
+        }else if(HLA_B1 == Gene.HLAB58){
+            ret = ret*Gene.HLAB58Effect;
+        }
+        if(HLA_B2 == Gene.HLAB07){
+            ret = ret*Gene.HLAB07Effect;
+        }else if(HLA_B2 == Gene.HLAB27){
+            ret = ret*Gene.HLAB27Effect;
+        }else if(HLA_B2 == Gene.HLAB58){
+            ret = ret*Gene.HLAB58Effect;
+        }
+        if(HLA_C1 == Gene.HLACw0303){
+            ret = ret*Gene.HLACw0303Effect;
+        }
+        if(HLA_C2 == Gene.HLACw0303){
+            ret = ret*Gene.HLACw0303Effect;
+        }
+        if(HLA_A1 == HLA_A2){
+            ret *= 1.4;
+        }
+        if(HLA_B1 == HLA_B2){
+            ret *= 1.4;
+        }
+        if(HLA_C1 == HLA_C2){
+            ret *= 1.4;
+        }
+        return ret;
+    }
+    
     public ArrayList<SeroImmunity> getSeroImmunity(){return seroImmunity;}
     public ArrayList<AlloImmunity> getAlloImmunity(){return alloImmunity;}
     public int addSeroImmunity(int genoType, int degree){
@@ -208,24 +205,35 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         seroImmunity.add(a);
         return a.getResistance();
     }
-    public int addAlloImmunity(int agentID, int degree){
-        AlloImmunity a;
-        for (AlloImmunity alloImmunity1 : alloImmunity) {
-            a = alloImmunity1;
-            if(a.getAgent() == agentID){
-                if(alloImmunity.size() > 10){
-                    return a.addResistance(degree/2);
-                }else{
-                    return a.addResistance(degree);
-                }
+    public int addAlloImmunity(Agent agent, int degree){
+        //note that at some point we should work on a method to gradually reduce alloimmunity over time. 
+        AlloImmunity a = null;//just doing this so it doesn't complain about initilaizing.. 
+        boolean found = false;
+        int missmatch = 0;
+        for (int i = 0; i< alloImmunity.size(); i++) {
+            a = alloImmunity.get(i);
+            if(a.getAgent() == agent.ID){
+                found = true;
+                break;
             }
         }
-        //didn't find that genotype
-        a = new AlloImmunity(agentID);
-        alloImmunity.add(a);
-        return a.getResistance();
+        if(!found){ 
+            a = new AlloImmunity(agent.ID);
+            alloImmunity.add(a);
+        }
+        if(alloImmunity.size() > 10){ // currently an arbitrarily chosen number. Some research may be needed to see what is considered "high" and could reduce the immune response as is seen in sex workers. 
+            degree = degree/2;
+        }
+        //now that we have HLA factors they will greatly effect the degree.
+        if(HLA_A1 != agent.HLA_A1 && HLA_A1 != agent.HLA_A2) missmatch++;
+        if(HLA_A2 != agent.HLA_A1 && HLA_A2 != agent.HLA_A2) missmatch++;
+        if(HLA_B1 != agent.HLA_B1 && HLA_B1 != agent.HLA_B2) missmatch++;
+        if(HLA_B2 != agent.HLA_B1 && HLA_B2 != agent.HLA_B2) missmatch++;
+        if(HLA_C1 != agent.HLA_C1 && HLA_C1 != agent.HLA_C2) missmatch++;
+        if(HLA_C2 != agent.HLA_C1 && HLA_C2 != agent.HLA_C2) missmatch++;
+        //returning the degree * missmatch- higher missmatch, higher immune response. missmatch of 0 - no immune response. 
+        return a.addResistance(degree *missmatch);
     }
-    
     public int getSeroImmunity(int genoType){
         for(SeroImmunity a : seroImmunity){
             if(a.getGenotype() == genoType)
@@ -246,7 +254,7 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     }
     public boolean infect(Genotype a){
         if(a.getCCR5Dependance()){
-            if(ccr51 && ccr52) return false; // in case this was called from the main method
+            if(ccr51 == Gene.CCR5D32 && ccr52 == Gene.CCR5D32) return false; // in case this was called from the main method
         }
         int type = a.getGenotype();
         if(infected){
@@ -262,11 +270,11 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         if(sero > 0){
             infectivity = (infectivity+(infectivity*(sero/100.0)))/2;
         }
-        if(otherImmunityFactors >0){
-            infectivity = (infectivity+(infectivity*otherImmunityFactors))/2;
-        }
-        if(a.getCCR5Dependance() && (ccr51 || ccr52)){
-            infectivity = infectivity/2;
+        
+        infectivity = (infectivity+(infectivity*getHLAImmuneFactor()))/2;
+        
+        if(a.getCCR5Dependance()){
+            infectivity = infectivity * getCCR5SusceptibilityFactor();
         }
         if(infectivity <1) infectivity = 1;
         if(infected){
@@ -336,9 +344,8 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         //degree could refer to alloimmunity or the effect of antiretroviral therapy.
         //CCR5 immunity
         if(infection.getCCR5Resistance()){
-            int resist = getCCR5Resistance();
-            if(resist == 100) return false;
-            if(resist == 50) degree = degree * .5;
+            if(ccr51 == Gene.CCR5D32 && ccr52 == Gene.CCR5D32) return false;
+            degree = degree * getCCR5SusceptibilityFactor();
         }
         //SeroImmunity
         int sero = getSeroImmunity(infection.getGenotype());
@@ -351,9 +358,9 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
             degree = degree * (1/(sero*.1));
         }
         //add "other" immune factors.
-        if(otherImmunityFactors > 0){
-            degree = degree*(1-otherImmunityFactors);
-        }
+        
+        degree = degree*getHLAImmuneFactor();
+        
         //Infection stage and its effect on virulence. 
         if(stage == 1) degree = degree * DiseaseMatrix.ACUTEXFACTOR; //int passed by value
         else if (stage == 2) degree = degree * DiseaseMatrix.AIDSXFACTOR;
