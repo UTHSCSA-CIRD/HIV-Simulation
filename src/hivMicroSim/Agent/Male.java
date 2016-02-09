@@ -28,7 +28,7 @@ public class Male extends Agent implements Steppable{
     public Male(int id, int faithfullness, double condomUse, double wantLevel, double lack, byte ccr51, byte ccr52, byte ccr21, byte ccr22,byte HLAA1, byte HLAA2,
             byte HLAB1, byte HLAB2, byte HLAC1, byte HLAC2, int age, int life){
         super(id, faithfullness, condomUse, wantLevel, lack, ccr51, ccr52, ccr21, ccr22, HLAA1, HLAA2,
-            HLAB1, HLAB2, HLAC1, HLAC2, false, age, life);
+            HLAB1, HLAB2, HLAC1, HLAC2, age, life);
     }
     @Override
     public boolean isFemale(){return false;}
@@ -188,6 +188,7 @@ public class Male extends Agent implements Steppable{
         }
         //System.out.print("DEBUG: Lack: " + lack + " want: " + wantLevel + " Network Level: " + networkLevel + " of size " + network.size() + " produced: " );
         adjustLack((adj/12));
+        degradeImmunity();
         //System.out.print(" new lack: " + lack + "\n");
     }
      public boolean attemptCoitalInfection(HIVMicroSim sim, HIVInfection infection, int stage, int frequency, Agent agent, double degree){
@@ -195,7 +196,7 @@ public class Male extends Agent implements Steppable{
         int alloImmunity = getAlloImmunity(agent.ID);
         addAlloImmunity(agent, frequency);
         if(alloImmunity > 100){
-            degree= 1/(alloImmunity *.01);
+            degree*= 1/(alloImmunity *.01);
         }
         //add circumcision factor later additional factors may be added for homosexual coitus. 
         if(circumcised){

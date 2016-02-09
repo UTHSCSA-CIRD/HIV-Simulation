@@ -47,7 +47,7 @@ public class HIVMicroSim extends SimState{
     * For a score of 1000 (No resistance, viral load 1000, male, uncircumcised) give a 1 in 10 chance per interaction.
     */
     public double perInteractionLikelihood = 0.00001; //we'll say this per 100 in viral load..? -- Obviously we'll need some adjustments here 
-    public double motherToChildInfection = .05;
+    public double motherToChildInfection = .0005;
     //Population statistics
     public int averageAge = 300;//in months
     public int averageLifeSpan = 780;

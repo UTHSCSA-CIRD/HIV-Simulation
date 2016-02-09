@@ -35,7 +35,6 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     protected boolean married;
     
     //Genetic factors
-    private final boolean female;
     public final byte ccr51, ccr52;//first and second allele ccr5 one is randomly chosen to be passed on.
     public final byte ccr21, ccr22;
     public final byte HLA_A1, HLA_A2;
@@ -75,7 +74,7 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     protected final ArrayList<Relationship> network;
     
     public Agent(int id, int faithfullness, double condomUse, double wantLevel, double lack, byte ccr51, byte ccr52, byte ccr21, byte ccr22,byte HLAA1, byte HLAA2,
-            byte HLAB1, byte HLAB2, byte HLAC1, byte HLAC2, boolean female, int age, int life){
+            byte HLAB1, byte HLAB2, byte HLAC1, byte HLAC2, int age, int life){
         ID = id;
         faithfulness = faithfullness;// because the programmer can't spell... 
         this.condomUse = condomUse;
@@ -86,7 +85,6 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         this.ccr21 = ccr21;
         this.ccr22 = ccr22;
         HLA_A1 = HLAA1; HLA_A2 = HLAA2; HLA_B1 = HLAB1; HLA_B2 = HLAB2; HLA_C1 = HLAC1; HLA_C2 = HLAC2;
-        this.female = female;
         
         seroImmunity = new ArrayList<>();
         alloImmunity = new ArrayList<>();
@@ -128,14 +126,16 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         return lack;
     }
     
-    public boolean isFemale(){return female;}
+    public abstract boolean isFemale();
     
     public double getCCR5SusceptibilityFactor(){
         double ret = 1;
         //delta 32
-        if(ccr51 == Gene.CCR5D32)
+        
+        if(ccr51 == Gene.CCR5D32){
+            if(ccr52 == Gene.CCR5D32) return 0;
             ret *= Gene.CCR5D32Effect;
-        else if(ccr51 == Gene.CCR5HHEP1)
+        }else if(ccr51 == Gene.CCR5HHEP1)
             ret *= Gene.CCR5HHEP1Effect;
         if(ccr52 == Gene.CCR5D32)
             ret *= Gene.CCR5D32Effect;
@@ -232,7 +232,7 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         if(HLA_C1 != agent.HLA_C1 && HLA_C1 != agent.HLA_C2) missmatch++;
         if(HLA_C2 != agent.HLA_C1 && HLA_C2 != agent.HLA_C2) missmatch++;
         //returning the degree * missmatch- higher missmatch, higher immune response. missmatch of 0 - no immune response. 
-        return a.addResistance(degree *missmatch);
+        return a.addResistance(degree * missmatch);
     }
     public int getSeroImmunity(int genoType){
         for(SeroImmunity a : seroImmunity){
@@ -336,35 +336,49 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     public abstract boolean removeEdge(Relationship a);
     @Override
     public abstract void step(SimState state);
-    
+    public void degradeImmunity(){
+        alloImmunity.stream().forEach((allo) -> {
+            allo.degrade();
+        });
+        seroImmunity.stream().forEach((sero) -> {
+            sero.degrade();
+        });
+    }
     @Override
     public abstract void draw(Object object, Graphics2D graphics, DrawInfo2D info);
     public boolean attemptInfection(HIVMicroSim sim, HIVInfection infection, int stage, double degree, int mode){
 //////////////////////Basic infection algorithm will need refining.
-        //degree could refer to alloimmunity or the effect of antiretroviral therapy.
+
+        //moving this over sero immunity because the number of virons will effect the sero immunity. 
+        //Infection stage and its effect on virulence. 
+        if(stage == DiseaseMatrix.StageAcute) degree = degree * DiseaseMatrix.ACUTEXFACTOR; //int passed by value
+        else if (stage == DiseaseMatrix.StageAIDS) degree = degree * DiseaseMatrix.AIDSXFACTOR;
+        degree = infection.getVirulence() * degree; //now this is the infectivity of this contact.
+        //SeroImmunity -- starter algorithm. In sex workers this appears to be as important a factor as genomics. 
+        int sero = getSeroImmunity(infection.getGenotype());
+        //reducing degree prior to adding additional immunity - law of diminishing returns. 
+        if(sero > 10){
+            degree = degree * (1/(sero*.1));
+        }
+        if(degree >= 2000){
+            addSeroImmunity(infection.getGenotype(), (int)(degree/1000));
+        }else{
+            if(degree < 100){
+                addSeroImmunity(infection.getGenotype(), 0); // continued exposure, but no more additional immune response. 
+            }else{
+                addSeroImmunity(infection.getGenotype(), 1);
+            }
+        }
+        
+        //These factors should not have an effect on seroimmunity as they look at whether or not the viron can enter the cell, seroimmunity
+        //refers to the recognition of the virus particles. 
         //CCR5 immunity
         if(infection.getCCR5Resistance()){
             if(ccr51 == Gene.CCR5D32 && ccr52 == Gene.CCR5D32) return false;
             degree = degree * getCCR5SusceptibilityFactor();
         }
-        //SeroImmunity
-        int sero = getSeroImmunity(infection.getGenotype());
-        if(degree > 1){
-            addSeroImmunity(infection.getGenotype(), (int)degree);
-        }else{
-            addSeroImmunity(infection.getGenotype(), 1);
-        }
-        if(sero > 10){
-            degree = degree * (1/(sero*.1));
-        }
-        //add "other" immune factors.
-        
         degree = degree*getHLAImmuneFactor();
         
-        //Infection stage and its effect on virulence. 
-        if(stage == 1) degree = degree * DiseaseMatrix.ACUTEXFACTOR; //int passed by value
-        else if (stage == 2) degree = degree * DiseaseMatrix.AIDSXFACTOR;
-        degree = infection.getVirulence() * degree; //now this is the infectivity of this contact.
         switch(mode){
             case MODEHETEROCOITIS:
                 degree = degree * sim.perInteractionLikelihood;
