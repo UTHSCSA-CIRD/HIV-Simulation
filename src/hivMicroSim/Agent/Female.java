@@ -29,7 +29,7 @@ public class Female extends Agent implements Steppable{
     public Female(int id, int faithfullness, double condomUse, double wantLevel, double lack, byte ccr51, byte ccr52, byte ccr21, byte ccr22,byte HLAA1, byte HLAA2,
             byte HLAB1, byte HLAB2, byte HLAC1, byte HLAC2, int age, int life){
         super(id, faithfullness, condomUse, wantLevel, lack, ccr51, ccr52, ccr21, ccr22, HLAA1, HLAA2,
-            HLAB1, HLAB2, HLAC1, HLAC2, true, age, life);
+            HLAB1, HLAB2, HLAC1, HLAC2, age, life);
         
     }
     public boolean makePregnant(Pregnancy p){
@@ -304,13 +304,15 @@ public class Female extends Agent implements Steppable{
         }
         //System.out.print("DEBUG: Lack: " + lack + " want: " + wantLevel + " Network Level: " + networkLevel + " of size " + network.size() + " produced: " );
         adjustLack((adj/12));
+        degradeImmunity();
         //System.out.print(" new lack: " + lack + "\n");
     }
+    
     public boolean attemptCoitalInfection(HIVMicroSim sim, HIVInfection infection, int stage, int frequency, int agent, double degree){
         //this calculates the potential reduction from alloimmunity, then passes it on to attemptInfection. 
         int alloImmunity = getAlloImmunity(agent);
         if(alloImmunity > 100){
-            degree= 1/(alloImmunity *.01);
+            degree *= 1/(alloImmunity *.01);
         }
         //Since we're in the female class, we'll add the "female factor" to the degree since the risk of infection is higher
         //for the female in heterosexual coitus. -- later additional factors may be added for homosexual coitus for males. 
