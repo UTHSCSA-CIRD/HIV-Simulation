@@ -25,7 +25,8 @@ import java.awt.*;
 public class Male extends Agent implements Steppable{
     private boolean circumcised = false; //this will be implemented later, but for now we'll just say all men are uncirumcised. 
     
-    public Male(int id, int faithfullness, double condomUse, double wantLevel, double lack, byte ccr51, byte ccr52, byte ccr21, byte ccr22,byte HLAA1, byte HLAA2,
+    public Male(int id, int faithfullness, double condomUse, double wantLevel, double lack, byte ccr51, 
+            byte ccr52, byte ccr21, byte ccr22,byte HLAA1, byte HLAA2,
             byte HLAB1, byte HLAB2, byte HLAC1, byte HLAC2, int age, int life){
         super(id, faithfullness, condomUse, wantLevel, lack, ccr51, ccr52, ccr21, ccr22, HLAA1, HLAA2,
             HLAB1, HLAB2, HLAC1, HLAC2, age, life);
@@ -135,21 +136,28 @@ public class Male extends Agent implements Steppable{
             //currently condoms are considered 100% effective in both pregnancy and viral transfer prevention. 
             switch(network1.getType()){
                 case Relationship.MARRIAGE: // less likely to use condoms
-                    PFCRoll = (sim.getGaussianRangeDouble(-.25, 0) + ((other.condomUse+condomUse)/2));//average of partners + a random + or - between .25;
+                    PFCRoll = (sim.getGaussianRangeDouble(-.25, 0) + ((other.condomUse+condomUse)/2));
+                    //average of partners + a random + or - between .25;
                     if(PFCRoll < 0) PFCRoll = 0;
                     if(PFCRoll > 1) PFCRoll = 1;
                     PFCRoll = 1-PFCRoll; // switch this around to likelihood of NOT using vs Using condoms. 
-                    PFC = (int)(PFCRoll * network1.getCoitalFrequency());//PFCRoll is the percentage of time using condoms PFC is the number of times without using condoms - Java rounds down.
+                    PFC = (int)(PFCRoll * network1.getCoitalFrequency());
+                    //PFCRoll is the percentage of time using condoms PFC is the number of times without using condoms 
+                    //- Java rounds down.
                     break;
                 case Relationship.RELATIONSHIP:
-                    PFCRoll = (sim.getGaussianRangeDouble(-.25, .25) + ((other.condomUse+condomUse)/2));//average of partners + a random + or - between .25;
+                    PFCRoll = (sim.getGaussianRangeDouble(-.25, .25) + ((other.condomUse+condomUse)/2));
+                    //average of partners + a random + or - between .25;
                     if(PFCRoll < 0) PFCRoll = 0;
                     if(PFCRoll > 1) PFCRoll = 1;
                     PFCRoll = 1-PFCRoll; // switch this around to likelihood of NOT using vs Using condoms. 
-                    PFC = (int)(PFCRoll * network1.getCoitalFrequency());//PFCRoll is the percentage of time using condoms PFC is the number of times without using condoms - Java rounds down.
+                    PFC = (int)(PFCRoll * network1.getCoitalFrequency());
+                    //PFCRoll is the percentage of time using condoms PFC is the number of times without using condoms - 
+                    //Java rounds down.
                     break;
                 default: //one shot - more likely to use condoms
-                    PFCRoll = (sim.getGaussianRangeDouble(0, .25) + ((other.condomUse+condomUse)/2));//average of partners + a random + or - between .25;
+                    PFCRoll = (sim.getGaussianRangeDouble(0, .25) + ((other.condomUse+condomUse)/2));
+                    //average of partners + a random + or - between .25;
                     //because java rounds down x<1 results in 0 PFC, thus we use the halfway mark and simply assign the single action. 
                     if(PFCRoll < .5) PFC = 1;
                     else PFC = 0; 
@@ -163,7 +171,8 @@ public class Male extends Agent implements Steppable{
                 HIVInfection infection;
                 //if the other has more than one genotype, select one, otherwise use that one. 
                 if(otherInfections.size() >1){
-                    //set mean of 0 with max range of list size. This makes you most likely to select an item closer to 0 or with larger virulence. 
+                    //set mean of 0 with max range of list size. This makes you most likely to 
+                    //select an item closer to 0 or with larger virulence. 
                     int roll = Math.abs(sim.getGaussianRange(-(otherInfections.size()-1), (otherInfections.size()-1)));
                     infection = otherInfections.get(roll);
                 }else{
@@ -176,7 +185,8 @@ public class Male extends Agent implements Steppable{
                 }
                 //attempt infection
 ///////////////////Calculate frequency of unprotected coitus. 
-                if(attemptCoitalInfection(sim, infection, other.getDiseaseMatrix().getStage(), network1.getCoitalFrequency(), other, 1.0)){
+                if(attemptCoitalInfection(sim, infection, other.getDiseaseMatrix().getStage(), 
+                        network1.getCoitalFrequency(), other, 1.0)){
                     //We've been infected!
                     boolean pre = !infected;
                     if(infect(sim.genotypeList.get(infection.getGenotype()))) {
@@ -186,12 +196,11 @@ public class Male extends Agent implements Steppable{
                 
             }
         }
-        //System.out.print("DEBUG: Lack: " + lack + " want: " + wantLevel + " Network Level: " + networkLevel + " of size " + network.size() + " produced: " );
         adjustLack((adj/12));
         degradeImmunity();
-        //System.out.print(" new lack: " + lack + "\n");
     }
-     public boolean attemptCoitalInfection(HIVMicroSim sim, HIVInfection infection, int stage, int frequency, Agent agent, double degree){
+     public boolean attemptCoitalInfection(HIVMicroSim sim, HIVInfection infection, 
+             int stage, int frequency, Agent agent, double degree){
         //this calculates the potential reduction from alloimmunity, then passes it on to attemptInfection. 
         int alloImmunity = getAlloImmunity(agent.ID);
         addAlloImmunity(agent, frequency);

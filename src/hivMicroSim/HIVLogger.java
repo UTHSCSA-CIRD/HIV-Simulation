@@ -74,7 +74,8 @@ public class HIVLogger implements sim.engine.Steppable{
         turn++;
         month++;
         if(month > 12){
-            String log = year + "\t"+ yearLiving + "\t" + yearInfect + "\t" + yearPrevalence + "\t" + yearMortality + "\t" + yearBirth + "\t" + yearDeath;
+            String log = year + "\t"+ yearLiving + "\t" + yearInfect + "\t" + yearPrevalence + "\t" 
+                    + yearMortality + "\t" + yearBirth + "\t" + yearDeath;
             try{
                 yearOut.newLine();
                 yearOut.write(log);
@@ -139,8 +140,12 @@ public class HIVLogger implements sim.engine.Steppable{
         }else{
             log = log + "M\t";
         }
-        log = log + a.getFaithfulness() + "\t" + a.getWantLevel() + "\t" + a.getCondomUse() + "\t" + Gene.getCCR5(a.ccr51)+ "\t" + Gene.getCCR5(a.ccr52)+ "\t" + Gene.getCCR2(a.ccr21)+ "\t" + Gene.getCCR2(a.ccr22) +
-                "\t" + Gene.getHLA_A(a.HLA_A1) + "\t" + Gene.getHLA_A(a.HLA_A2)+ "\t" + Gene.getHLA_B(a.HLA_B1)+ "\t" + Gene.getHLA_B(a.HLA_B2) + "\t" + Gene.getHLA_C(a.HLA_C1) + "\t" + Gene.getHLA_C(a.HLA_C2) +
+        log = log + a.getFaithfulness() + "\t" + a.getWantLevel() + "\t" + a.getCondomUse() + "\t" + 
+                Gene.getCCR5(a.ccr51)+ "\t" + Gene.getCCR5(a.ccr52)+ "\t" + Gene.getCCR2(a.ccr21)+ "\t" 
+                + Gene.getCCR2(a.ccr22) +
+                "\t" + Gene.getHLA_A(a.HLA_A1) + "\t" + Gene.getHLA_A(a.HLA_A2)+ "\t" + 
+                Gene.getHLA_B(a.HLA_B1)+ "\t" + Gene.getHLA_B(a.HLA_B2) + "\t" + Gene.getHLA_C(a.HLA_C1) + "\t" 
+                + Gene.getHLA_C(a.HLA_C2) +
                 "\t" + a.getCCR5SusceptibilityFactor() + "\t" + a.getHLAImmuneFactor();
         try{
             agentOut.newLine();
@@ -179,9 +184,13 @@ public class HIVLogger implements sim.engine.Steppable{
                 log = log + "M\t";
             }
             
-            log = log + a.getFaithfulness() + "\t" + a.getWantLevel() + "\t" + a.getCondomUse() + "\t" + Gene.getCCR5(a.ccr51)+ "\t" + Gene.getCCR5(a.ccr52)+ "\t" + Gene.getCCR2(a.ccr21)+ "\t" + Gene.getCCR2(a.ccr22) +
-                "\t" + Gene.getHLA_A(a.HLA_A1) + "\t" + Gene.getHLA_A(a.HLA_A2)+ "\t" + Gene.getHLA_B(a.HLA_B1)+ "\t" + Gene.getHLA_B(a.HLA_B2) + "\t" + Gene.getHLA_C(a.HLA_C1) + "\t" + Gene.getHLA_C(a.HLA_C2) +
-                "\t" + a.getCCR5SusceptibilityFactor() + "\t" + a.getHLAImmuneFactor();
+            log = log + a.getFaithfulness() + "\t" + a.getWantLevel() + "\t" + a.getCondomUse() 
+                    + "\t" + Gene.getCCR5(a.ccr51)+ "\t" + Gene.getCCR5(a.ccr52)+ "\t" 
+                    + Gene.getCCR2(a.ccr21)+ "\t" + Gene.getCCR2(a.ccr22) +
+                    "\t" + Gene.getHLA_A(a.HLA_A1) + "\t" + Gene.getHLA_A(a.HLA_A2)+ "\t" 
+                    + Gene.getHLA_B(a.HLA_B1)+ "\t" + Gene.getHLA_B(a.HLA_B2) + "\t" 
+                    + Gene.getHLA_C(a.HLA_C1) + "\t" + Gene.getHLA_C(a.HLA_C2) +
+                    "\t" + a.getCCR5SusceptibilityFactor() + "\t" + a.getHLAImmuneFactor();
             try{
                 agentOut.newLine();
                 agentOut.write(log);
@@ -204,7 +213,8 @@ public class HIVLogger implements sim.engine.Steppable{
         eventOut.write("Agent\tAction\tGenoType/Stage\tAgent\tStep");
         
         agentOut = new BufferedWriter(new FileWriter(agent, false),(8*1024)); // second argument F means will overwrite if exists. 
-        agentOut.write("ID\tEntry.Step\tGender\tFaithfulness\tWant\tCondom.Usage\tCCR51\tCCR52\tCCR21\tCCR22\tHLA_A1\tHLA_A2\tHLA_B1\tHLA_B2\tHLA_C1\tHLA_C2\tCCR5Factor\tHLAFactor");
+        agentOut.write("ID\tEntry.Step\tGender\tFaithfulness\tWant\tCondom.Usage\tCCR51\tCCR52\tCCR21\tCCR22\tHLA_A1"
+                + "\tHLA_A2\tHLA_B1\tHLA_B2\tHLA_C1\tHLA_C2\tCCR5Factor\tHLAFactor");
         
         eventQueue = new ArrayDeque();
     }

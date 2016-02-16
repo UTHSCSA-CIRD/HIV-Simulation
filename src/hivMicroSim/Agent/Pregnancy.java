@@ -53,7 +53,8 @@ public class Pregnancy implements java.io.Serializable{
     public byte getHLAC2(){
         return HLA_C2;
     }
-    public Pregnancy(byte ccr51, byte ccr52, byte ccr21, byte ccr22,byte HLAA1, byte HLAA2, byte HLAB1, byte HLAB2, byte HLAC1, byte HLAC2){
+    public Pregnancy(byte ccr51, byte ccr52, byte ccr21, byte ccr22,byte HLAA1, byte HLAA2, byte HLAB1, byte HLAB2, 
+            byte HLAC1, byte HLAC2){
         this.ccr51 = ccr51;
         this.ccr52 = ccr52;
         this.ccr21 = ccr21;

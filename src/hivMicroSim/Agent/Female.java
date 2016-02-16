@@ -26,7 +26,8 @@ public class Female extends Agent implements Steppable{
     private boolean pregnant;
     private Pregnancy pregnancy;
     
-    public Female(int id, int faithfullness, double condomUse, double wantLevel, double lack, byte ccr51, byte ccr52, byte ccr21, byte ccr22,byte HLAA1, byte HLAA2,
+    public Female(int id, int faithfullness, double condomUse, double wantLevel, double lack, byte ccr51, 
+            byte ccr52, byte ccr21, byte ccr22,byte HLAA1, byte HLAA2,
             byte HLAB1, byte HLAB2, byte HLAC1, byte HLAC2, int age, int life){
         super(id, faithfullness, condomUse, wantLevel, lack, ccr51, ccr52, ccr21, ccr22, HLAA1, HLAA2,
             HLAB1, HLAB2, HLAC1, HLAC2, age, life);
@@ -107,7 +108,8 @@ public class Female extends Agent implements Steppable{
                         }
                         if(littleOne.attemptInfection(sim, infs.get(roll), hiv.getStage(), 1, Agent.MODEMOTHERCHILD)){
                             //Poor little guy was infected :( 
-                            sim.logger.insertInfection(HIVLogger.INFECT_MOTHERTOCHILD, ID, littleOne.ID, infs.get(roll).getGenotype(), true);
+                            sim.logger.insertInfection(HIVLogger.INFECT_MOTHERTOCHILD, ID, littleOne.ID, 
+                                    infs.get(roll).getGenotype(), true);
                             littleOne.infect(sim.genotypeList.get(infs.get(roll).getGenotype()));
                         }
                     }
