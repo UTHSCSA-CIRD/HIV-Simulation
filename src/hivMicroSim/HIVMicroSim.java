@@ -53,6 +53,9 @@ public class HIVMicroSim extends SimState{
     public int averageLifeSpan = 780;
     public double pregnancyChance = .008;
     public HIVLogger logger;
+    public DebugLogger debugLog;
+    private String simDebugFile = "simDebug.txt";
+    private int simDebugLevel = DebugLogger.LOG_ALL;
     public int initializationOnTick = 300; // the tick on which we will initiate infection. 
     
     public int getStartInfected(){
@@ -247,6 +250,7 @@ public class HIVMicroSim extends SimState{
         agents = new SparseGrid2D(100, 100);
         network = new Network();
         logger = new HIVLogger();
+        
     }
     public Agent createNewAgent(Pregnancy p){
         boolean female;
@@ -316,6 +320,14 @@ public class HIVMicroSim extends SimState{
     public void start(){
         super.start();
         logger = new HIVLogger();
+        try{
+            debugLog = new DebugLogger(simDebugLevel, simDebugFile);
+            schedule.scheduleRepeating(Schedule.EPOCH, 0, debugLog);
+        }catch(IOException e){
+            System.err.println("Exception when creating logger!! " + e.getLocalizedMessage());
+            debugLog = new DebugLogger();
+        }
+        
         
         setupGenoTypeList();
         agents = new SparseGrid2D(gridWidth, gridHeight);
@@ -599,6 +611,7 @@ public class HIVMicroSim extends SimState{
     @Override
     public void finish(){
         logger.close();
+        debugLog.close();
         super.finish();
     }
     

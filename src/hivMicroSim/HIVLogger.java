@@ -12,6 +12,7 @@ import java.util.ArrayDeque;
 import hivMicroSim.Agent.Agent;
 import hivMicroSim.Agent.Gene;
 
+
 /**
  *
  * @author manuells
