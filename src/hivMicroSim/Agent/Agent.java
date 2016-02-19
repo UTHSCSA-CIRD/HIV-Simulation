@@ -167,7 +167,6 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     }
     
     public abstract boolean isFemale();
-    public abstract boolean isPregnant();
     public double getCCR5SusceptibilityFactor(){
         double ret = 1;
         //delta 32
@@ -361,7 +360,9 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     }
     public boolean wantsConnection(double roll){
         if(age <216) return false;
+        if(networkLevel == 0 || faithfulness == 0) return true;
         if(networkLevel >= wantLevel) return false;
+        if(faithfulness == 10) return false;
         if(married){
             return (roll+faithfulness) < (lack-networkLevel);
         }else{
@@ -371,9 +372,34 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     public int getNetworkSize(){
         return network.size();
     }
-    public abstract void removeOneShots(SimState state);
-    public abstract boolean addEdge(Relationship a);
-    public abstract boolean removeEdge(Relationship a);
+    public boolean hasEdge(int a){
+        return network.stream().anyMatch((r) -> (r.getPartner(ID).ID == a));
+    }
+    public void removeOneShots(SimState state){
+        HIVMicroSim sim = (HIVMicroSim) state;
+        for(int i = network.size()-1; i >=0; i--){
+            Relationship r = network.get(i);
+            if(r.getType() == Relationship.ONETIME){
+                r.getPartner(ID).removeEdge(r);
+                sim.network.wrapperRemoveEdge(r);
+                networkLevel -= r.getCoitalFrequency();
+                network.remove(i);
+            }
+        }
+    }
+    public boolean addEdge(Relationship a){
+        network.add(a);
+        networkLevel += a.getCoitalFrequency();
+        if(a.getType() == Relationship.MARRIAGE){
+            married = true;
+        }
+        return true;
+    }
+    public boolean removeEdge(Relationship a){
+        networkLevel -= a.getCoitalFrequency();
+        if(a.getType() == Relationship.MARRIAGE) married = false;
+        return network.remove(a);
+    }
     @Override
     public void step(SimState state){
         HIVMicroSim sim = (HIVMicroSim) state;
@@ -404,9 +430,9 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
                         //remove all relationships.
                         for(Relationship r : network){
                             r.getPartner(ID).removeEdge(r);
-                            sim.network.removeEdge(r);
+                            sim.network.wrapperRemoveEdge(r);
                         }
-                        sim.network.removeNode(this);
+                        sim.network.network.removeNode(this);
                         networkLevel = 0;
                         network.clear();
                         alive = false;
@@ -423,193 +449,10 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         height = 1.5;
         if(age == 216){
             //add self to network.
-            sim.network.addNode(this);
+            sim.network.network.addNode(this);
         }
-        //adjust for network edges (note, this does not change the edges, just adds their effect and potential infection. 
-        double adj = wantLevel;
-        Agent other;
-        int PFC; //protection-free coitis
-        double PFCRoll;
-        //not sure if this should be handled seperately like this-- I might end up creating another 
-        //class to handle this before or after the agents have made their move and work through each
-        //Relationship itself to make condom use, etc choices for that month for the couple.
-        //for now it's handled by the agent. 
-        forEachRelationship:
-        for (Relationship network1 : network) {
-            adj -= network1.getCoitalFrequency();
-            other = network1.getPartner(ID);
-            if(isFemale() && other.isFemale()) continue;
-            //Condom use section is currently in "bandaid mode". I might add some additional code for marriage where 
-            //they are trying to get pregnant or something. For now die hard supporters or non-supporters of condom use
-            //win out or (if in the same partnership) war it out. 50-50. Marriage reduces the likelihood of condom usage, but
-            //this ignores things like trying to get pregnant in which case they wouldn't use them at all
-            //it also does not take into account knowledge of their disease status (not yet integrated into the system).
-            if(condomUse == 0 || other.condomUse == 0){
-                //at least one is die hard against condom use...
-                if(condomUse == 10 || other.condomUse == 10){
-                    //if one of them is die hard on condom use -- might need to check this before starting the relationship.
-                    //giving them an all or nothing for this encounter.
-                   if(sim.random.nextBoolean()){
-                       PFC = network1.getCoitalFrequency();
-                   } else{
-                       PFC = 0;
-                   }
-                }else{
-                    PFC = network1.getCoitalFrequency();
-                }
-            }else{
-                if(condomUse == 10 || other.condomUse == 10){
-                    PFC = 0;
-                }else{
-                    
-                    switch(network1.getType()){
-                        case Relationship.MARRIAGE: // less likely to use condoms
-                            PFCRoll = (sim.getGaussianRangeDouble(-.25, 0, true) + ((other.condomUse+condomUse)/2));//average of partners + a random + or - between .25;
-                            if(PFCRoll < 0) PFCRoll = 0;
-                            if(PFCRoll > 1) PFCRoll = 1;
-                            PFCRoll = 1-PFCRoll; // switch this around to likelihood of NOT using vs Using condoms. 
-                            PFC = (int)(PFCRoll * network1.getCoitalFrequency());//PFCRoll is the percentage of time using condoms PFC is the number of times without using condoms - Java rounds down.
-                            break;
-                        case Relationship.RELATIONSHIP:
-                            PFCRoll = (sim.getGaussianRangeDouble(-.25, .25, true) + ((other.condomUse+condomUse)/2));//average of partners + a random + or - between .25;
-                            if(PFCRoll < 0) PFCRoll = 0;
-                            if(PFCRoll > 1) PFCRoll = 1;
-                            PFCRoll = 1-PFCRoll; // switch this around to likelihood of NOT using vs Using condoms. 
-                            PFC = (int)(PFCRoll * network1.getCoitalFrequency());//PFCRoll is the percentage of time using condoms PFC is the number of times without using condoms - Java rounds down.
-                            break;
-                        default: //one shot - more likely to use condoms
-                            PFCRoll = (sim.getGaussianRangeDouble(0, .25, true) + ((other.condomUse+condomUse)/2));//average of partners + a random + or - between .25;
-                            //because java rounds down x<1 results in 0 PFC, thus we use the halfway mark and simply assign the single action. 
-                            if(PFCRoll < .5) PFC = 1;
-                            else PFC = 0; 
-                    }
-                }
-            }
-            if(PFC >0){
-                if(!pregnant && age <= 480){
-                    //attempt to become so! 
-                    for(int i = 0; i< PFC; i++){
-                       double pg = sim.random.nextDouble();
-                        if(pg < sim.pregnancyChance){
-                        //she's pregnant! 
-                            sim.logger.insertConception(ID, other.ID);
-                            pregnant = true;
-                            boolean rand;
-                            byte infCCR51;
-                            byte infCCR52;
-                            rand = sim.random.nextBoolean();
-                            //CCR5
-                            if(rand){
-                                infCCR51 = ccr51;
-                            }else{
-                                infCCR51 = ccr52;
-                            }
-                            rand = sim.random.nextBoolean();
-                            if(rand){
-                                infCCR52 = other.ccr51;
-                            }else{
-                                infCCR52 = other.ccr52;
-                            }
-                            //CCR2
-                            byte infCCR21;
-                            byte infCCR22;
-                            rand = sim.random.nextBoolean();
-                            if(rand){
-                                infCCR21 = ccr21;
-                            }else{
-                                infCCR21 = ccr22;
-                            }
-                            rand = sim.random.nextBoolean();
-                            if(rand){
-                                infCCR22 = other.ccr21;
-                            }else{
-                                infCCR22 = other.ccr22;
-                            }
-                            //HLA_A
-                            byte infHLAA1;
-                            byte infHLAA2;
-                            rand = sim.random.nextBoolean();
-                            if(rand){
-                                infHLAA1 = HLA_A1;
-                            }else{
-                                infHLAA1 = HLA_A2;
-                            }
-                            rand = sim.random.nextBoolean();
-                            if(rand){
-                                infHLAA2 = other.HLA_A1;
-                            }else{
-                                infHLAA2 = other.HLA_A2;
-                            }
-                            //HLA_B
-                            byte infHLAB1;
-                            byte infHLAB2;
-                            rand = sim.random.nextBoolean();
-                            if(rand){
-                                infHLAB1 = HLA_B1;
-                            }else{
-                                infHLAB1 = HLA_B2;
-                            }
-                            rand = sim.random.nextBoolean();
-                            if(rand){
-                                infHLAB2 = other.HLA_B1;
-                            }else{
-                                infHLAB2 = other.HLA_B2;
-                            }
-                            //HLA_C
-                            byte infHLAC1;
-                            byte infHLAC2;
-                            rand = sim.random.nextBoolean();
-                            if(rand){
-                                infHLAC1 = HLA_C1;
-                            }else{
-                                infHLAC1 = HLA_C2;
-                            }
-                            rand = sim.random.nextBoolean();
-                            if(rand){
-                                infHLAC2 = other.HLA_C1;
-                            }else{
-                                infHLAC2 = other.HLA_C2;
-                            }
-                            pregnancy = new Pregnancy(ID, other.ID, infCCR51, infCCR52, infCCR21, infCCR22, infHLAA1, infHLAA2, infHLAB1, infHLAB2, infHLAC1, infHLAC2);
-                        } 
-                    }
-
-                }
-                addAlloImmunity(other, PFC);
-                if(other.infected){
-                    //select a genotype from the other 
-                    ArrayList<HIVInfection> otherInfections = other.getDiseaseMatrix().getGenotypes(); 
-                    HIVInfection infection;
-                    //if the other has more than one genotype, select one, otherwise use that one. 
-                    if(otherInfections.size() >1){
-                        //set mean of 0 with max range of list size. This makes you most likely to select an item closer to 0 or with larger virulence. 
-                        roll = Math.abs(sim.getGaussianRange(-(otherInfections.size()-1), (otherInfections.size()-1), true));
-                        infection = otherInfections.get(roll);
-                    }else{
-                        infection = otherInfections.get(0);
-                    }
-                    if(infected){
-                        for (HIVInfection mine : hiv.getGenotypes()) {
-                            if(mine.getGenotype() == infection.getGenotype())continue forEachRelationship;
-                        }
-                    }
-                    //attempt infection
-    ///////////////////Calculated frequency of unprotected coitus. 
-                    if(attemptCoitalInfection(sim, infection, other.getDiseaseMatrix().getStage(), PFC, other.ID, 1.0)){
-                        //We've been infected!
-                        boolean pre = !infected;
-                        if(infect(sim.genotypeList.get(infection.getGenotype()))) {
-                            sim.logger.insertInfection(HIVLogger.INFECT_HETERO, ID, other.ID, infection.getGenotype(), pre);
-                        }
-                    }
-                }
-            }
-            
-        }
-        //System.out.print("DEBUG: Lack: " + lack + " want: " + wantLevel + " Network Level: " + networkLevel + " of size " + network.size() + " produced: " );
-        adjustLack((adj/12));
+        adjustLack(wantLevel);
         degradeImmunity();
-        
     }
     public void degradeImmunity(){
         alloImmunity.stream().forEach((allo) -> {
@@ -621,6 +464,7 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     }
     @Override
     public abstract void draw(Object object, Graphics2D graphics, DrawInfo2D info);
+    public abstract boolean attemptCoitalInfection(HIVMicroSim sim, HIVInfection infection, int stage, int frequency, Agent agent, double degree);
     public boolean attemptInfection(HIVMicroSim sim, HIVInfection infection, int stage, double degree, int mode){
 //////////////////////Basic infection algorithm will need refining.
 
@@ -665,5 +509,23 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         double roll = sim.random.nextDouble(); // next double between 0 and 1 (noninclusive)
         return (roll<degree); //as degree increases the chance of having a double below that increases. 
     }
-    public abstract void deathFromOtherCauses(SimState state);
+    public void deathFromOtherCauses(SimState state){
+        //3 steps
+        HIVMicroSim sim = (HIVMicroSim)state;
+        sim.logger.insertDeath(ID, true, infected);
+        //1- remove networks
+        for(Relationship r : network){
+            r.getPartner(ID).removeEdge(r);
+            sim.network.wrapperRemoveEdge(r);
+        }
+        sim.network.network.removeNode(this);
+        alive = false;
+        //note- no need to remove this agent's network edges right now because it will be garbabe collected. 
+        //-also no reason to change it to dead, but just in case something funky happens, lets debug it to color cyan
+        col = Color.CYAN;
+        //2- remove from sparse plot
+        sim.agents.remove(this);
+        //3- Remove from schedule
+        stopper.stop();
+    }
 }

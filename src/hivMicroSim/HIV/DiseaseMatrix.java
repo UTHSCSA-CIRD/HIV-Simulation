@@ -97,6 +97,9 @@ public class DiseaseMatrix implements java.io.Serializable{
         Collections.sort(infections);
         return true;
     }
+    public boolean hasGenoType(int a){
+        return infections.stream().anyMatch((i) -> (i.getGenotype() == a));
+    }
     public DiseaseMatrix(HIVInfection a){
         infections = new ArrayList<>();
         infections.add(a);

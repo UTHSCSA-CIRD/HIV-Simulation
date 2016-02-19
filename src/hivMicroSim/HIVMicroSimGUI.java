@@ -47,7 +47,7 @@ public class HIVMicroSimGUI extends GUIState{
     public void setupPortrayals(){
         HIVMicroSim sim = (HIVMicroSim) state;
         
-        edgePortrayal.setField( new SpatialNetwork2D(sim.agents, sim.network));
+        edgePortrayal.setField( new SpatialNetwork2D(sim.agents, sim.network.network));
         edgePortrayal.setPortrayalForAll(new SimpleEdgePortrayal2D());
         nodePortrayal.setField(sim.agents);
         

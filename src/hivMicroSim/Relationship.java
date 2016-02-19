@@ -19,7 +19,8 @@ public class Relationship extends Edge implements java.io.Serializable{
         public static final int ONETIME = 1;
     private final int coitalFrequency;
     private final Agent a,b;
-    
+    public Agent getA(){return a;}
+    public Agent getB() {return b;}
     public int getType(){
         return type;
     }

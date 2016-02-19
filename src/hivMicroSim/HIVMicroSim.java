@@ -12,8 +12,8 @@ import hivMicroSim.Agent.Gene;
 import hivMicroSim.Agent.Pregnancy;
 import hivMicroSim.HIV.HIVInfection;
 import sim.engine.*;
-import sim.field.network.*;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import sim.field.grid.SparseGrid2D;
 import sim.util.Bag;
 import java.io.IOException;
@@ -23,7 +23,7 @@ import java.io.IOException;
  */
 public class HIVMicroSim extends SimState{
     public SparseGrid2D agents;
-    public Network network;
+    public RelationshipNetwork network;
     public int numAgents = 100;
     public int numInfect = 2;//initial number of infected agents. 
     private int currentID = 0;
@@ -282,7 +282,7 @@ public class HIVMicroSim extends SimState{
     public HIVMicroSim(long seed){
         super(seed);
         agents = new SparseGrid2D(100, 100);
-        network = new Network();
+        network = new RelationshipNetwork();
         logger = new HIVLogger();
         
     }
@@ -335,23 +335,24 @@ public class HIVMicroSim extends SimState{
             life = averageLifeSpan;
         }
         Agent agent;
-        //currently orientation will be coded to straight only.
+        //currently orientation will be coded to straight only, all men listed as "onTop" and circumsized for now.
         if(female){
             agent = new Female(currentID, faithfulness, condomUse, want, 0, p.getCCR51(), p.getCCR52(),p.getCCR21(), p.getCCR22(), p.getHLAA1(), p.getHLAA2(), p.getHLAB1(), p.getHLAB2(), p.getHLAC1(),p.getHLAC2(), 0, life, Agent.ORIENTATION_HETEROSEXUAL, p.getMother(), p.getFather());
         }else{
-            agent = new Male(currentID, faithfulness, condomUse, want, 0, p.getCCR51(), p.getCCR52(),p.getCCR21(), p.getCCR22(), p.getHLAA1(), p.getHLAA2(), p.getHLAB1(), p.getHLAB2(), p.getHLAC1(),p.getHLAC2(), 0, life, Agent.ORIENTATION_HETEROSEXUAL, p.getMother(), p.getFather());
+            agent = new Male(currentID, faithfulness, condomUse, want, 0, p.getCCR51(), p.getCCR52(),p.getCCR21(), p.getCCR22(), p.getHLAA1(), p.getHLAA2(), p.getHLAB1(), p.getHLAB2(), p.getHLAC1(),p.getHLAC2(), 0, life, Agent.ORIENTATION_HETEROSEXUAL, p.getMother(), p.getFather(), true, true);
         }
         logger.insertBirth(agent);
         currentID++;
         //add to grids
         agents.setObjectLocation(agent,random.nextInt(gridWidth), random.nextInt(gridHeight));
-        network.addNode(agent); // handles the network only! Display of nodes handled by continuous 2D
+        network.network.addNode(agent); // handles the network only! Display of nodes handled by continuous 2D
         //add to schedule
         stopper = schedule.scheduleRepeating(agent);
         //set stoppable
         agent.setStoppable(stopper);
         return agent;
     }
+    
     public Agent[] createNewAgents(int n){
         Agent[] s = new Agent[numAgents];
         //create the agents
@@ -465,12 +466,12 @@ public class HIVMicroSim extends SimState{
             if(female){
                 agent = new Female(i, faithfulness, condomUse, want, lack, ccr51, ccr52, ccr21, ccr22, HLA_A1, HLA_A2, HLA_B1, HLA_B2, HLA_C1, HLA_C2, age, life, Agent.ORIENTATION_HETEROSEXUAL, -1, -1);
             }else{
-                agent = new Male(i, faithfulness, condomUse, want, lack, ccr51, ccr52, ccr21, ccr22, HLA_A1, HLA_A2, HLA_B1, HLA_B2, HLA_C1, HLA_C2, age, life, Agent.ORIENTATION_HETEROSEXUAL, -1, -1);
+                agent = new Male(i, faithfulness, condomUse, want, lack, ccr51, ccr52, ccr21, ccr22, HLA_A1, HLA_A2, HLA_B1, HLA_B2, HLA_C1, HLA_C2, age, life, Agent.ORIENTATION_HETEROSEXUAL, -1, -1, true, true);
             }
             agents.setObjectLocation(agent,random.nextInt(gridWidth), random.nextInt(gridHeight));
             if(age >= 216){
                 //only adding agents that are old enough, agents will add themselves as they age. 
-               network.addNode(agent); 
+               network.network.addNode(agent); 
             }
             stopper = schedule.scheduleRepeating(Schedule.EPOCH, 1, agent);
             agent.setStoppable(stopper);
@@ -490,10 +491,12 @@ public class HIVMicroSim extends SimState{
             do{//repeat until we find a connection of suitable age and gender.
                 connectID = random.nextInt(bagSize); 
                 connect = (Agent)s.objs[connectID];
-            }while(!connect.acceptGender(me.isFemale()) || !me.acceptGender(connect.isFemale()));
+            }while(!connect.acceptGender(me.isFemale()) || !me.acceptGender(connect.isFemale()) || me.isRelated(connect));
             //now that we have an agent, see if their network has space for another edge.
+            if(me.hasEdge(connect.ID)) return;
             if(connect.wantsConnection(getGaussianRangeDouble(-10,10, false))){ //using this function so we can add more advanced code in there later
                 //this one is selected.
+                //make sure this relationship doesn't already exist...
                 if(connect.getWantLevel() > me.getWantLevel()){
                     edgeVal = ((connect.getWantLevel()-me.getWantLevel())/2) + me.getWantLevel();
                 }else{
@@ -521,8 +524,137 @@ public class HIVMicroSim extends SimState{
                 edge = new Relationship(relationship, me, connect, edgeVal);
                 connect.addEdge(edge);
                 me.addEdge(edge);
-                network.addEdge(edge);
+                network.wrapperAddEdge(edge);
             }
+        }
+    }
+    public void processNetworks(){
+        //double adj = wantLevel;
+        Agent a, b;
+        Relationship r;
+        int PFC; //protection-free coitis
+        double PFCRoll;
+        LinkedList relationships = network.relationshipList;
+        forEachRelationship:
+        for (Object o : relationships) {
+            r = (Relationship)o;
+            a = r.getA();
+            b = r.getB();
+            a.adjustLack(-r.getCoitalFrequency());
+            b.adjustLack(-r.getCoitalFrequency());
+            if(a.isFemale() && b.isFemale()) continue;
+            ///***Find PFC Unprotected - Coital Frequency - Maybe this should have been UFC..?***////
+            
+            //Condom use section is currently in "bandaid mode". I might add some additional code for marriage where 
+            //they are trying to get pregnant or something. For now die hard supporters or non-supporters of condom use
+            //win out or (if in the same partnership) war it out. 50-50. Marriage reduces the likelihood of condom usage, but
+            //this ignores things like trying to get pregnant in which case they wouldn't use them at all
+            //it also does not take into account knowledge of their disease status (not yet integrated into the system).
+            if(a.getCondomUse() == 0 || b.getCondomUse() == 0){
+                //at least one is die hard against condom use...
+                if(a.getCondomUse() == 10 || b.getCondomUse() == 10){
+                    //if one of them is die hard on condom use -- might need to check this before starting the relationship.
+                    //giving them an all or nothing for this encounter.
+                   if(random.nextBoolean()){
+                       PFC = r.getCoitalFrequency();
+                   } else{
+                       PFC = 0;
+                   }
+                }else{
+                    PFC = r.getCoitalFrequency();
+                }
+            }else{
+                if(a.getCondomUse() == 10 || b.getCondomUse() == 10){
+                    PFC = 0;
+                }else{
+                    PFCRoll = ((a.getCondomUse()+b.getCondomUse())/2);
+                    switch(r.getType()){
+                        case Relationship.MARRIAGE: // less likely to use condoms
+                            PFCRoll += getGaussianRangeDouble(-.25, 0, true) ;//average of partners + a random + or - between .25;
+                            if(PFCRoll < 0) PFCRoll = 0;
+                            if(PFCRoll > 1) PFCRoll = 1;
+                            PFCRoll = 1-PFCRoll; // switch this around to likelihood of NOT using vs Using condoms. 
+                            PFC = (int)(PFCRoll * r.getCoitalFrequency());//PFCRoll is the percentage of time using condoms PFC is the number of times without using condoms - Java rounds down.
+                            break;
+                        case Relationship.RELATIONSHIP:
+                            PFCRoll += getGaussianRangeDouble(-.25, .25, true);//average of partners + a random + or - between .25;
+                            if(PFCRoll < 0) PFCRoll = 0;
+                            if(PFCRoll > 1) PFCRoll = 1;
+                            PFCRoll = 1-PFCRoll; // switch this around to likelihood of NOT using vs Using condoms. 
+                            PFC = (int)(PFCRoll * r.getCoitalFrequency());//PFCRoll is the percentage of time using condoms PFC is the number of times without using condoms - Java rounds down.
+                            break;
+                        default: //one shot - more likely to use condoms
+                            PFCRoll += getGaussianRangeDouble(0, .25, true);//average of partners + a random + or - between .25;
+                            //because java rounds down x<1 results in 0 PFC, thus we use the halfway mark and simply assign the single action. 
+                            if(PFCRoll < .5) PFC = 1;
+                            else PFC = 0; 
+                    }
+                }
+            }
+            if(PFC >0){
+                //pregnancy
+                a.addAlloImmunity(b, PFC);
+                b.addAlloImmunity(a, PFC);
+                
+                if(a.isFemale() && a.getAge() <= 480){
+                    Female c = (Female)a;
+                    c.attemptPregnancy(PFC, b, this);
+                }
+                if(b.isFemale() && b.getAge() <= 480){
+                    Female c = (Female)b;
+                    c.attemptPregnancy(PFC, a, this);
+                }
+                if(a.isInfected()){//a attempts to infect b.
+                    //select a genotype from the other 
+                    boolean pre = false;
+                    int roll;
+                    ArrayList<HIVInfection> otherInfections = a.getDiseaseMatrix().getGenotypes(); 
+                    HIVInfection infection;
+                    //if the other has more than one genotype, select one, otherwise use that one. 
+                    if(otherInfections.size() >1){
+                        //set mean of 0 with max range of list size. This makes you most likely to select an item closer to 0 or with larger virulence. 
+                        roll = Math.abs(getGaussianRange(-(otherInfections.size()-1), (otherInfections.size()-1), true));
+                        infection = otherInfections.get(roll);
+                    }else{
+                        infection = otherInfections.get(0);
+                    }
+                    
+                    //attempt infection 
+                    if(b.attemptCoitalInfection(this, infection, a.getDiseaseMatrix().getStage(), PFC, a, 1.0)){
+                        //We've been infected!
+                        if(b.isInfected())pre = true;
+                        if(b.infect(genotypeList.get(infection.getGenotype()))) {
+                            logger.insertInfection(HIVLogger.INFECT_HETERO, b.ID, a.ID, infection.getGenotype(), pre);
+                        }
+                    }
+                }
+                if(b.isInfected()){//b attempts to infect a.
+                    //select a genotype from the other 
+                    boolean pre = false;
+                    int roll;
+                    ArrayList<HIVInfection> otherInfections = b.getDiseaseMatrix().getGenotypes(); 
+                    HIVInfection infection;
+                    //if the other has more than one genotype, select one, otherwise use that one. 
+                    if(otherInfections.size() >1){
+                        //set mean of 0 with max range of list size. This makes you most likely to select an item closer to 0 or with larger virulence. 
+                        roll = Math.abs(getGaussianRange(-(otherInfections.size()-1), (otherInfections.size()-1), true));
+                        infection = otherInfections.get(roll);
+                    }else{
+                        infection = otherInfections.get(0);
+                    }
+                    
+                    //attempt infection 
+                    if(a.attemptCoitalInfection(this, infection, b.getDiseaseMatrix().getStage(), PFC, b, 1.0)){
+                        //We've been infected!
+                        if(a.isInfected())pre = true;
+                        if(a.infect(genotypeList.get(infection.getGenotype()))) {
+                            logger.insertInfection(HIVLogger.INFECT_HETERO, a.ID, b.ID, infection.getGenotype(), pre);
+                        }
+                    }
+                }
+
+            }
+            
         }
     }
    
@@ -540,11 +672,11 @@ public class HIVMicroSim extends SimState{
         
         setupGenoTypeList();
         agents = new SparseGrid2D(gridWidth, gridHeight);
-        network = new Network(false);
+        network = new RelationshipNetwork();
         currentID = numAgents;
                 
         Agent[] s = createNewAgents(numAgents);
-        Bag na = network.getAllNodes();
+        Bag na = network.network.getAllNodes();
         Agent me;
         //generate initial network.
         for (Object ome : na) {
@@ -563,90 +695,48 @@ public class HIVMicroSim extends SimState{
                 Agent connect;
                 Agent agent;
                 Relationship e;
-                Bag allAgents = network.allNodes;
+                Bag allAgents = network.network.allNodes; // all sexual active not dead agents. 
                 for(Object o : allAgents){
                     agent = (Agent) o;
-                    if(!agent.alive) continue;
-                    if(agent.getAge() < 216) continue;
+                    //remove links
                     agent.removeOneShots(state);
-                    if(agent.getNetwork().size()>0){// if < =0 no network.
+                    if(agent.getNetwork().size()>0 && agent.getFaithfulness() != 10){// if < =0 no network.
                         diff = Math.abs(agent.getNetworkLevel()- agent.getWantLevel());// getting the difference between their wants and what's provided.
                         ii = random.nextInt(agent.getNetwork().size());
                         e = agent.getNetwork().get(ii);
                         try{
-                            roll = getGaussianRangeDouble(agent.getFaithfulness()-5, 0,10)*e.getType();
+                            roll = getGaussianRangeDouble(agent.getFaithfulness()-5, 0,10, true)*e.getType();
                         }catch(OffSetOutOfRangeException except){
                             System.err.println("Network Step, Agent Faithfulness");
-                            roll = getGaussianRangeDouble(0,10) * e.getType();
+                            roll = getGaussianRangeDouble(0,10, true) * e.getType();
                         }
                         if(roll < diff){
                             //disolve
-                            e.getMale().removeEdge(e);
-                            e.getFemale().removeEdge(e);
-                            if(network.removeEdge(e) == null){
-                                System.err.println("COULD NOT REMOVE EDGE!!!");
-                            }
+                            e.getA().removeEdge(e);
+                            e.getB().removeEdge(e);
+                            network.wrapperRemoveEdge(e);
                         }
                     }
-                    //set up new networks
-                    try{
-                        roll = getGaussianRangeDouble(agent.getFaithfulness()-5, 0,10);
-                    }catch(OffSetOutOfRangeException except){
-                        System.err.println("Network Setup - get Faithfulness");
-                        roll = getGaussianRangeDouble(0,10);
-                    }
-                    if(roll < agent.getLack()){
-                        //create a relationship.
-                        do{
-                            ii = random.nextInt(allAgents.size());
-                            connect = (Agent)allAgents.get(ii);
-                        }while((agent.isFemale() == connect.isFemale()) || (!connect.alive));
-////////////////////////// Should probably create a "Wants" or something algorithm into each agent and use that instead of something like
-                        //////////this-- currently the recipient's "lack" is not being considered and all relationships are just relationships.
-                        if(connect.wantsConnection(getGaussianRangeDouble(-10,10))){
-                            int edgeVal;
-                            if(connect.getWantLevel() > agent.getWantLevel()){
-                                edgeVal = (int)(((connect.getWantLevel()-agent.getWantLevel())/2) + agent.getWantLevel());
-                            }else{
-                                edgeVal = (int)(((agent.getWantLevel()-connect.getWantLevel())/2) + connect.getWantLevel());
-                            }
-                            int relationship = Relationship.RELATIONSHIP;
-                            if(!agent.isMarried() && !connect.isMarried()){
-                                ii = random.nextInt(10);
-                                if(ii < agent.getFaithfulness() && ii < connect.getFaithfulness()){
-                                    relationship =Relationship.MARRIAGE;
-                                }else{
-                                    if(ii > agent.getFaithfulness() && ii > connect.getFaithfulness()){
-                                        relationship = Relationship.ONETIME;
-                                        edgeVal = 1;
-                                    }
-                                }
-                            }else{
-                                ii = random.nextInt(10);
-                                if(ii > agent.getFaithfulness() && ii > connect.getFaithfulness()){
-                                    relationship = Relationship.ONETIME;
-                                    edgeVal = 1;
-                                }
-                            }
-                            if(agent.isFemale()){
-                                e = new Relationship(relationship, connect, agent, edgeVal);
-                            }else{
-                                e = new Relationship(relationship, agent, connect, edgeVal);
-                            }
-                            agent.addEdge(e);
-                            connect.addEdge(e);
-                            network.addEdge(e);
-                        }
+                    //set up new relationships
+                    if(agent.wantsConnection(getGaussianRangeDouble(-10,10, false))){
+                        attemptFindConnection(agent, allAgents);
                     }
                 }//end for
             }//end step
         };
-        schedule.scheduleRepeating(Schedule.EPOCH, 2, n);
+        schedule.scheduleRepeating(Schedule.EPOCH, 3, n);
         /*this handles what used to be handled by each agent-- it steps through all relationships and handles attempting to infect them
         *also handles pregnancy -- this was somehow a little simpler than going through the agent (because of pregnancy)
         *This keeps us from having to duplicate relationship changes between males and females -- which was causing issues... >.>;
         */
-       
+        n = new Steppable(){
+             private static final long serialVersionUID = 1;
+             @Override
+             public void step(SimState state) {
+                 processNetworks(); // to keep the "start" method cleaner. 
+             }
+        };
+        schedule.scheduleRepeating(Schedule.EPOCH, 2, n);
         //create and schedule the infect timer. 
         Infector infectTimer = new Infector(initializationOnTick, numInfect);
         infectTimer.setStopper(schedule.scheduleRepeating(Schedule.EPOCH, 4, infectTimer));
