@@ -25,15 +25,16 @@ import java.awt.*;
 public class Male extends Agent implements Steppable{
     private boolean circumcised = false; //this will be implemented later, but for now we'll just say all men are uncirumcised. 
     
-    public Male(int id, int faithfullness, double condomUse, double wantLevel, double lack, byte ccr51, 
+    public Male(int id, int faithfullness, double condomUse, int wantLevel, double lack, byte ccr51, 
             byte ccr52, byte ccr21, byte ccr22,byte HLAA1, byte HLAA2,
-            byte HLAB1, byte HLAB2, byte HLAC1, byte HLAC2, int age, int life){
+            byte HLAB1, byte HLAB2, byte HLAC1, byte HLAC2, int age, int life,
+            byte orientation, int mother, int father){
         super(id, faithfullness, condomUse, wantLevel, lack, ccr51, ccr52, ccr21, ccr22, HLAA1, HLAA2,
-            HLAB1, HLAB2, HLAC1, HLAC2, age, life);
+            HLAB1, HLAB2, HLAC1, HLAC2, age, life, orientation, mother, father);
     }
     @Override
     public boolean isFemale(){return false;}
-    
+    public boolean isPregnant(){return false;}
     @Override
     public boolean addEdge(Relationship a){
         
@@ -134,66 +135,78 @@ public class Male extends Agent implements Steppable{
             adj -= network1.getCoitalFrequency();
             other = network1.getFemale();
             //currently condoms are considered 100% effective in both pregnancy and viral transfer prevention. 
-            switch(network1.getType()){
-                case Relationship.MARRIAGE: // less likely to use condoms
-                    PFCRoll = (sim.getGaussianRangeDouble(-.25, 0) + ((other.condomUse+condomUse)/2));
-                    //average of partners + a random + or - between .25;
-                    if(PFCRoll < 0) PFCRoll = 0;
-                    if(PFCRoll > 1) PFCRoll = 1;
-                    PFCRoll = 1-PFCRoll; // switch this around to likelihood of NOT using vs Using condoms. 
-                    PFC = (int)(PFCRoll * network1.getCoitalFrequency());
-                    //PFCRoll is the percentage of time using condoms PFC is the number of times without using condoms 
-                    //- Java rounds down.
-                    break;
-                case Relationship.RELATIONSHIP:
-                    PFCRoll = (sim.getGaussianRangeDouble(-.25, .25) + ((other.condomUse+condomUse)/2));
-                    //average of partners + a random + or - between .25;
-                    if(PFCRoll < 0) PFCRoll = 0;
-                    if(PFCRoll > 1) PFCRoll = 1;
-                    PFCRoll = 1-PFCRoll; // switch this around to likelihood of NOT using vs Using condoms. 
-                    PFC = (int)(PFCRoll * network1.getCoitalFrequency());
-                    //PFCRoll is the percentage of time using condoms PFC is the number of times without using condoms - 
-                    //Java rounds down.
-                    break;
-                default: //one shot - more likely to use condoms
-                    PFCRoll = (sim.getGaussianRangeDouble(0, .25) + ((other.condomUse+condomUse)/2));
-                    //average of partners + a random + or - between .25;
-                    //because java rounds down x<1 results in 0 PFC, thus we use the halfway mark and simply assign the single action. 
-                    if(PFCRoll < .5) PFC = 1;
-                    else PFC = 0; 
-            }
-            
-            if(other.infected){
-////////////////////////// TODO -- handle condom use! Least likely to use condoms with spouse, most likely to use them with one shot.            
-                
-                //select a genotype from the other 
-                ArrayList<HIVInfection> otherInfections = other.getDiseaseMatrix().getGenotypes(); 
-                HIVInfection infection;
-                //if the other has more than one genotype, select one, otherwise use that one. 
-                if(otherInfections.size() >1){
-                    //set mean of 0 with max range of list size. This makes you most likely to 
-                    //select an item closer to 0 or with larger virulence. 
-                    int roll = Math.abs(sim.getGaussianRange(-(otherInfections.size()-1), (otherInfections.size()-1)));
-                    infection = otherInfections.get(roll);
+            if(condomUse == 0 || other.condomUse == 0){
+                //at least one is die hard against condom use...
+                if(condomUse == 10 || other.condomUse == 10){
+                    //if one of them is die hard on condom use -- might need to check this before starting the relationship.
+                    //giving them an all or nothing for this encounter.
+                   if(sim.random.nextBoolean()){
+                       PFC = network1.getCoitalFrequency();
+                   } else{
+                       PFC = 0;
+                   }
                 }else{
-                    infection = otherInfections.get(0);
+                    PFC = network1.getCoitalFrequency();
                 }
-                if(infected){
-                    for (HIVInfection mine : hiv.getGenotypes()) {
-                        if(mine.getGenotype() == infection.getGenotype())continue forEachRelationship;
+            }else{
+                if(condomUse == 10 || other.condomUse == 10){
+                    PFC=0;
+                }else{
+                    switch(network1.getType()){
+                        case Relationship.MARRIAGE: // less likely to use condoms
+                            PFCRoll = (sim.getGaussianRangeDouble(-.25, 0, true) + ((other.condomUse+condomUse)/2));//average of partners + a random + or - between .25;
+                            if(PFCRoll < 0) PFCRoll = 0;
+                            if(PFCRoll > 1) PFCRoll = 1;
+                            PFCRoll = 1-PFCRoll; // switch this around to likelihood of NOT using vs Using condoms. 
+                            PFC = (int)(PFCRoll * network1.getCoitalFrequency());//PFCRoll is the percentage of time using condoms PFC is the number of times without using condoms - Java rounds down.
+                            break;
+                        case Relationship.RELATIONSHIP:
+                            PFCRoll = (sim.getGaussianRangeDouble(-.25, .25, true) + ((other.condomUse+condomUse)/2));//average of partners + a random + or - between .25;
+                            if(PFCRoll < 0) PFCRoll = 0;
+                            if(PFCRoll > 1) PFCRoll = 1;
+                            PFCRoll = 1-PFCRoll; // switch this around to likelihood of NOT using vs Using condoms. 
+                            PFC = (int)(PFCRoll * network1.getCoitalFrequency());//PFCRoll is the percentage of time using condoms PFC is the number of times without using condoms - Java rounds down.
+                            break;
+                        default: //one shot - more likely to use condoms
+                            PFCRoll = (sim.getGaussianRangeDouble(0, .25, true) + ((other.condomUse+condomUse)/2));//average of partners + a random + or - between .25;
+                            //because java rounds down x<1 results in 0 PFC, thus we use the halfway mark and simply assign the single action. 
+                            if(PFCRoll < .5) PFC = 1;
+                            else PFC = 0; 
                     }
                 }
-                //attempt infection
-///////////////////Calculate frequency of unprotected coitus. 
-                if(attemptCoitalInfection(sim, infection, other.getDiseaseMatrix().getStage(), 
-                        network1.getCoitalFrequency(), other, 1.0)){
-                    //We've been infected!
-                    boolean pre = !infected;
-                    if(infect(sim.genotypeList.get(infection.getGenotype()))) {
-                        sim.logger.insertInfection(HIVLogger.INFECT_HETERO, ID, other.ID, infection.getGenotype(), pre);
+            }
+            if(PFC > 0){
+                addAlloImmunity(other, PFC);
+
+                if(other.infected){
+                    //select a genotype from the other 
+                    ArrayList<HIVInfection> otherInfections = other.getDiseaseMatrix().getGenotypes(); 
+                    HIVInfection infection;
+                    //if the other has more than one genotype, select one, otherwise use that one. 
+                    if(otherInfections.size() >1){
+                        //set mean of 0 with max range of list size. This makes you most likely to 
+                        //select an item closer to 0 or with larger virulence. 
+                        int roll = Math.abs(sim.getGaussianRange(-(otherInfections.size()-1), (otherInfections.size()-1), true));
+                        infection = otherInfections.get(roll);
+                    }else{
+                        infection = otherInfections.get(0);
+                    }
+                    if(infected){
+                        for (HIVInfection mine : hiv.getGenotypes()) {
+                            if(mine.getGenotype() == infection.getGenotype())continue forEachRelationship;
+                        }
+                    }
+                    //attempt infection
+    ///////////////////Calculate frequency of unprotected coitus. 
+                    if(attemptCoitalInfection(sim, infection, other.getDiseaseMatrix().getStage(), 
+                            network1.getCoitalFrequency(), other, 1.0)){
+                        //We've been infected!
+                        boolean pre = !infected;
+                        if(infect(sim.genotypeList.get(infection.getGenotype()))) {
+                            sim.logger.insertInfection(HIVLogger.INFECT_HETERO, ID, other.ID, infection.getGenotype(), pre);
+                        }
                     }
                 }
-                
             }
         }
         adjustLack((adj/12));

@@ -18,7 +18,7 @@ public class Relationship extends Edge implements java.io.Serializable{
         public static final int RELATIONSHIP = 2;
         public static final int ONETIME = 1;
     private final int coitalFrequency;
-    private final Agent m,f;
+    private final Agent a,b;
     
     public int getType(){
         return type;
@@ -26,25 +26,26 @@ public class Relationship extends Edge implements java.io.Serializable{
     public int getCoitalFrequency(){
         return coitalFrequency;
     }
-    public Agent getMale(){
-        return m;
+    public Agent getPartner(int id){
+        if(a.ID == id) return b;
+        return a;
     }
-    public Agent getFemale(){
-        return f;
+    public boolean containsMe(int id){
+        if(a.ID == id || b.ID == id) return true;
+        return false;
     }
-    
-    public Relationship(int type, Agent M, Agent F){
-        super(M,F, type);
+    public Relationship(int type, Agent A, Agent B){
+        super(A,B, type);
         this.type = type;
-        m = M;
-        f = F;
+        a = A;
+        b = B;
         coitalFrequency = 1;
     }
-    public Relationship(int type, Agent M, Agent F, int frequency){
-        super(M,F, type);
+    public Relationship(int type, Agent A, Agent B, int frequency){
+        super(A,B, type);
         this.type = type;
-        m = M;
-        f = F;
+        a = A;
+        b = B;
         coitalFrequency = frequency;
     }
 }
