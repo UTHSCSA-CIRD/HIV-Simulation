@@ -35,6 +35,7 @@ public class Male extends Agent implements Steppable{
     @Override
     public boolean isFemale(){return false;}
     public boolean isPregnant(){return false;}
+    public void inseminate(){return;}
     @Override
     public boolean addEdge(Relationship a){
         
