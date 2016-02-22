@@ -4,14 +4,9 @@
  * and open the template in the editor.
  */
 package hivMicroSim.Agent;
-import hivMicroSim.AlloImmunity;
-import hivMicroSim.HIV.DiseaseMatrix;
 import hivMicroSim.HIV.HIVInfection;
 import hivMicroSim.HIVLogger;
 import hivMicroSim.HIVMicroSim;
-import hivMicroSim.Infection;
-import hivMicroSim.Relationship;
-import hivMicroSim.SeroImmunity;
 import java.util.ArrayList;
 import sim.portrayal.*;
 import sim.engine.*;
@@ -42,45 +37,95 @@ public class Female extends Agent implements Steppable{
     @Override
     public boolean isFemale(){return true;}
     
-    @Override
-    public boolean addEdge(Relationship a){
-        
-        if(a.getFemale()!= this){
-            return false; //invalid edge! 
-        }
-        //make sure we're not duplicating a relationship
-        int o = a.getMale().ID;
-        if (!network.stream().noneMatch((f) -> (f.getMale().ID == o))) return false;
-        network.add(a);
-        
-        //System.out.print("DEBUG: Add Relationship. Network Level: " + networkLevel + " added: " + a.getCoitalFrequency());
-        networkLevel += a.getCoitalFrequency();
-        if(a.getType() == Relationship.MARRIAGE){
-            married = true;
-        }
-        //System.out.print(" new Network Level: " + networkLevel + "\n");
-        return true;
-    }
-    @Override
-    public boolean removeEdge(Relationship a){
-        int o = a.getMale().ID;
-        for(int i = 0; i<network.size();i++){
-            Relationship r = network.get(i);
-            if(r.getMale().ID == o){
-                //System.out.print("DEBUG: Delete Relationship: " + networkLevel + " removed " + network.get(i).getCoitalFrequency());
-                networkLevel -= r.getCoitalFrequency();
-                if(r.getType() == Relationship.MARRIAGE){
-                    married = false;
+    public void attemptPregnancy(int PFC, Agent other, HIVMicroSim sim){
+        if(pregnant) return;
+        double pg;
+        for(int i = 0; i< PFC; i++){
+            pg = sim.random.nextDouble();
+            if(pg < sim.pregnancyChance){
+                //she's pregnant! 
+                sim.logger.insertConception(ID, other.ID);
+                pregnant = true;
+                boolean rand;
+                byte infCCR51;
+                byte infCCR52;
+                rand = sim.random.nextBoolean();
+                //CCR5
+                if(rand){
+                    infCCR51 = ccr51;
+                }else{
+                    infCCR51 = ccr52;
                 }
-                network.remove(i);
-                //System.out.print(" new Network Level: " + networkLevel + "\n");
-                return true;
-            }
+                rand = sim.random.nextBoolean();
+                if(rand){
+                    infCCR52 = other.ccr51;
+                }else{
+                    infCCR52 = other.ccr52;
+                }
+                //CCR2
+                byte infCCR21;
+                byte infCCR22;
+                rand = sim.random.nextBoolean();
+                if(rand){
+                    infCCR21 = ccr21;
+                }else{
+                    infCCR21 = ccr22;
+                }
+                rand = sim.random.nextBoolean();
+                if(rand){
+                    infCCR22 = other.ccr21;
+                }else{
+                    infCCR22 = other.ccr22;
+                }
+                //HLA_A
+                byte infHLAA1;
+                byte infHLAA2;
+                rand = sim.random.nextBoolean();
+                if(rand){
+                    infHLAA1 = HLA_A1;
+                }else{
+                    infHLAA1 = HLA_A2;
+                }
+                rand = sim.random.nextBoolean();
+                if(rand){
+                    infHLAA2 = other.HLA_A1;
+                }else{
+                    infHLAA2 = other.HLA_A2;
+                }
+                //HLA_B
+                byte infHLAB1;
+                byte infHLAB2;
+                rand = sim.random.nextBoolean();
+                if(rand){
+                    infHLAB1 = HLA_B1;
+                }else{
+                    infHLAB1 = HLA_B2;
+                }
+                rand = sim.random.nextBoolean();
+                if(rand){
+                    infHLAB2 = other.HLA_B1;
+                }else{
+                    infHLAB2 = other.HLA_B2;
+                }
+                //HLA_C
+                byte infHLAC1;
+                byte infHLAC2;
+                rand = sim.random.nextBoolean();
+                if(rand){
+                    infHLAC1 = HLA_C1;
+                }else{
+                    infHLAC1 = HLA_C2;
+                }
+                rand = sim.random.nextBoolean();
+                if(rand){
+                    infHLAC2 = other.HLA_C1;
+                }else{
+                    infHLAC2 = other.HLA_C2;
+                }
+                pregnancy = new Pregnancy(ID, other.ID, infCCR51, infCCR52, infCCR21, infCCR22, infHLAA1, infHLAA2, infHLAB1, infHLAB2, infHLAC1, infHLAC2);
+                return;
+            } 
         }
-        return false;// could not find the edge! 
-    }
-    public boolean attemptPregnancy(int freq, Agent other){
-        
     }
     @Override
     public void step(SimState state){
@@ -114,9 +159,11 @@ public class Female extends Agent implements Steppable{
         }
     }
     
-    public boolean attemptCoitalInfection(HIVMicroSim sim, HIVInfection infection, int stage, int frequency, int agent, double degree){
+    @Override
+    public boolean attemptCoitalInfection(HIVMicroSim sim, HIVInfection infection, int stage, int frequency, Agent agent, double degree){
+        if(infected && hiv.hasGenoType(infection.getGenotype()))return false;
         //this calculates the potential reduction from alloimmunity, then passes it on to attemptInfection. 
-        int alloImmunity = getAlloImmunity(agent);
+        int alloImmunity = getAlloImmunity(agent.ID);
         if(alloImmunity > 100){
             degree *= 1/(alloImmunity *.01);
         }
@@ -140,40 +187,5 @@ public class Female extends Agent implements Steppable{
         int h = (int)((info.draw.height) * height);
         
         graphics.fillOval(x,y,w, h);
-    }
-    @Override
-    public void removeOneShots(SimState state){
-        HIVMicroSim sim = (HIVMicroSim) state;
-        for(int i = network.size()-1; i >=0; i--){
-            Relationship r = network.get(i);
-            if(r.getType() == Relationship.ONETIME){
-                r.getMale().removeEdge(r);
-                sim.network.removeEdge(r);
-                networkLevel -= r.getCoitalFrequency();
-                network.remove(i);
-            }
-        }
-    }
-    @Override
-    public void deathFromOtherCauses(SimState state){
-        
-        //3 steps
-        HIVMicroSim sim = (HIVMicroSim)state;
-        sim.logger.insertDeath(ID, true, infected);
-        //1- remove networks
-        Agent other;
-        for(Relationship r : network){
-            other = r.getMale();
-            other.removeEdge(r);
-            sim.network.removeEdge(r);
-        }
-        sim.network.removeNode(this);
-        //note- no need to remove this agent's network edges right now because it will be garbabe collected. 
-        //-also no reason to change it to dead, but just in case something funky happens, lets debug it to color yellow or something.
-        col = Color.CYAN;
-        //2- remove from sparse plot
-        sim.agents.remove(this);
-        //3- Remove from schedule
-        stopper.stop();
     }
 }

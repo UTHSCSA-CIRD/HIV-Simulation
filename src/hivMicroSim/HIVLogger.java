@@ -158,7 +158,6 @@ public class HIVLogger implements sim.engine.Steppable{
     public void insertDeath(int agent1, boolean natural, boolean infected){
         yearDeath++;
         livingAgents--;
-        if(logLevel < LOG_DEATH) return;
         String log = agent1 + "\t";
         if(natural){
             if(infected){
@@ -171,6 +170,7 @@ public class HIVLogger implements sim.engine.Steppable{
             yearPrevalence--;
             log = log + "AIDS Death\t\t\t" + turn;
         }
+        if(logLevel < LOG_DEATH) return;
         eventQueue.add(log);
     }
     public void firstSet(sim.util.Bag agents){// for setting up that initial number of homozygous CCR5Delta32 mutations. 
