@@ -39,8 +39,9 @@ public class Female extends Agent implements Steppable{
     
     public void attemptPregnancy(int PFC, Agent other, HIVMicroSim sim){
         if(pregnant) return;
-        double pg = sim.random.nextDouble();
+        double pg;
         for(int i = 0; i< PFC; i++){
+            pg = sim.random.nextDouble();
             if(pg < sim.pregnancyChance){
                 //she's pregnant! 
                 sim.logger.insertConception(ID, other.ID);

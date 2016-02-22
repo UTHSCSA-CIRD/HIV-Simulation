@@ -59,7 +59,7 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     private final ArrayList<AlloImmunity> alloImmunity;
     
     //General Status
-    protected boolean infected;
+    protected boolean infected = false;
     protected DiseaseMatrix hiv = null;
     protected final ArrayList<Infection> infections;
     protected int age; // measured in months/ ticks. 
@@ -361,7 +361,7 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     public boolean wantsConnection(double roll){
         if(age <216) return false;
         if(networkLevel == 0 || faithfulness == 0) return true;
-        if(networkLevel >= wantLevel) return false;
+        if(lack == 0) return false;
         if(faithfulness == 10) return false;
         if(married){
             return (roll+faithfulness) < (lack-networkLevel);
@@ -386,6 +386,9 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
                 network.remove(i);
             }
         }
+    }
+    public void setMarried(boolean a){
+        married = a;
     }
     public boolean addEdge(Relationship a){
         network.add(a);
@@ -455,12 +458,18 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         degradeImmunity();
     }
     public void degradeImmunity(){
-        alloImmunity.stream().forEach((allo) -> {
-            allo.degrade();
-        });
-        seroImmunity.stream().forEach((sero) -> {
-            sero.degrade();
-        });
+        AlloImmunity a;
+        for(int i = alloImmunity.size()-1; i>= 0; i--){
+            a = alloImmunity.get(i);
+            a.degrade();
+            if(a.getResistance() == 0) alloImmunity.remove(i);
+        }
+        SeroImmunity s;
+        for(int i = seroImmunity.size()-1; i>= 0; i--){
+            s = seroImmunity.get(i);
+            s.degrade();
+            if(s.getResistance() == 0) seroImmunity.remove(i);
+        }
     }
     @Override
     public abstract void draw(Object object, Graphics2D graphics, DrawInfo2D info);

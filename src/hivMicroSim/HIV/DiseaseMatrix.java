@@ -18,7 +18,7 @@ public class DiseaseMatrix implements java.io.Serializable{
     public static final int StageAIDS = 3;
     public static final int ACUTEXFACTOR = 15;
     private static final int ACUTEMONTHS = 3;
-    private static final int AVERAGEVIRALLOAD = 600;
+    private static final int AVERAGEVIRALLOAD = 1000;
     private static final int LATENCYMONTHS = 120; //10 years 
     public static final int AIDSXFACTOR = 4;
     private static final int AIDSMONTHS = 24;

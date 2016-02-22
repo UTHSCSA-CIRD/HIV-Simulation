@@ -13,7 +13,7 @@ import sim.field.network.Edge;
 public class Relationship extends Edge implements java.io.Serializable{
     private final static long serialVersionUID = 1;
     
-    private final int type;
+    private int type;
         public static final int MARRIAGE = 3;
         public static final int RELATIONSHIP = 2;
         public static final int ONETIME = 1;
@@ -23,6 +23,9 @@ public class Relationship extends Edge implements java.io.Serializable{
     public Agent getB() {return b;}
     public int getType(){
         return type;
+    }
+    public void setType(int type){
+        this.type = type;
     }
     public int getCoitalFrequency(){
         return coitalFrequency;
