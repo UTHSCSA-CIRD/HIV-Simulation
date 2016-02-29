@@ -34,6 +34,7 @@ public class HIVLogger implements sim.engine.Steppable{
     
     public final static int INFECT_MOTHERTOCHILD = 1;
     public final static int INFECT_HETERO = 0;
+    public final static int INFECT_HOMO = 2;
     public final static int LOG_ALL = 10;
     public final static int LOG_INFECT = 0;
     public final static int LOG_PROGRESSION = 1;
@@ -116,6 +117,13 @@ public class HIVLogger implements sim.engine.Steppable{
         }else if(infectMode == INFECT_MOTHERTOCHILD){
             yearPrevalence++;
             log = agent1 + "\tM2C Infection\t" + genotype +"\t"+ agent2 +"\t"+ turn;
+        }else if(infectMode == INFECT_HOMO){
+            if(newInfect){
+                yearPrevalence++;
+                log = agent1 + "\tNew Homosexual Infection\t" + genotype +"\t"+ agent2 +"\t"+ turn;
+            }else{
+                log = agent1 + "\tHomosexual Infection\t" + genotype +"\t"+ agent2 +"\t"+ turn;
+            }
         }
         eventQueue.add(log);
     }
@@ -147,7 +155,8 @@ public class HIVLogger implements sim.engine.Steppable{
                 "\t" + Gene.getHLA_A(a.HLA_A1) + "\t" + Gene.getHLA_A(a.HLA_A2)+ "\t" + 
                 Gene.getHLA_B(a.HLA_B1)+ "\t" + Gene.getHLA_B(a.HLA_B2) + "\t" + Gene.getHLA_C(a.HLA_C1) + "\t" 
                 + Gene.getHLA_C(a.HLA_C2) +
-                "\t" + a.getCCR5SusceptibilityFactor() + "\t" + a.getHLAImmuneFactor();
+                "\t" + a.getCCR5SusceptibilityFactor() + "\t" + a.getHLAImmuneFactor()+ "\t" + a.getOrientationString()
+                + "\t" + a.getRace() + "\t"  + a.getReligion() + "\t"  + a.getOtherNeighborhood()+ "\t"  +a.getSelectivity();
         try{
             agentOut.newLine();
             agentOut.write(log);
@@ -191,7 +200,8 @@ public class HIVLogger implements sim.engine.Steppable{
                     "\t" + Gene.getHLA_A(a.HLA_A1) + "\t" + Gene.getHLA_A(a.HLA_A2)+ "\t" 
                     + Gene.getHLA_B(a.HLA_B1)+ "\t" + Gene.getHLA_B(a.HLA_B2) + "\t" 
                     + Gene.getHLA_C(a.HLA_C1) + "\t" + Gene.getHLA_C(a.HLA_C2) +
-                    "\t" + a.getCCR5SusceptibilityFactor() + "\t" + a.getHLAImmuneFactor();
+                    "\t" + a.getCCR5SusceptibilityFactor() + "\t" + a.getHLAImmuneFactor() + "\t" + a.getOrientationString()
+                    + "\t" + a.getRace() + "\t"  + a.getReligion() + "\t"  + a.getOtherNeighborhood()+ "\t"  +a.getSelectivity();
             try{
                 agentOut.newLine();
                 agentOut.write(log);
@@ -215,7 +225,8 @@ public class HIVLogger implements sim.engine.Steppable{
         
         agentOut = new BufferedWriter(new FileWriter(agent, false),(8*1024)); // second argument F means will overwrite if exists. 
         agentOut.write("ID\tEntry.Step\tGender\tFaithfulness\tWant\tCondom.Usage\tCCR51\tCCR52\tCCR21\tCCR22\tHLA_A1"
-                + "\tHLA_A2\tHLA_B1\tHLA_B2\tHLA_C1\tHLA_C2\tCCR5Factor\tHLAFactor");
+                + "\tHLA_A2\tHLA_B1\tHLA_B2\tHLA_C1\tHLA_C2\tCCR5Factor\tHLAFactor\tOrientation\tRace\tReligion\t"
+                + "OtherNeighborhood\tSelectivity");
         
         eventQueue = new ArrayDeque();
     }

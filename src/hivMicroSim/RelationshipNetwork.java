@@ -7,7 +7,6 @@ package hivMicroSim;
 
 import java.util.LinkedList;
 import sim.field.network.Network;
-import hivMicroSim.Agent.Agent;
 import java.io.Serializable;
 
 /**

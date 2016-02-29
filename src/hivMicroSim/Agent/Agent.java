@@ -16,6 +16,7 @@ import hivMicroSim.SeroImmunity;
 import java.util.ArrayList;
 import sim.portrayal.*;
 import sim.engine.*;
+import Neighborhoods.Neighborhood;
 
 import java.awt.*;
 import sim.portrayal.simple.OvalPortrayal2D;
@@ -27,25 +28,80 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     private static final long serialVersionUID = 1;
     //Behavioral Factors
     public final int ID;
-    protected final int faithfulness; // between 1 and 10
+    //base
+    protected final int baseFaithfulness; // between 1 and 10
+    protected double baseCondomUse; //between 0 and 1 inclusive
+    protected final int baseWantLevel;
+    //for use
+    protected int faithfulness; // between 1 and 10
     protected double condomUse; //between 0 and 1 inclusive
-    protected final int wantLevel;
+    protected int wantLevel;
     protected double networkLevel;
     protected double lack; //lack of fulfillment in current relationships
     public boolean alive = true;
     protected boolean married;
-    //public final int race;
-        public static final int RACE_CAUCASIAN = 0;
-        public static final int RACE_HISPANIC = 1;
-        public static final int RACE_BLACK = 2;
-        public static final int RACE_ASIAN = 3;
-        public static final int RACE_MIXED = 4;
+    public final Neighborhood race;
+    public Neighborhood religion = null;
+    public Neighborhood other = null;
+    private int baseSelectivity;
+    private int selectivity;
     private final byte orientation;
         public static final byte ORIENTATION_HETEROSEXUAL = 0;
         public static final byte ORIENTATION_BISEXUAL = 1;
         public static final byte ORIENTATION_HOMOSEXUAL = 2;
     private final int mother;
     private final int father;
+    
+    //Neighborhood factors
+    public String getRace(){
+        return race.name;
+    }
+    public String getReligion(){
+        if(religion == null) return "None";
+        return religion.name;
+    }
+    public String getOtherNeighborhood(){
+        if(other == null) return "None";
+        return other.name;
+    }
+    
+    public int getSelectivity(){return selectivity;}
+    private void updateNeighborhoodFactors(){
+        //handles updating the averages. 
+        int count = 2;
+        selectivity = baseSelectivity;
+        faithfulness = baseFaithfulness + race.faithfulness;
+        wantLevel = baseWantLevel + race.want;
+        condomUse = baseCondomUse + race.condomUsage;
+        selectivity += race.selectiveness;////////////////////////////////////////////////////////////////////////////////;
+        if(religion != null){
+            //add religion
+            count++;
+            faithfulness += religion.faithfulness;
+            wantLevel += religion.want;
+            condomUse += religion.condomUsage;
+            selectivity += race.selectiveness;
+        }
+        if(other != null){
+            //add religion
+            count++;
+            faithfulness += other.faithfulness;
+            wantLevel += other.want;
+            condomUse += other.condomUsage;
+            selectivity += race.selectiveness;
+        }
+        faithfulness /= count;
+        wantLevel /= count;
+        condomUse /= count;
+    }
+    public void setReligion(Neighborhood r){
+        religion = r;
+        updateNeighborhoodFactors();
+    }
+    public void setOtherNeighborhood(Neighborhood o){
+        other = o;
+        updateNeighborhoodFactors();
+    }
     
     //Genetic factors
     public final byte ccr51, ccr52;//first and second allele ccr5 one is randomly chosen to be passed on.
@@ -74,13 +130,17 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     protected Stoppable stopper;
     
     //infection modes
-    public static final int MODEHETEROCOITIS = 1;
+    public static final int MODECOITIS = 1;
     public static final int MODEMOTHERCHILD = 2;
     
     public void setStoppable(Stoppable stop){
         stopper = stop;
     }
-    
+    public String getOrientationString(){
+        if(orientation == ORIENTATION_HETEROSEXUAL) return "Heterosexual";
+        if(orientation == ORIENTATION_BISEXUAL) return "Bisexual";
+        return "Homosexual";
+    }
     public boolean acceptGender(boolean otherFemale){
         if(orientation == ORIENTATION_BISEXUAL) return true;
         if(isFemale()){
@@ -101,36 +161,9 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     public boolean isMarried(){return married;}
     protected final ArrayList<Relationship> network;
     
-    public Agent(int id, int faithfullness, double condomUse, int wantLevel, double lack, byte ccr51, byte ccr52, byte ccr21, byte ccr22,byte HLAA1, byte HLAA2,
-            byte HLAB1, byte HLAB2, byte HLAC1, byte HLAC2, int age, int life, byte orientation, int mother, int father){
-        ID = id;
-        faithfulness = faithfullness;// because the programmer can't spell... 
-        this.condomUse = condomUse;
-        this.wantLevel = wantLevel;
-        this.lack = lack;
-        this.ccr51 = ccr51;
-        this.ccr52 = ccr52;
-        this.ccr21 = ccr21;
-        this.ccr22 = ccr22;
-        this.orientation = orientation;
-        this.mother = mother;
-        this.father = father; 
-        HLA_A1 = HLAA1; HLA_A2 = HLAA2; HLA_B1 = HLAB1; HLA_B2 = HLAB2; HLA_C1 = HLAC1; HLA_C2 = HLAC2;
-        
-        seroImmunity = new ArrayList<>();
-        alloImmunity = new ArrayList<>();
-        infections = new ArrayList<>();
-        this.age = age;
-        this.life = life;
-        
-        infected = false;
-        network = new ArrayList<>();
-        networkLevel = 0;
-    }
-    
     public boolean isRelated(Agent a){
         //only checking for immediate family. cousins, aunts and uncles would require the maintaining of a geneology mapping table. 
-        if(mother == -1 || father == -1) return false; //for simplicity initial agents are not related.
+        if(mother == -1 && a.ID != ID) return false; //for simplicity initial agents are not related.
         if(a.isFemale()){
             if(a.ID == mother) return true;
         }else{
@@ -142,11 +175,6 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         return faithfulness;
     }
     public double getCondomUse(){return condomUse;}
-    public void setCondomUse(double a){
-        if(a >= 0 && a <= 1){
-            condomUse = a;
-        }
-    }
     public int getLifeSpan(){
         return life;
     }
@@ -156,8 +184,8 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     }
     public double adjustLack(double a){
         lack += a;
-        if(lack > 10){
-            lack = 10;
+        if(lack > HIVMicroSim.lackMax){
+            lack = HIVMicroSim.lackMax;
             return lack;
         }
         if(lack < 0){
@@ -165,7 +193,7 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         }
         return lack;
     }
-    
+    public int getOrientation(){return orientation;}
     public abstract boolean isFemale();
     public double getCCR5SusceptibilityFactor(){
         double ret = 1;
@@ -358,17 +386,37 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     public double getNetworkLevel(){
         return networkLevel;
     }
-    public boolean wantsConnection(double roll){
+    public boolean wantsConnection(double froll){
+        //froll- faith roll
+        //sroll- selectivity roll. 
         if(age <216) return false;
         if(networkLevel == 0 || faithfulness == 0) return true;
-        if(lack == 0) return false;
-        if(faithfulness == 10) return false;
+        if(faithfulness == HIVMicroSim.faithfulnessMax) return false;
         if(married){
-            return (roll+faithfulness) < (lack-networkLevel);
+            return (froll+(faithfulness*2)) < lack;
         }else{
-            return((roll+faithfulness) < lack);
+            return((froll+faithfulness) < lack);
         }
     }
+    public boolean wantsConnection(double froll, int sroll, Agent o){
+        //froll- faith roll
+        //sroll- selectivity roll. 
+        if(age <216) return false;
+        int applicability = 0;
+        if(race.ID == o.race.ID)applicability += 10;
+        if(religion != null && o.religion != null && religion.ID == o.religion.ID) applicability += 10;
+        if(other != null && o.other != null && other.ID == o.other.ID) applicability += 10;
+        if(Math.abs(age - o.age) <= 60) applicability += 10;//5 years
+        if(applicability + sroll < selectivity) return false;
+        if(networkLevel == 0 || faithfulness == 0) return true;
+        if(faithfulness == HIVMicroSim.faithfulnessMax) return false;
+        if(married){
+            return (froll+(faithfulness*2)) < lack;
+        }else{
+            return((froll+faithfulness) < lack);
+        }
+    }
+    
     public int getNetworkSize(){
         return network.size();
     }
@@ -443,18 +491,13 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
                 }
             }
         }
-        if(age < 216){
-            width = 1;
-            height = 1;
-            return;
-        }
-        width = 1.5;
-        height = 1.5;
         if(age == 216){
             //add self to network.
+            width = 1.5;
+            height = 1.5;
             sim.network.network.addNode(this);
         }
-        adjustLack(wantLevel);
+        adjustLack(wantLevel-networkLevel);
         degradeImmunity();
     }
     public void degradeImmunity(){
@@ -508,7 +551,7 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         degree = degree*getHLAImmuneFactor();
         
         switch(mode){
-            case MODEHETEROCOITIS:
+            case MODECOITIS:
                 degree = degree * sim.perInteractionLikelihood;
                 break;
             case MODEMOTHERCHILD:
@@ -536,5 +579,46 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         sim.agents.remove(this);
         //3- Remove from schedule
         stopper.stop();
+    }
+    public Agent(int id, int faithfullness, double condom, int want, double lack, byte ccr51, byte ccr52, byte ccr21, byte ccr22,byte HLAA1, byte HLAA2,
+            byte HLAB1, byte HLAB2, byte HLAC1, byte HLAC2, int age, int life, byte orientation, int mother, int father, Neighborhood agentRace, Neighborhood agentReligion, Neighborhood otherNetwork, 
+            int selectivness){
+        ID = id;
+        baseFaithfulness = faithfullness;// because the programmer can't spell... 
+        baseCondomUse = condom;
+        baseWantLevel = want;
+        baseSelectivity = selectivness;
+        this.lack = lack;
+        this.ccr51 = ccr51;
+        this.ccr52 = ccr52;
+        this.ccr21 = ccr21;
+        this.ccr22 = ccr22;
+        this.orientation = orientation;
+        this.mother = mother;
+        this.father = father; 
+        HLA_A1 = HLAA1; HLA_A2 = HLAA2; HLA_B1 = HLAB1; HLA_B2 = HLAB2; HLA_C1 = HLAC1; HLA_C2 = HLAC2;
+        
+        seroImmunity = new ArrayList<>();
+        alloImmunity = new ArrayList<>();
+        infections = new ArrayList<>();
+        this.age = age;
+        if(age < 216){
+            width = 1;
+            height = 1;
+        }else{
+            width = 1.5;
+            height = 1.5;
+        }
+        this.life = life;
+        
+        infected = false;
+        network = new ArrayList<>();
+        networkLevel = 0;
+        
+        //handle initial neighborhood data -- note race will never change, but religion and "other" might
+        race = agentRace;
+        religion = agentReligion;
+        other = otherNetwork;
+        updateNeighborhoodFactors();
     }
 }
