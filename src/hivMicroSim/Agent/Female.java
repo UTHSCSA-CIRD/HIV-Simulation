@@ -4,6 +4,8 @@
  * and open the template in the editor.
  */
 package hivMicroSim.Agent;
+import Neighborhoods.Neighborhood;
+import Neighborhoods.NeighborhoodTemplates;
 import hivMicroSim.HIV.HIVInfection;
 import hivMicroSim.HIVLogger;
 import hivMicroSim.HIVMicroSim;
@@ -24,9 +26,9 @@ public class Female extends Agent implements Steppable{
     public Female(int id, int faithfullness, double condomUse, int wantLevel, double lack, byte ccr51, 
             byte ccr52, byte ccr21, byte ccr22,byte HLAA1, byte HLAA2,
             byte HLAB1, byte HLAB2, byte HLAC1, byte HLAC2, int age, int life,
-            byte orientation, int mother, int father){
+            byte orientation, int mother, int father, Neighborhood agentRace, Neighborhood agentReligion, Neighborhood otherNetwork, int selectivity){
         super(id, faithfullness, condomUse, wantLevel, lack, ccr51, ccr52, ccr21, ccr22, HLAA1, HLAA2,
-            HLAB1, HLAB2, HLAC1, HLAC2, age, life, orientation, mother, father);
+            HLAB1, HLAB2, HLAC1, HLAC2, age, life, orientation, mother, father, agentRace, agentReligion, otherNetwork, selectivity);
     }
     public boolean makePregnant(Pregnancy p){
         if(pregnant) return false;
@@ -122,7 +124,30 @@ public class Female extends Agent implements Steppable{
                 }else{
                     infHLAC2 = other.HLA_C2;
                 }
-                pregnancy = new Pregnancy(ID, other.ID, infCCR51, infCCR52, infCCR21, infCCR22, infHLAA1, infHLAA2, infHLAB1, infHLAB2, infHLAC1, infHLAC2);
+                //child neighborhoods... for now other and religion will be assigned randomly from one parent or the other if they
+                //have one. 
+                Neighborhood childRace, childReligion, childOther;
+                if(race.ID == other.race.ID){
+                    childRace = race;
+                }else{
+                    if(race.ID == NeighborhoodTemplates.Race_Other) childRace = other.race;
+                    else if(other.race.ID == NeighborhoodTemplates.Race_Other) childRace = race;
+                    else childRace = sim.race_Other;
+                }
+                rand = sim.random.nextBoolean();
+                if(rand){
+                    childReligion = religion;
+                }else{
+                    childReligion = other.religion;
+                }
+                rand = sim.random.nextBoolean();
+                if(rand){
+                    childOther = this.other;
+                }else{
+                    childOther = other.other;
+                }
+                pregnancy = new Pregnancy(ID, other.ID, infCCR51, infCCR52, infCCR21, infCCR22, infHLAA1, infHLAA2, 
+                        infHLAB1, infHLAB2, infHLAC1, infHLAC2, childRace, childReligion, childOther);
                 return;
             } 
         }
@@ -172,7 +197,7 @@ public class Female extends Agent implements Steppable{
         degree = degree*sim.femaleLikelinessFactor;
 ////////////////////////This needs refining.
         for(int i = 0; i< frequency; i++){
-            if(attemptInfection(sim, infection, stage, degree, Agent.MODEHETEROCOITIS)) return true;
+            if(attemptInfection(sim, infection, stage, degree, Agent.MODECOITIS)) return true;
         }
         return false;
     }

@@ -5,6 +5,9 @@
  */
 package hivMicroSim.Agent;
 
+import Neighborhoods.NeighborhoodTemplates;
+import hivMicroSim.HIVMicroSim;
+
 /**
  *
  * @author manuells
@@ -26,7 +29,7 @@ public abstract class Gene {
     public static final byte CCR5D32 = 1; // 8% allele frequency in europeans ~ 1% or less in other races. 
     public static final double CCR5D32Effect = .5;
     public static final byte CCR5HHEP1 = 2;
-    public static final double CCR5HHEP1Effect = 1.5; // 32% in europeanhttp://www.ncbi.nlm.nih.gov/pmc/articles/PMC3958329/
+    public static final double CCR5HHEP1Effect = 1.5; // 32% in european http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3958329/
     
     //CCR2 --- http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3958329/
     /*
@@ -38,6 +41,7 @@ public abstract class Gene {
     public static final byte CCR2WildType = 0;
     public static final byte CCR2V64I = 1;
     public static final double CCR2V64IEffect = .8;
+    
     //SDF1-3A --X 4 resistance .289 in asians
     //http://www.ncbi.nlm.nih.gov/pubmed/15192272
     //HLA
@@ -105,13 +109,16 @@ public abstract class Gene {
     public static final byte HLAC6 = 6;
     
     //Prevalences:
-    //CCR5
-    public static final double ccr5Delta32Prev = .08; //.00-1 - decimal percentage of population with ccr5 resistance.
-    public static final double ccr5HHEPrev = .32;
-    //ccr2
-    public static final double ccr264IPrev = .13;
+    //allele frequency CCR5
+    //https://www.researchgate.net/profile/Srinivas_Mummidi/publication/12781086_Race-specific_HIV-1_disease-modifying_effects_associated_with_CCR5_haplotypes/links/00b49521f635b4d0b1000000.pdf
+    //0-CCR5- HHE, 1-CCR5 D32, 2- CCR2V61I, 3- HLA-A02, 4- , 5- , 6- , 7- 
+    public static final double[] prevBlack = {.19,.03, .308, .16, .04, .061, .047, .04};
+    public static final double[] prevCaucassian = {.32, .08, .13, .16, .04, .061, .047, .04};
+    public static final double[] prevHispanic = {.25, .057, .1812, .16, .04, .061, .047, .04};
+    public static final double[] prevAsian = {.25, .01, .11, .16, .04, .061, .047, .04};
+    /*
     //hla factors
-    //HLA A
+    //HLA A - need other race factors for these
     public static final double hlaA02Prev = .16;
     //HLA B
     public static final double hlaB7Prev = .04;
@@ -122,59 +129,186 @@ public abstract class Gene {
     
     //I'm creating these methods to simplify initial gene creation in the main method. 
     //I don't want to have to program all of these into the main method, easier to call it from here and keep 
-    //all of the gene stuff in one place. 
-    public static byte getCCR5(double roll){
-        double L = ccr5Delta32Prev;
-        if(roll < L) return CCR5D32;
-        L += ccr5HHEPrev;
-        if(roll < L) return CCR5HHEP1;
-        return CCR5WildType;
+    //all of the gene stuff in one place.
+    */
+    private static double[] getRaceSet(int race){
+        switch(race){
+            case NeighborhoodTemplates.Race_Caucasian:
+                return prevCaucassian;
+            case NeighborhoodTemplates.Race_Black:
+                return prevBlack;
+            case NeighborhoodTemplates.Race_Hispanic:
+                return prevHispanic;
+            default:
+                //for now
+                return prevAsian;
+        }
     }
-    public static byte getCCR2(double roll){
-        if(roll < ccr264IPrev) return CCR2V64I;
-        return CCR2WildType;
-    }
-    public static byte getHLA_A(double roll){
-        double L = hlaA02Prev;
-        if(roll < L) return HLAA02;
-        double b = (1-L)/5;
-        L += b;
-        if(roll < L) return HLAA01;
-        L += b;
-        if(roll < L) return HLAA01A03;
-        L += b;
-        if(roll < L) return HLAA01A24;
-        L += b;
-        if(roll < L) return HLAA03;
-        return HLAA24;
-    }
-    public static byte getHLA_B(double roll){
-        double L = hlaB7Prev;
-        if(roll < L) return HLAB07;
-        L += hlaB27Prev;
-        if(roll < L) return HLAB27;
-        L += hlaB58Prev;
-        if(roll < L) return HLAB58;
-        double b = (1-L)/3;
-        L += b;
-        if(roll < L) return HLAB8;
-        L += b;
-        if(roll < L) return HLAB44;
-        return HLAB62;
-    }
-    public static byte getHLA_C(double roll){
-        double L = hlaCw0303Prev;
-        if(roll < L) return HLACw0303;
-        double b = (1-L)/5;
-        L += b;
-        if(roll < L) return HLAC1;
-        L += b;
-        if(roll < L) return HLAC2;
-        L += b;
-        if(roll < L) return HLAC4;
-        L += b;
-        if(roll < L) return HLAC5;
-        return HLAC6;
+    public static GeneProfile getGeneProfile(HIVMicroSim sim, int race){
+        double[] prevs = getRaceSet(race);
+        double roll;
+        double b;
+        byte CCR51, CCR52, CCR21, CCR22, HLAA1, HLAA2, HLAB1, HLAB2, HLA_C1, HLA_C2;
+        //CCR5
+        roll = sim.random.nextDouble();
+        double L = prevs[0];
+        if(roll < L) CCR51 = CCR5HHEP1;
+        else{
+            L += prevs[1];
+            if(roll < L) CCR51 = CCR5D32;
+            else CCR51 = CCR5WildType;
+        }
+        
+        roll = sim.random.nextDouble();
+        L = prevs[0];
+        if(roll < L) CCR52 = CCR5HHEP1;
+        else{
+            L += prevs[1];
+            if(roll < L) CCR52 = CCR5D32;
+            else CCR52 = CCR5WildType;
+        }
+        
+        //CCR2
+        roll = sim.random.nextDouble();
+        if(roll < prevs[2]) CCR21 = CCR2V64I;
+        else CCR21 = CCR2WildType;
+        
+        roll = sim.random.nextDouble();
+        if(roll < prevs[2]) CCR22 = CCR2V64I;
+        else CCR22 = CCR2WildType;
+        
+        //HLAA
+        roll = sim.random.nextDouble();
+        L = prevs[3];
+        if(roll < L) HLAA1 = HLAA02;
+        else{
+            b = (1-L)/5;
+            L += b;
+            if(roll < L) HLAA1 = HLAA01;
+            else{
+                L += b;
+                if(roll < L) HLAA1 = HLAA01A03;
+                else{
+                    L += b;
+                    if(roll < L) HLAA1 = HLAA01A24;
+                    else{
+                        L += b;
+                        if(roll < L) HLAA1 = HLAA03;
+                        else HLAA1 = HLAA24;
+                    }
+                }
+            }
+        }
+        
+        roll = sim.random.nextDouble();
+        L = prevs[3];
+        if(roll < L) HLAA2 = HLAA02;
+        else{
+            b = (1-L)/5;
+            L += b;
+            if(roll < L) HLAA2 = HLAA01;
+            else{
+                L += b;
+                if(roll < L) HLAA2 = HLAA01A03;
+                else{
+                    L += b;
+                    if(roll < L) HLAA2 = HLAA01A24;
+                    else{
+                        L += b;
+                        if(roll < L) HLAA2 = HLAA03;
+                        else HLAA2 = HLAA24;
+                    }
+                }
+            }
+        }
+        
+        //HLAB
+        roll = sim.random.nextDouble();
+        L = prevs[4];
+        if(roll < L) HLAB1 = HLAB07;
+        else{
+            L += prevs[5];
+            if(roll < L) HLAB1 = HLAB27;
+            else{
+                L += prevs[6];
+                if(roll < L) HLAB1 = HLAB58;
+                else{
+                    b = (1-L)/3;
+                    L += b;
+                    if(roll < L) HLAB1 = HLAB8;
+                    else{
+                        L += b;
+                        if(roll < L) HLAB1 = HLAB44;
+                        else HLAB1 = HLAB62;
+                    }
+                }
+            }
+        }
+        roll = sim.random.nextDouble();
+        L = prevs[4];
+        if(roll < L) HLAB2 = HLAB07;
+        else{
+            L += prevs[5];
+            if(roll < L) HLAB2 = HLAB27;
+            else{
+                L += prevs[6];
+                if(roll < L) HLAB2 = HLAB58;
+                else{
+                    b = (1-L)/3;
+                    L += b;
+                    if(roll < L) HLAB2 = HLAB8;
+                    else{
+                        L += b;
+                        if(roll < L) HLAB2 = HLAB44;
+                        else HLAB2 = HLAB62;
+                    }
+                }
+            }
+        }
+        //HLA C
+        roll = sim.random.nextDouble();
+        L = prevs[7];
+        if(roll < L) HLA_C1 = HLACw0303;
+        else{
+            b = (1-L)/5;
+            L += b;
+            if(roll < L) HLA_C1 = HLAC1;
+            else{
+                L += b;
+                if(roll < L) HLA_C1 = HLAC2;
+                else{
+                    L += b;
+                    if(roll < L) HLA_C1 = HLAC4;
+                    else{
+                        L += b;
+                        if(roll < L) HLA_C1 = HLAC5;
+                        else HLA_C1 = HLAC6;
+                    }
+                }
+            }
+        }
+        roll = sim.random.nextDouble();
+        L = prevs[7];
+        if(roll < L) HLA_C2 = HLACw0303;
+        else{
+            b = (1-L)/5;
+            L += b;
+            if(roll < L) HLA_C2 = HLAC1;
+            else{
+                L += b;
+                if(roll < L) HLA_C2 = HLAC2;
+                else{
+                    L += b;
+                    if(roll < L) HLA_C2 = HLAC4;
+                    else{
+                        L += b;
+                        if(roll < L) HLA_C2 = HLAC5;
+                        else HLA_C2 = HLAC6;
+                    }
+                }
+            }
+        }
+        return(new GeneProfile(CCR51, CCR52, CCR21, CCR22, HLAA1, HLAA2, HLAB1, HLAB2, HLA_C1, HLA_C2));
     }
     
     public static String getCCR5(byte val){

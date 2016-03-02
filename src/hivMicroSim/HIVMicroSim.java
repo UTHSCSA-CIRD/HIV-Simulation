@@ -4,11 +4,15 @@
  * and open the template in the editor.
  */
 package hivMicroSim;
+import Neighborhoods.Neighborhood;
+import Neighborhoods.NeighborhoodTemplates;
 import hivMicroSim.HIV.Genotype;
 import hivMicroSim.Agent.Male;
 import hivMicroSim.Agent.Female;
 import hivMicroSim.Agent.Agent;
+import hivMicroSim.Agent.AgentProfile;
 import hivMicroSim.Agent.Gene;
+import hivMicroSim.Agent.GeneProfile;
 import hivMicroSim.Agent.Pregnancy;
 import hivMicroSim.HIV.HIVInfection;
 import sim.engine.*;
@@ -32,10 +36,18 @@ public class HIVMicroSim extends SimState{
     
     //global agent descriptors- gaussian distribution between 1 and 10 with these as the means
     public double percentCondomUse = .5; //0-1 inclusive
-    public int maleFaithfulness = 5; //0-10
-    public int femaleFaithfulness = 6; // 0-10
-    public int maleWant = 6; // 0-10
-    public int femaleWant = 5; // 0-10
+    public int maleFaithfulness = 10; 
+    public int femaleFaithfulness = 20; 
+    public static final int faithfulnessMax = 30;
+    public int maleWant = 20; 
+    public int femaleWant = 15; 
+    public static final int wantMax = 30;
+    public static final int lackMax = 30;
+    public int oneShotValue = 5;
+    public int femaleSelectivity = 30;
+    public int maleSelectivity = 20; 
+    public int selectivityMax = 40;//race(10) + religion(10) + age (10) + other(10) = 40 + 40- personal selectiveness 
+    public int selectivityRoll = 50;//because race/religion/other selectivity @ max should not be overridden. 
     //homosexuality and bisexuality will go here... right now.... I really can't say how this is best coded... 
     //Gene prevelence = the prevelence of the alleles- this makes it a little easier to assign alleles. so 0-1 the sum of all versions of the alleles can't be > 1
     
@@ -50,7 +62,7 @@ public class HIVMicroSim extends SimState{
     public double insertiveAnalLikelinessFactor = 2.75;
     public double receptiveAnalLikelinessFactor = 34.5;
     public double needleSharingLikelinessFactor = 15.75;
-    public double perInteractionLikelihood = 0.00001;
+    public double perInteractionLikelihood = 0.00005;
     public double motherToChildInfection = .0005;
     //public double bloodTransfusion ~ 93% chance
     
@@ -59,11 +71,21 @@ public class HIVMicroSim extends SimState{
     public int averageLifeSpan = 780;
     public double pregnancyChance = .01;
     
+    //neighborhoods
+    public final Neighborhood race_Caucassian = NeighborhoodTemplates.getRaceCaucasian();
+    public final Neighborhood race_Hispanic = NeighborhoodTemplates.getRaceHispanic();
+    public final Neighborhood race_Black = NeighborhoodTemplates.getRaceBlack();
+    public final Neighborhood race_Other = NeighborhoodTemplates.getRaceOther();
+    public final Neighborhood religion_Catholic = NeighborhoodTemplates.getReligionCatholic();
+    public final Neighborhood religion_Buddist = NeighborhoodTemplates.getReligionBuddist();
+    public final Neighborhood other_Swinger = NeighborhoodTemplates.getOtherSwinger();
+    
     //Logging////
     public HIVLogger logger;
     public DebugLogger debugLog;
     private final String simDebugFile = "simDebug.txt";
     private final int simDebugLevel = DebugLogger.LOG_ALL;
+    
     
     //Initialization tick - this allows for the network and simulation to be "primed" prior to release of the infection.
     public int initializationOnTick = 300; // the tick on which we will initiate infection. 
@@ -212,28 +234,39 @@ public class HIVMicroSim extends SimState{
         return rand;
     }
     
-    
     public int getMaleFaithfulness(){return maleFaithfulness;}
     public int getFemaleFaithfulness(){return femaleFaithfulness;}
     public int getMaleWant(){return maleWant;}
     public int getFemaleWant(){return femaleWant;}
+    public int getFemaleSelectivity(){return femaleSelectivity;}
+    public int getMaleSelectivity(){return maleSelectivity;}
+    public void setFemaleSelectivity(int a){
+        if(a >=0 && a <= selectivityMax){
+            femaleSelectivity = a;
+        }
+    }
+    public void setMaleSelectivity(int a){
+        if(a >=0 && a <= selectivityMax){
+            maleSelectivity = a;
+        }
+    }
     public void setMaleFaithfulness(int a){
-        if(a >=0 && a <= 10){
+        if(a >=0 && a <= faithfulnessMax){
             maleFaithfulness = a;
         }
     }
     public void setFemaleFaithfulness(int a){
-        if(a >=0 && a <= 10){
+        if(a >=0 && a <= faithfulnessMax){
             femaleFaithfulness = a;
         }
     }
     public void setMaleWant(int a){
-        if(a >=0 && a <= 10){
+        if(a >=0 && a <= wantMax){
             maleWant = a;
         }
     }
     public void setFemaleWant(int a){
-        if(a >=0 && a <= 10){
+        if(a >=0 && a <= wantMax){
             femaleWant = a;
         }
     }
@@ -284,43 +317,40 @@ public class HIVMicroSim extends SimState{
         agents = new SparseGrid2D(100, 100);
         network = new RelationshipNetwork();
         logger = new HIVLogger();
-        
     }
-    
-    public Agent createNewAgent(Pregnancy p){
+    private AgentProfile getPersonalityProfile(){
         boolean female;
         int offsetF;
         int offsetW;
+        int offsetS;
         double condomUse;
         int want;
         int offsetCondom = (int)((percentCondomUse * 100)- 50);
         int faithfulness;
-        int life;
+        int selectivity;
+        byte orientation;
         
-        int offsetLife = averageLifeSpan -(int)((averageLifeSpan +(.5*averageLifeSpan))/2); //consider setting this in start.
-        
-        Stoppable stopper;
         female = random.nextBoolean();
         if(female){
-            offsetF = femaleFaithfulness -5;
-            offsetW = femaleWant - 5;
+            offsetF = femaleFaithfulness -(faithfulnessMax/2);
+            offsetW = femaleWant - (wantMax/2);
+            offsetS = femaleSelectivity - (selectivityMax/2);
         }else{
-            offsetF = maleFaithfulness -5;
-            offsetW = maleWant - 5;
+            offsetF = maleFaithfulness -(faithfulnessMax/2);
+            offsetW = maleWant - (wantMax/2);
+            offsetS = maleSelectivity - (selectivityMax/2);
         }
-        
         try{
-
-            faithfulness = getGaussianRange(offsetF, 0, 10, true);// non-inclusive of max and min
+            faithfulness = getGaussianRange(offsetF, 0, faithfulnessMax, true);// non-inclusive of max and min
         }catch(OffSetOutOfRangeException e){
             System.err.println("OffsetFaithfulness");
-            faithfulness = getGaussianRange(0, 10, true);
+            faithfulness = getGaussianRange(0, faithfulnessMax, true);
         }
         try{
-            want = getGaussianRange(offsetW,0, 10, true);// non-inclusive of max and min
+            want = getGaussianRange(offsetW,0, wantMax, true);// non-inclusive of max and min
         }catch(OffSetOutOfRangeException e){
             System.err.println("OffsetWant");
-            want = getGaussianRange(0, 10, true);
+            want = getGaussianRange(0, wantMax, true);
         }
         try{
             condomUse = getGaussianRange(offsetCondom, 0, 100, true)/100.0;
@@ -329,17 +359,36 @@ public class HIVMicroSim extends SimState{
             condomUse = getGaussianRange(0,100, true)/100.0;
         }
         try{
+            selectivity = getGaussianRange(offsetS, 0, selectivityMax, true);
+        }catch(OffSetOutOfRangeException e){
+            System.err.println("Selectivity offset");
+            selectivity = getGaussianRange(0,selectivityMax, true);
+        }
+        orientation = NeighborhoodTemplates.getSexuality(this);
+        return(new AgentProfile(female, faithfulness, condomUse, want, orientation, selectivity));
+    }
+    
+    public Agent createNewAgent(Pregnancy p){
+        AgentProfile profile = getPersonalityProfile();
+        int offsetLife = averageLifeSpan -(int)((averageLifeSpan +(.5*averageLifeSpan))/2); //consider setting this in start.
+        Stoppable stopper;
+        int life;
+        Agent agent;
+        try{
             life = getGaussianRange(offsetLife, 0, (int)((averageLifeSpan +(.5*averageLifeSpan))), false);
         }catch(OffSetOutOfRangeException e){
             System.err.println("Life Expectancy offset out of bounds!");
             life = averageLifeSpan;
         }
-        Agent agent;
-        //currently orientation will be coded to straight only, all men listed as "onTop" and circumsized for now.
-        if(female){
-            agent = new Female(currentID, faithfulness, condomUse, want, 0, p.getCCR51(), p.getCCR52(),p.getCCR21(), p.getCCR22(), p.getHLAA1(), p.getHLAA2(), p.getHLAB1(), p.getHLAB2(), p.getHLAC1(),p.getHLAC2(), 0, life, Agent.ORIENTATION_HETEROSEXUAL, p.getMother(), p.getFather());
+        if(profile.female){
+            agent = new Female(currentID, profile.faithfulness, profile.condomUse, profile.want, 0, p.getCCR51(), p.getCCR52(),p.getCCR21(), p.getCCR22(),
+                    p.getHLAA1(), p.getHLAA2(), p.getHLAB1(), p.getHLAB2(), p.getHLAC1(),p.getHLAC2(), 0, life, 
+                    profile.orientation, p.getMother(), p.getFather(), p.getRace(), p.getReligion(), p.getOther(), profile.selectivity);
         }else{
-            agent = new Male(currentID, faithfulness, condomUse, want, 0, p.getCCR51(), p.getCCR52(),p.getCCR21(), p.getCCR22(), p.getHLAA1(), p.getHLAA2(), p.getHLAB1(), p.getHLAB2(), p.getHLAC1(),p.getHLAC2(), 0, life, Agent.ORIENTATION_HETEROSEXUAL, p.getMother(), p.getFather(), true, true);
+            agent = new Male(currentID, profile.faithfulness, profile.condomUse, profile.want, 0, p.getCCR51(), p.getCCR52(),p.getCCR21(), p.getCCR22(),
+                    p.getHLAA1(), p.getHLAA2(), p.getHLAB1(), p.getHLAB2(), p.getHLAC1(),p.getHLAC2(), 0, life, 
+                    profile.orientation, p.getMother(), p.getFather(), random.nextBoolean(), random.nextBoolean(), p.getRace(), 
+                    p.getReligion(), p.getOther(), profile.selectivity);
         }
         logger.insertBirth(agent);
         currentID++;
@@ -357,30 +406,12 @@ public class HIVMicroSim extends SimState{
         Agent[] s = new Agent[numAgents];
         //create the agents
         //set offsets
-        int offsetMF = maleFaithfulness -5;
-        int offsetFF = femaleFaithfulness -5;
-        int offsetMW = maleWant - 5;
-        int offsetFW = femaleWant - 5;
         int maxLife = averageLifeSpan + (int)(averageLifeSpan*.5);
-        int offsetCondom = (int)((percentCondomUse * 100)- 50);
         
         //currently used variables
-        int faithfulness;
-        double condomUse;
-        int want;
-        boolean female;
-        double geneRoll; // to hold the roll
-        byte ccr51;
-        byte ccr52;
-        byte ccr21;
-        byte ccr22;
-        byte HLA_A1;
-        byte HLA_A2;
-        byte HLA_B1;
-        byte HLA_B2;
-        byte HLA_C1;
-        byte HLA_C2;
-        
+        AgentProfile profile;
+        GeneProfile gprofile;
+                
         double lack;
         int age;
         int ageOffset = -((maxLife/2) - averageAge); //should be negative. 
@@ -390,33 +421,8 @@ public class HIVMicroSim extends SimState{
         Stoppable stopper;
         for(int i=0; i<numAgents; i++){
             //build agent.
-            female = random.nextBoolean();
-            try{
-                if(female){
-                    faithfulness = getGaussianRange(offsetFF, 0, 10, true);
-                }else{
-                    faithfulness = getGaussianRange(offsetMF, 0, 10, true);
-                }
-            }catch(OffSetOutOfRangeException e){
-                System.err.println("OffsetFaithfulness");
-                faithfulness = getGaussianRange(0, 10, true);
-            }
-            try{
-                if(female){
-                    want = getGaussianRange(offsetFW, 0, 10, true);
-                }else{
-                    want = getGaussianRange(offsetMW, 0, 10, true);
-                }
-            }catch(OffSetOutOfRangeException e){
-                System.err.println("OffsetWant");
-                want = getGaussianRange(0, 10, true);
-            }
-            try{
-                condomUse = getGaussianRange(offsetCondom, 0, 100, true)/100.0;
-            }catch(OffSetOutOfRangeException e){
-                System.err.println("CondomUse offset");
-                condomUse = getGaussianRange(0,100, true)/100.0;
-            }
+            profile = getPersonalityProfile();
+            
             try{
   ///////////////////Note that this is a bad fit 2* averageLifeSpan is not a good range and may result in an older population than
                 //desired. 
@@ -439,34 +445,23 @@ public class HIVMicroSim extends SimState{
                 System.err.println("Life Expectancy offset out of bounds!");
                 life = getGaussianRange(age, maxLife, false);
             }
-            geneRoll = random.nextDouble(); // next double between 0 and 1(exclusive)
-            ccr51 = Gene.getCCR5(geneRoll);
-            geneRoll = random.nextDouble(); // next double between 0 and 1(exclusive)
-            ccr52 = Gene.getCCR5(geneRoll);
-            geneRoll = random.nextDouble(); // next double between 0 and 1(exclusive)
-            ccr21 = Gene.getCCR2(geneRoll);
-            geneRoll = random.nextDouble(); // next double between 0 and 1(exclusive)
-            ccr22 = Gene.getCCR2(geneRoll);
-            geneRoll = random.nextDouble(); // next double between 0 and 1(exclusive)
-            HLA_A1 = Gene.getHLA_A(geneRoll);
-            geneRoll = random.nextDouble(); // next double between 0 and 1(exclusive)
-            HLA_A2 = Gene.getHLA_A(geneRoll);
-            geneRoll = random.nextDouble(); // next double between 0 and 1(exclusive)
-            HLA_B1 = Gene.getHLA_B(geneRoll);
-            geneRoll = random.nextDouble(); // next double between 0 and 1(exclusive)
-            HLA_B2 = Gene.getHLA_B(geneRoll);
-            geneRoll = random.nextDouble(); // next double between 0 and 1(exclusive)
-            HLA_C1 = Gene.getHLA_C(geneRoll);
-            geneRoll = random.nextDouble(); // next double between 0 and 1(exclusive)
-            HLA_C2 = Gene.getHLA_C(geneRoll);
-            
+                                   
             lack = random.nextDouble()*10;//random number from 0-10 (inclusive)
-            
             Agent agent; 
-            if(female){
-                agent = new Female(i, faithfulness, condomUse, want, lack, ccr51, ccr52, ccr21, ccr22, HLA_A1, HLA_A2, HLA_B1, HLA_B2, HLA_C1, HLA_C2, age, life, Agent.ORIENTATION_HETEROSEXUAL, -1, -1);
+            Neighborhood race = NeighborhoodTemplates.getRace(this);
+            gprofile = Gene.getGeneProfile(this, race.ID);
+            if(profile.female){
+                agent = new Female(i, profile.faithfulness, profile.condomUse, profile.want, lack, gprofile.ccr51, gprofile.ccr52,
+                        gprofile.ccr21, gprofile.ccr22, gprofile.HLA_A1, gprofile.HLA_A2, 
+                        gprofile.HLA_B1, gprofile.HLA_B2, gprofile.HLA_C1, gprofile.HLA_C2, age, life, profile.orientation, -1, -1,
+                        race, NeighborhoodTemplates.getReligion(this), 
+                        NeighborhoodTemplates.getOther(this), profile.selectivity);
             }else{
-                agent = new Male(i, faithfulness, condomUse, want, lack, ccr51, ccr52, ccr21, ccr22, HLA_A1, HLA_A2, HLA_B1, HLA_B2, HLA_C1, HLA_C2, age, life, Agent.ORIENTATION_HETEROSEXUAL, -1, -1, false, true);
+                agent = new Male(i, profile.faithfulness, profile.condomUse, profile.want, lack, gprofile.ccr51, gprofile.ccr52,
+                        gprofile.ccr21, gprofile.ccr22, gprofile.HLA_A1, gprofile.HLA_A2, 
+                        gprofile.HLA_B1, gprofile.HLA_B2, gprofile.HLA_C1, gprofile.HLA_C2, age, life, profile.orientation, 
+                        -1, -1, random.nextBoolean(), random.nextBoolean(), race, 
+                        NeighborhoodTemplates.getReligion(this), NeighborhoodTemplates.getOther(this), profile.selectivity);
             }
             agents.setObjectLocation(agent,random.nextInt(gridWidth), random.nextInt(gridHeight));
             if(age >= 216){
@@ -479,7 +474,7 @@ public class HIVMicroSim extends SimState{
         }
         return s;
     }
-    public void attemptFindConnection(Agent me, Bag s){
+    public int attemptFindConnection(Agent me, Bag s){
         double rollD;
         int connectID;
         Agent connect;
@@ -490,10 +485,11 @@ public class HIVMicroSim extends SimState{
         do{//repeat until we find a connection of suitable age and gender.
             connectID = random.nextInt(bagSize);
             connect = (Agent)s.objs[connectID];
-        }while(!connect.acceptGender(me.isFemale()) || !me.acceptGender(connect.isFemale()) || me.isRelated(connect));
-        //now that we have an agent, see if their network has space for another edge.
-        if(me.hasEdge(connect.ID)) return;
-        if(connect.wantsConnection(getGaussianRangeDouble(-10,10, false))){ //using this function so we can add more advanced code in there later
+        }while(!connect.acceptGender(me.isFemale()) || !me.acceptGender(connect.isFemale()) || me.isRelated(connect) || me.hasEdge(connect.ID));
+        
+        //-- newly added-- just because they are "seeking" doesn't mean that they don't need to "want" the other. 
+        if(!me.wantsConnection(getGaussianRangeDouble(-faithfulnessMax,faithfulnessMax, false),random.nextInt(selectivityRoll), connect))return 0;
+        if(connect.wantsConnection(getGaussianRangeDouble(-faithfulnessMax,faithfulnessMax, false),random.nextInt(selectivityRoll), me)){ //using this function so we can add more advanced code in there later
             //this one is selected.
             //make sure this relationship doesn't already exist...
             if(connect.getWantLevel() > me.getWantLevel()){
@@ -503,10 +499,10 @@ public class HIVMicroSim extends SimState{
             }
             int relationship = Relationship.RELATIONSHIP;
             int ii;
-            ii = random.nextInt(10);
+            ii = getGaussianRange(0,faithfulnessMax,false);
             if(ii > me.getFaithfulness() || ii > connect.getFaithfulness()){
                 relationship = Relationship.ONETIME;
-                edgeVal = 1;
+                edgeVal = oneShotValue;
             }
 //            if(!me.isMarried() && !connect.isMarried()){
 //                 ii = random.nextInt(10);
@@ -529,8 +525,9 @@ public class HIVMicroSim extends SimState{
             connect.addEdge(edge);
             me.addEdge(edge);
             network.wrapperAddEdge(edge);
+            return edge.getType();
         }
-        
+        return 0;
     }
     public void processNetworks(){
         //double adj = wantLevel;
@@ -544,11 +541,9 @@ public class HIVMicroSim extends SimState{
             r = (Relationship)o;
             a = r.getA();
             b = r.getB();
-            a.adjustLack(-r.getCoitalFrequency());
-            b.adjustLack(-r.getCoitalFrequency());
             if (r.getType() == Relationship.RELATIONSHIP && !a.isMarried() && !b.isMarried()){
                 //give the relationship a chance to advance. 
-                int ii = random.nextInt(10) + 1;
+                int ii = getGaussianRange(0, faithfulnessMax, false);
                     if(ii < a.getFaithfulness() && ii < b.getFaithfulness()){
                         r.setType(Relationship.MARRIAGE);
                         a.setMarried(true);
@@ -648,7 +643,11 @@ public class HIVMicroSim extends SimState{
                         //We've been infected!
                         if(b.isInfected())newInfect = false;
                         if(b.infect(genotypeList.get(infection.getGenotype()))) {
-                            logger.insertInfection(HIVLogger.INFECT_HETERO, b.ID, a.ID, infection.getGenotype(), newInfect);
+                            if(a.isFemale() == b.isFemale()){
+                                logger.insertInfection(HIVLogger.INFECT_HOMO, b.ID, a.ID, infection.getGenotype(), newInfect);
+                            }else{
+                                logger.insertInfection(HIVLogger.INFECT_HETERO, b.ID, a.ID, infection.getGenotype(), newInfect);
+                            }
                         }
                     }
                 }
@@ -672,7 +671,11 @@ public class HIVMicroSim extends SimState{
                         //We've been infected!
                         if(a.isInfected())newInfect = false;
                         if(a.infect(genotypeList.get(infection.getGenotype()))) {
-                            logger.insertInfection(HIVLogger.INFECT_HETERO, a.ID, b.ID, infection.getGenotype(), newInfect);
+                            if(a.isFemale() == b.isFemale()){
+                                logger.insertInfection(HIVLogger.INFECT_HOMO, b.ID, a.ID, infection.getGenotype(), newInfect);
+                            }else{
+                                logger.insertInfection(HIVLogger.INFECT_HETERO, b.ID, a.ID, infection.getGenotype(), newInfect);
+                            }
                         }
                     }
                 }
@@ -726,13 +729,14 @@ public class HIVMicroSim extends SimState{
                     agent.removeOneShots(state);
                     if(agent.getNetwork().size()>0 && agent.getFaithfulness() != 10){// if < =0 no network.
                         diff = Math.abs(agent.getNetworkLevel()- agent.getWantLevel());// getting the difference between their wants and what's provided.
+                        diff +=(agent.getLack()/agent.getFaithfulness());
                         ii = random.nextInt(agent.getNetwork().size());
                         e = agent.getNetwork().get(ii);
                         try{
-                            roll = getGaussianRangeDouble(agent.getFaithfulness()-5, 0,10, true)*e.getType();
+                            roll = getGaussianRangeDouble(agent.getFaithfulness()-(faithfulnessMax/2), 0,faithfulnessMax, true)*e.getType();
                         }catch(OffSetOutOfRangeException except){
                             System.err.println("Network Step, Agent Faithfulness");
-                            roll = getGaussianRangeDouble(0,10, true) * e.getType();
+                            roll = getGaussianRangeDouble(0,faithfulnessMax, true) * e.getType();
                         }
                         if(roll < diff){
                             //disolve
@@ -742,8 +746,10 @@ public class HIVMicroSim extends SimState{
                         }
                     }
                     //set up new relationships
-                    if(agent.wantsConnection(getGaussianRangeDouble(-10,10, false))){
-                        attemptFindConnection(agent, allAgents);
+                    if(agent.getLack() >= agent.getFaithfulness() && agent.wantsConnection(getGaussianRangeDouble(-10,10, false))){
+                        for( int i = 0; i< (agent.getLack()/agent.getFaithfulness()); i++){
+                            if(attemptFindConnection(agent, allAgents) == 2) break;
+                        }
                     }
                 }//end for
             }//end step

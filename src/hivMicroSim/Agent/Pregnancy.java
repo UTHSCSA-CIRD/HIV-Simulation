@@ -4,7 +4,7 @@
  * and open the template in the editor.
  */
 package hivMicroSim.Agent;
-
+import Neighborhoods.Neighborhood;
 /**
  *
  * @author ManuelLS
@@ -19,7 +19,11 @@ public class Pregnancy implements java.io.Serializable{
     protected final byte HLA_B1, HLA_B2;
     protected final byte HLA_C1, HLA_C2;
     private int month;
+    protected final Neighborhood race, religion, other;
     
+    public Neighborhood getRace(){return race;}
+    public Neighborhood getReligion(){return religion;}
+    public Neighborhood getOther(){return other;}
     public boolean step(){
         month++;
         return month >=9;
@@ -57,7 +61,7 @@ public class Pregnancy implements java.io.Serializable{
         return HLA_C2;
     }
     public Pregnancy(int mother, int father, byte ccr51, byte ccr52, byte ccr21, byte ccr22,byte HLAA1, byte HLAA2, byte HLAB1, byte HLAB2, 
-            byte HLAC1, byte HLAC2){
+            byte HLAC1, byte HLAC2, Neighborhood race, Neighborhood religion, Neighborhood other){
         this.ccr51 = ccr51;
         this.ccr52 = ccr52;
         this.ccr21 = ccr21;
@@ -66,6 +70,9 @@ public class Pregnancy implements java.io.Serializable{
         this.father = father;
         HLA_A1 = HLAA1; HLA_A2 = HLAA2; HLA_B1 = HLAB1; HLA_B2 = HLAB2; HLA_C1 = HLAC1; HLA_C2 = HLAC2;
         month = 0;
+        this.race = race;
+        this.religion = religion;
+        this.other = other;
     }
     
     
