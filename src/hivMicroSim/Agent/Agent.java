@@ -403,9 +403,9 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         //sroll- selectivity roll. 
         if(age <216) return false;
         int applicability = 0;
-        if(race.ID == o.race.ID)applicability += 10;
-        if(religion != null && o.religion != null && religion.ID == o.religion.ID) applicability += 10;
-        if(other != null && o.other != null && other.ID == o.other.ID) applicability += 10;
+        if(race.ID == o.race.ID)applicability += race.selectiveness;
+        if(religion != null && o.religion != null && religion.ID == o.religion.ID) applicability += religion.selectiveness;
+        if(other != null && o.other != null && other.ID == o.other.ID) applicability += other.selectiveness;
         if(Math.abs(age - o.age) <= 60) applicability += 10;//5 years
         if(applicability + sroll < selectivity) return false;
         if(networkLevel == 0 || faithfulness == 0) return true;

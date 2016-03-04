@@ -134,17 +134,25 @@ public class Female extends Agent implements Steppable{
                     else if(other.race.ID == NeighborhoodTemplates.Race_Other) childRace = race;
                     else childRace = sim.race_Other;
                 }
-                rand = sim.random.nextBoolean();
-                if(rand){
+                int randInt  = sim.random.nextInt(3);
+                if(randInt == 0){
                     childReligion = religion;
                 }else{
-                    childReligion = other.religion;
+                    if(randInt == 1){
+                        childReligion = other.religion;
+                    }else{
+                        childReligion = NeighborhoodTemplates.getReligion(sim);
+                    }
                 }
-                rand = sim.random.nextBoolean();
-                if(rand){
+                randInt  = sim.random.nextInt(3);
+                if(randInt == 0){
                     childOther = this.other;
                 }else{
-                    childOther = other.other;
+                    if(randInt == 1){
+                        childOther = other.other;
+                    }else{
+                        childOther = NeighborhoodTemplates.getOther(sim);
+                    }
                 }
                 pregnancy = new Pregnancy(ID, other.ID, infCCR51, infCCR52, infCCR21, infCCR22, infHLAA1, infHLAA2, 
                         infHLAB1, infHLAB2, infHLAC1, infHLAC2, childRace, childReligion, childOther);

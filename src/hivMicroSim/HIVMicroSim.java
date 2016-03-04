@@ -747,7 +747,7 @@ public class HIVMicroSim extends SimState{
                     }
                     //set up new relationships
                     if(agent.getLack() >= agent.getFaithfulness() && agent.wantsConnection(getGaussianRangeDouble(-10,10, false))){
-                        for( int i = 0; i< (agent.getLack()/agent.getFaithfulness()); i++){
+                        for( int i = 0; i< (agent.getLack()/(agent.getFaithfulness()/2)); i++){
                             if(attemptFindConnection(agent, allAgents) == 2) break;
                         }
                     }

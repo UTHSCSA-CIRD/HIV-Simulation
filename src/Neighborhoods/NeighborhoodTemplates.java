@@ -143,12 +143,12 @@ public abstract class NeighborhoodTemplates {
         ID - 2
         Name = "Buddist"
         Type = TYPE_RELIGION
-        condom = 0
-        faithfulness = 30
-        want = 30
+        condom = 0.6
+        faithfulness = 20
+        want = 15
         selective = 8
         */
-        return new Neighborhood(2, "Buddist", Neighborhood.TYPE_RELIGION, 5, 15, 15, 3);
+        return new Neighborhood(2, "Buddist", Neighborhood.TYPE_RELIGION, .6, 20, 15, 3);
     }
     public static Neighborhood getReligionOther(){
         /*
@@ -167,12 +167,12 @@ public abstract class NeighborhoodTemplates {
         ID - 1
         Name = "Swinger"
         Type = TYPE_Other
-        condom = .5
+        condom = 1
         faithfulness = 0
         want = 30
         selective = 8
         */
-        return new Neighborhood(1, "Swinger", Neighborhood.TYPE_OTHER, .5, 0, 30, 8);
+        return new Neighborhood(1, "Swinger", Neighborhood.TYPE_OTHER, 1, 0, 30, 8);
     }
     
 }
