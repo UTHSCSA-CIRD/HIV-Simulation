@@ -41,7 +41,7 @@ public abstract class NeighborhoodTemplates {
     //These are not currently in neighborhoods, but this is a good place to store
     //them
     //sexuality (note that this might later have to be parsed by male vs female
-    public static final int percentHomosexual = 3;
+    public static final int percentHomosexual = 5;
     public static final int percentBiSexual = 10;
     
     public static byte getSexuality(HIVMicroSim sim){
@@ -83,22 +83,22 @@ public abstract class NeighborhoodTemplates {
         Type = TYPE_RACE
         condom = .8
         faithfulness = 10
-        want = 15
+        want = -1
         selective = 5
         */
-        return new Neighborhood(1, "Caucasian", Neighborhood.TYPE_RACE, .8, 10, 15, 5);
+        return new Neighborhood(1, "Caucasian", Neighborhood.TYPE_RACE, .8, 10, -1, 5);
     }
     public static Neighborhood getRaceHispanic(){
         /*
         ID - 2
         Name = "Hispanic"
         Type = TYPE_RACE
-        condom = .5
-        faithfulness = 15
+        condom = -1
+        faithfulness = -1
         want = 20
         selective = 3
         */
-        return new Neighborhood(2, "Hispanic", Neighborhood.TYPE_RACE, .5, 15, 20, 3);
+        return new Neighborhood(2, "Hispanic", Neighborhood.TYPE_RACE, -1, -1, 20, 3);
     }
     public static Neighborhood getRaceBlack(){
         /*
@@ -106,23 +106,23 @@ public abstract class NeighborhoodTemplates {
         Name = "Black"
         Type = TYPE_RACE
         condom = 0
-        faithfulness = 15
-        want = 15
+        faithfulness = -1
+        want = -1
         selective = 5
         */
-        return new Neighborhood(3, "Black", Neighborhood.TYPE_RACE, 0, 15, 15, 5);
+        return new Neighborhood(3, "Black", Neighborhood.TYPE_RACE, 0, -1, -1, 5);
     }
     public static Neighborhood getRaceOther(){
         /*
         ID - 4
         Name = "Other"
         Type = TYPE_RACE
-        condom = .5
-        faithfulness = 20
-        want = 15
-        selective = 5
+        condom = -1
+        faithfulness = -1
+        want = -1
+        selective = 0
         */
-        return new Neighborhood(4, "Other", Neighborhood.TYPE_RACE, .5, 20, 15, 0);
+        return new Neighborhood(4, "Other", Neighborhood.TYPE_RACE, -1, -1, -1, 0);
     }
     
     ////////////////////////************************ RELIGION TEMPLATES *****************//////////////////
@@ -143,24 +143,12 @@ public abstract class NeighborhoodTemplates {
         ID - 2
         Name = "Buddist"
         Type = TYPE_RELIGION
-        condom = 0.6
+        condom = -1
         faithfulness = 20
-        want = 15
-        selective = 8
+        want = -1
+        selective = 3
         */
-        return new Neighborhood(2, "Buddist", Neighborhood.TYPE_RELIGION, .6, 20, 15, 3);
-    }
-    public static Neighborhood getReligionOther(){
-        /*
-        ID - 2
-        Name = "Other"
-        Type = TYPE_RELIGION
-        condom = .5
-        faithfulness = 15
-        want = 15
-        selective = 0
-        */
-        return new Neighborhood(2, "Other", Neighborhood.TYPE_RELIGION, .5, 15, 15, 0);
+        return new Neighborhood(2, "Buddist", Neighborhood.TYPE_RELIGION, -1, 20, -1, 3);
     }
     public static Neighborhood getOtherSwinger(){
         /*
@@ -172,7 +160,7 @@ public abstract class NeighborhoodTemplates {
         want = 30
         selective = 8
         */
-        return new Neighborhood(1, "Swinger", Neighborhood.TYPE_OTHER, 1, 0, 30, 8);
+        return new Neighborhood(1, "Swinger", Neighborhood.TYPE_OTHER, -1, 0, 30, 8);
     }
     
 }

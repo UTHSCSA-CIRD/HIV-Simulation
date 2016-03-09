@@ -59,10 +59,11 @@ public class HIVMicroSim extends SimState{
     //http://www.cdc.gov/hiv/policies/law/risk.html last updated 11-16-2015
     public double femaleLikelinessFactor = 1.5; //the increased likelihood of females to aquire the virus. 
     public double circumcisionLikelinessFactor = .7;
+    public double femaleToFemaleLikelinessFactor = .01;
     public double insertiveAnalLikelinessFactor = 2.75;
     public double receptiveAnalLikelinessFactor = 34.5;
     public double needleSharingLikelinessFactor = 15.75;
-    public double perInteractionLikelihood = 0.00005;
+    public double perInteractionLikelihood = 0.00001;
     public double motherToChildInfection = .0005;
     //public double bloodTransfusion ~ 93% chance
     
@@ -146,6 +147,7 @@ public class HIVMicroSim extends SimState{
     }
     
     public int getGaussianRange(int min, int max, boolean inclusive){
+        if(min == max) return min;
         if(min > max){
             int tmp = max;
             max = min;
@@ -157,15 +159,16 @@ public class HIVMicroSim extends SimState{
         if(inclusive){
             do{
                 rand= (random.nextGaussian()*std)+mean;
-            }while(rand < min || rand > max);
+            }while(rand <= min || rand >= max);
         }else{
             do{
                 rand= (random.nextGaussian()*std)+mean;
-            }while(rand <= min || rand >= max);
+            }while(rand < min || rand > max);
         }
         return (int)rand;
     }
     public int getGaussianRange(int offset, int min, int max, boolean inclusive) throws OffSetOutOfRangeException{
+        if(min == max) return min;
         if(min > max){
             int tmp = max;
             max = min;
@@ -181,15 +184,16 @@ public class HIVMicroSim extends SimState{
         if(inclusive){
             do{
                 rand= (random.nextGaussian()*std)+mean+ offset;
-            }while(rand < min || rand > max);
+            }while(rand <= min || rand >= max);
         }else{
             do{
                 rand= (random.nextGaussian()*std)+mean+ offset;
-            }while(rand <= min || rand >= max);
+            }while(rand < min || rand > max);
         }
         return (int)rand;
     }
     public double getGaussianRangeDouble(double min, double max, boolean inclusive){
+        if(min == max) return min;
         if(min > max){
             double tmp = max;
             max = min;
@@ -201,15 +205,16 @@ public class HIVMicroSim extends SimState{
         if(inclusive){
             do{
                 rand = (random.nextGaussian()*std)+mean;
-            }while(rand < min || rand > max);
+            }while(rand <= min || rand >= max);
         }else{
             do{
                 rand = (random.nextGaussian()*std)+mean;
-            }while(rand <= min || rand >= max);
+            }while(rand < min || rand > max);
         }
         return rand;
     }
     public double getGaussianRangeDouble(double offset, double min, double max, boolean inclusive) throws OffSetOutOfRangeException{
+        if(min == max) return min;
         if(min > max){
             double tmp = max;
             max = min;
@@ -225,11 +230,11 @@ public class HIVMicroSim extends SimState{
         if(inclusive){
             do{
                 rand = (random.nextGaussian()*std)+mean+offset;
-            }while(rand < min || rand > max);
+            }while(rand <= min || rand >= max);
         }else{
             do{
                 rand = (random.nextGaussian()*std)+mean+offset;
-            }while(rand <= min || rand >= max);
+            }while(rand < min || rand > max);
         }
         return rand;
     }
@@ -482,11 +487,13 @@ public class HIVMicroSim extends SimState{
         int bagSize = s.numObjs;
         int edgeVal;
         rollD = random.nextDouble()*10;
+        int tries = 0;
         do{//repeat until we find a connection of suitable age and gender.
             connectID = random.nextInt(bagSize);
             connect = (Agent)s.objs[connectID];
-        }while(!connect.acceptGender(me.isFemale()) || !me.acceptGender(connect.isFemale()) || me.isRelated(connect) || me.hasEdge(connect.ID));
-        
+            tries++; //is this the cause of the program freezing...? 
+        }while((!connect.acceptGender(me.isFemale()) || !me.acceptGender(connect.isFemale()) || me.isRelated(connect) || me.hasEdge(connect.ID)) && tries <= 10);
+        if(tries == 11) return 0;
         //-- newly added-- just because they are "seeking" doesn't mean that they don't need to "want" the other. 
         if(!me.wantsConnection(getGaussianRangeDouble(-faithfulnessMax,faithfulnessMax, false),random.nextInt(selectivityRoll), connect))return 0;
         if(connect.wantsConnection(getGaussianRangeDouble(-faithfulnessMax,faithfulnessMax, false),random.nextInt(selectivityRoll), me)){ //using this function so we can add more advanced code in there later
@@ -546,8 +553,8 @@ public class HIVMicroSim extends SimState{
                 int ii = getGaussianRange(0, faithfulnessMax, false);
                     if(ii < a.getFaithfulness() && ii < b.getFaithfulness()){
                         r.setType(Relationship.MARRIAGE);
-                        a.setMarried(true);
-                        b.setMarried(true);
+                        a.setRelationshipLevel((byte)Relationship.MARRIAGE);
+                        b.setRelationshipLevel((byte)Relationship.MARRIAGE);
                     }
             }
             if(a.isFemale() && b.isFemale()) continue;
@@ -746,8 +753,14 @@ public class HIVMicroSim extends SimState{
                         }
                     }
                     //set up new relationships
-                    if(agent.getLack() >= agent.getFaithfulness() && agent.wantsConnection(getGaussianRangeDouble(-10,10, false))){
-                        for( int i = 0; i< (agent.getLack()/(agent.getFaithfulness()/2)); i++){
+                    //if they are in a relationship already (note that one shots are gone) they must WANT a new relationship, otherwise
+                    //if they have no relationship let them try to find one. 
+                    if((agent.getNetworkSize() > 0 && agent.wantsConnection(getGaussianRangeDouble(-faithfulnessMax,faithfulnessMax, false))) 
+                            || agent.getNetworkSize() == 0){
+                        int get;
+                        if(agent.getFaithfulness() < 2) get = (int)agent.getLack();
+                        else get = (int)agent.getLack()/(agent.getFaithfulness()/2);
+                        for( int i = 0; i< get; i++){
                             if(attemptFindConnection(agent, allAgents) == 2) break;
                         }
                     }

@@ -39,7 +39,7 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     protected double networkLevel;
     protected double lack; //lack of fulfillment in current relationships
     public boolean alive = true;
-    protected boolean married;
+    protected byte rsLevel; //relationship level 2- relationship 3- marriage
     public final Neighborhood race;
     public Neighborhood religion = null;
     public Neighborhood other = null;
@@ -51,57 +51,6 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         public static final byte ORIENTATION_HOMOSEXUAL = 2;
     private final int mother;
     private final int father;
-    
-    //Neighborhood factors
-    public String getRace(){
-        return race.name;
-    }
-    public String getReligion(){
-        if(religion == null) return "None";
-        return religion.name;
-    }
-    public String getOtherNeighborhood(){
-        if(other == null) return "None";
-        return other.name;
-    }
-    
-    public int getSelectivity(){return selectivity;}
-    private void updateNeighborhoodFactors(){
-        //handles updating the averages. 
-        int count = 2;
-        selectivity = baseSelectivity;
-        faithfulness = baseFaithfulness + race.faithfulness;
-        wantLevel = baseWantLevel + race.want;
-        condomUse = baseCondomUse + race.condomUsage;
-        selectivity += race.selectiveness;////////////////////////////////////////////////////////////////////////////////;
-        if(religion != null){
-            //add religion
-            count++;
-            faithfulness += religion.faithfulness;
-            wantLevel += religion.want;
-            condomUse += religion.condomUsage;
-            selectivity += race.selectiveness;
-        }
-        if(other != null){
-            //add religion
-            count++;
-            faithfulness += other.faithfulness;
-            wantLevel += other.want;
-            condomUse += other.condomUsage;
-            selectivity += race.selectiveness;
-        }
-        faithfulness /= count;
-        wantLevel /= count;
-        condomUse /= count;
-    }
-    public void setReligion(Neighborhood r){
-        religion = r;
-        updateNeighborhoodFactors();
-    }
-    public void setOtherNeighborhood(Neighborhood o){
-        other = o;
-        updateNeighborhoodFactors();
-    }
     
     //Genetic factors
     public final byte ccr51, ccr52;//first and second allele ccr5 one is randomly chosen to be passed on.
@@ -133,6 +82,88 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     public static final int MODECOITIS = 1;
     public static final int MODEMOTHERCHILD = 2;
     
+    //Neighborhood factors
+    public String getRace(){
+        return race.name;
+    }
+    public String getReligion(){
+        if(religion == null) return "None";
+        return religion.name;
+    }
+    public String getOtherNeighborhood(){
+        if(other == null) return "None";
+        return other.name;
+    }
+    
+    public int getSelectivity(){return selectivity;}
+    private void updateNeighborhoodFactors(){
+        //handles updating the averages. 
+        int faithCount = 1;
+        int wantCount = 1;
+        int condomCount = 1;
+        selectivity = baseSelectivity;
+        faithfulness = baseFaithfulness;
+        wantLevel = baseWantLevel;
+        condomUse = baseCondomUse;
+        //race
+        if(race.faithfulness != -1){
+            faithfulness += race.faithfulness;
+            faithCount++;
+        }
+        if(race.want != -1){
+            wantLevel += race.want;
+            wantCount++;
+        }
+        if(race.condomUsage != -1){
+            condomUse += race.condomUsage;
+            condomCount++;
+        }
+        selectivity += race.selectiveness;////////////////////////////////////////////////////////////////////////////////;
+        if(religion != null){
+            //add religion
+            if(religion.faithfulness != -1) {
+                faithfulness += religion.faithfulness;
+                faithCount++;
+            }
+            if(religion.want != -1){
+                wantLevel += religion.want;
+                wantCount++;
+            }
+            if(religion.condomUsage != -1){
+                condomUse += religion.condomUsage;
+                condomCount++;
+            }
+            selectivity += religion.selectiveness;
+        }
+        if(other != null){
+            //add religion
+            if(other.faithfulness != -1) {
+                faithfulness += other.faithfulness;
+                faithCount++;
+            }
+            if(other.want != -1){
+                wantLevel += other.want;
+                wantCount++;
+            }
+            if(other.condomUsage != -1){
+                condomUse += other.condomUsage;
+                condomCount++;
+            }
+            selectivity += other.selectiveness;
+        }
+        faithfulness /= faithCount;
+        wantLevel /= wantCount;
+        condomUse /= condomCount;
+    }
+    public void setReligion(Neighborhood r){
+        religion = r;
+        updateNeighborhoodFactors();
+    }
+    public void setOtherNeighborhood(Neighborhood o){
+        other = o;
+        updateNeighborhoodFactors();
+    }
+    
     public void setStoppable(Stoppable stop){
         stopper = stop;
     }
@@ -158,7 +189,9 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         }
         return false;
     }
-    public boolean isMarried(){return married;}
+    public boolean isMarried(){
+        if (rsLevel == Relationship.MARRIAGE) return true;
+        return false;}
     protected final ArrayList<Relationship> network;
     
     public boolean isRelated(Agent a){
@@ -392,7 +425,7 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         if(age <216) return false;
         if(networkLevel == 0 || faithfulness == 0) return true;
         if(faithfulness == HIVMicroSim.faithfulnessMax) return false;
-        if(married){
+        if(rsLevel == Relationship.MARRIAGE){
             return (froll+(faithfulness*2)) < lack;
         }else{
             return((froll+faithfulness) < lack);
@@ -410,7 +443,7 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         if(applicability + sroll < selectivity) return false;
         if(networkLevel == 0 || faithfulness == 0) return true;
         if(faithfulness == HIVMicroSim.faithfulnessMax) return false;
-        if(married){
+        if(rsLevel == Relationship.MARRIAGE){
             return (froll+(faithfulness*2)) < lack;
         }else{
             return((froll+faithfulness) < lack);
@@ -435,21 +468,30 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
             }
         }
     }
-    public void setMarried(boolean a){
-        married = a;
+    public void setRelationshipLevel(byte a){
+        rsLevel = a;
     }
     public boolean addEdge(Relationship a){
         network.add(a);
         networkLevel += a.getCoitalFrequency();
-        if(a.getType() == Relationship.MARRIAGE){
-            married = true;
-        }
+        if(rsLevel<a.getType()) 
+            rsLevel = (byte)a.getType();
         return true;
+    }
+    private void setRelationshipLevel(){
+        rsLevel = 0;
+        for (Relationship network1 : network) {
+            if (rsLevel < network1.getType()) {
+                rsLevel = (byte) network1.getType();
+            }
+        }
     }
     public boolean removeEdge(Relationship a){
         networkLevel -= a.getCoitalFrequency();
-        if(a.getType() == Relationship.MARRIAGE) married = false;
-        return network.remove(a);
+        boolean r = network.remove(a);
+        if(rsLevel <= a.getType())// should never be less than, but... you know... just in case
+            setRelationshipLevel();
+        return r;
     }
     @Override
     public void step(SimState state){
