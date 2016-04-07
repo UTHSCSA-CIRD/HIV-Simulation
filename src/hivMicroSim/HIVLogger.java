@@ -103,7 +103,7 @@ public class HIVLogger implements sim.engine.Steppable{
             System.err.println("Could not close! " + e.getLocalizedMessage());
         }
     }
-    public void insertInfection(int infectMode, int agent1, int agent2, int genotype, boolean newInfect){
+    public void insertInfection(int infectMode, int agent1, int agent2, int genotype, boolean newInfect, int relationshipType){
         yearInfect ++;
         if(logLevel < LOG_INFECT) return;
         String log = "";
@@ -125,6 +125,7 @@ public class HIVLogger implements sim.engine.Steppable{
                 log = agent1 + "\tHomosexual Infection\t" + genotype +"\t"+ agent2 +"\t"+ turn;
             }
         }
+        log = log + "\t"+ relationshipType;
         eventQueue.add(log);
     }
     public void insertProgression(int agent, int stage){
@@ -221,7 +222,7 @@ public class HIVLogger implements sim.engine.Steppable{
         yearOut.write("Year\tStarting.Population\tIncidence\tPrevelance\tMortality\tBirth.Rate\tDeath.Rate");
         
         eventOut = new BufferedWriter(new FileWriter(event, false),(8*1024)); // second argument F means will overwrite if exists. 
-        eventOut.write("Agent\tAction\tGenoType/Stage\tAgent\tStep");
+        eventOut.write("Agent\tAction\tGenoType/Stage\tAgent\tStep\tRelationship_Type");
         
         agentOut = new BufferedWriter(new FileWriter(agent, false),(8*1024)); // second argument F means will overwrite if exists. 
         agentOut.write("ID\tEntry.Step\tGender\tFaithfulness\tWant\tCondom.Usage\tCCR51\tCCR52\tCCR21\tCCR22\tHLA_A1"

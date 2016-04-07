@@ -511,24 +511,34 @@ public class HIVMicroSim extends SimState{
                 relationship = Relationship.ONETIME;
                 edgeVal = oneShotValue;
             }
-//            if(!me.isMarried() && !connect.isMarried()){
-//                 ii = random.nextInt(10);
-//                if(ii < me.getFaithfulness() && ii < connect.getFaithfulness()){
-//                    relationship =Relationship.MARRIAGE;
-//                }else{
-//                    if(ii > me.getFaithfulness() || ii > connect.getFaithfulness()){
-//                        relationship = Relationship.ONETIME;
-//                        edgeVal = 1;
-//                    }
-//                }
-//            }else{
-//                ii = random.nextInt(10);
-//                if(ii > me.getFaithfulness() && ii > connect.getFaithfulness()){
-//                    relationship = Relationship.ONETIME;
-//                    edgeVal = 1;
-//                }
-//            }
-            edge = new Relationship(relationship, me, connect, edgeVal);
+
+            if(me.isFemale() ^ connect.isFemale()){
+                edge = new Relationship(relationship, me, connect, edgeVal);
+            }else{
+                if(me.isFemale()){ //F2F
+                    edge = new Relationship(relationship, me, connect, edgeVal, Relationship.F2F);
+                }else{//M2M
+                    //DEFINE ONTOP
+                    Male m = (Male)me;
+                    Male o = (Male)connect;
+                    boolean meOT; //since I am a and the last variable is "me ontop"
+                    if(m.onTop){
+                        if(o.onTop){
+                            meOT = random.nextBoolean();
+                        }else{
+                            meOT = true;
+                        }
+                    }else{
+                        if(o.onTop){
+                            meOT = false;
+                        }else{
+                            meOT = random.nextBoolean();
+                        }
+                    }
+                    edge = new Relationship(relationship, me, connect, edgeVal, Relationship.M2M, meOT);
+                }
+            }
+            
             connect.addEdge(edge);
             me.addEdge(edge);
             network.wrapperAddEdge(edge);
@@ -557,7 +567,7 @@ public class HIVMicroSim extends SimState{
                         b.setRelationshipLevel((byte)Relationship.MARRIAGE);
                     }
             }
-            if(a.isFemale() && b.isFemale()) continue;
+            
             ///***Find PFC Unprotected - Coital Frequency - Maybe this should have been UFC..?***////
             
             //Condom use section is currently in "bandaid mode". I might add some additional code for marriage where 
@@ -621,18 +631,31 @@ public class HIVMicroSim extends SimState{
                 //pregnancy
                 a.addAlloImmunity(b, PFC);
                 b.addAlloImmunity(a, PFC);
-                
-                if(a.isFemale() && a.getAge() <= 480){
-                    Female c = (Female)a;
-                    c.attemptPregnancy(PFC, b, this);
-                }
-                if(b.isFemale() && b.getAge() <= 480){
-                    Female c = (Female)b;
-                    c.attemptPregnancy(PFC, a, this);
+                if(r.orientation == Relationship.HETERO){
+                    if(a.isFemale() && a.getAge() <= 480){
+                        Female c = (Female)a;
+                        c.attemptPregnancy(PFC, b, this);
+                    }else{
+                        if(b.isFemale() && b.getAge() <= 480){
+                            Female c = (Female)b;
+                            c.attemptPregnancy(PFC, a, this);
+                        }
+                    }
                 }
                 if(a.isInfected()){//a attempts to infect b.
-                    //select a genotype from the other 
-                    boolean newInfect = true;
+                    infectHelper(a, b, PFC, r);
+                }
+                if(b.isInfected()){//b attempts to infect a.
+                    infectHelper(b, a, PFC, r);
+                }
+
+            }
+            
+        }
+    }
+    private void infectHelper(Agent a, Agent b, int PFC, Relationship r){
+        //A is the infected agent. 
+        boolean newInfect = true;
                     int roll;
                     ArrayList<HIVInfection> otherInfections = a.getDiseaseMatrix().getGenotypes(); 
                     HIVInfection infection;
@@ -646,50 +669,17 @@ public class HIVMicroSim extends SimState{
                     }
                     
                     //attempt infection 
-                    if(b.attemptCoitalInfection(this, infection, a.getDiseaseMatrix().getStage(), PFC, a, 1.0)){
+                    if(b.attemptCoitalInfection(this, infection, a.getDiseaseMatrix().getStage(), PFC, a, 1.0, r)){
                         //We've been infected!
                         if(b.isInfected())newInfect = false;
                         if(b.infect(genotypeList.get(infection.getGenotype()))) {
                             if(a.isFemale() == b.isFemale()){
-                                logger.insertInfection(HIVLogger.INFECT_HOMO, b.ID, a.ID, infection.getGenotype(), newInfect);
+                                logger.insertInfection(HIVLogger.INFECT_HOMO, b.ID, a.ID, infection.getGenotype(), newInfect, r.getType());
                             }else{
-                                logger.insertInfection(HIVLogger.INFECT_HETERO, b.ID, a.ID, infection.getGenotype(), newInfect);
+                                logger.insertInfection(HIVLogger.INFECT_HETERO, b.ID, a.ID, infection.getGenotype(), newInfect, r.getType());
                             }
                         }
                     }
-                }
-                if(b.isInfected()){//b attempts to infect a.
-                    //select a genotype from the other 
-                    boolean newInfect = true;
-                    int roll;
-                    ArrayList<HIVInfection> otherInfections = b.getDiseaseMatrix().getGenotypes(); 
-                    HIVInfection infection;
-                    //if the other has more than one genotype, select one, otherwise use that one. 
-                    if(otherInfections.size() >1){
-                        //set mean of 0 with max range of list size. This makes you most likely to select an item closer to 0 or with larger virulence. 
-                        roll = Math.abs(getGaussianRange(-(otherInfections.size()-1), (otherInfections.size()-1), true));
-                        infection = otherInfections.get(roll);
-                    }else{
-                        infection = otherInfections.get(0);
-                    }
-                    
-                    //attempt infection 
-                    if(a.attemptCoitalInfection(this, infection, b.getDiseaseMatrix().getStage(), PFC, b, 1.0)){
-                        //We've been infected!
-                        if(a.isInfected())newInfect = false;
-                        if(a.infect(genotypeList.get(infection.getGenotype()))) {
-                            if(a.isFemale() == b.isFemale()){
-                                logger.insertInfection(HIVLogger.INFECT_HOMO, b.ID, a.ID, infection.getGenotype(), newInfect);
-                            }else{
-                                logger.insertInfection(HIVLogger.INFECT_HETERO, b.ID, a.ID, infection.getGenotype(), newInfect);
-                            }
-                        }
-                    }
-                }
-
-            }
-            
-        }
     }
    
     @Override

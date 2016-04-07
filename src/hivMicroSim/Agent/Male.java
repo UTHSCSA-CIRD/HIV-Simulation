@@ -19,8 +19,8 @@ import java.awt.*;
  * @author ManuelLS
  */
 public class Male extends Agent implements Steppable{
-    private boolean circumcised = false; //this will be implemented later, but for now we'll just say all men are uncirumcised. 
-    private boolean onTop; //will fill this in later when implementing sexual orientation
+    private boolean circumcised; 
+    public final boolean onTop; 
     public Male(int id, int faithfullness, double condomUse, int wantLevel, double lack, byte ccr51, 
             byte ccr52, byte ccr21, byte ccr22,byte HLAA1, byte HLAA2,
             byte HLAB1, byte HLAB2, byte HLAC1, byte HLAC2, int age, int life,
@@ -39,7 +39,7 @@ public class Male extends Agent implements Steppable{
     }
     @Override
     public boolean attemptCoitalInfection(HIVMicroSim sim, HIVInfection infection, 
-             int stage, int frequency, Agent agent, double degree){
+             int stage, int frequency, Agent agent, double degree, Relationship r){
         if(infected && hiv.hasGenoType(infection.getGenotype()))return false;
         //this calculates the potential reduction from alloimmunity, then passes it on to attemptInfection. 
         int alloImmunity = getAlloImmunity(agent.ID);
@@ -49,16 +49,7 @@ public class Male extends Agent implements Steppable{
         if(!agent.isFemale()){
             Male m = (Male)agent;
             //at some point I should probably remove this --- since I've started using Netbeans tasks- I'm going to add it there! ^.^
-            if(onTop == m.onTop){
-                if(sim.random.nextBoolean()){
-                    if(circumcised){
-                        degree *= sim.circumcisionLikelinessFactor;
-                    }
-                    degree *= sim.insertiveAnalLikelinessFactor;
-                }else{
-                    degree *= sim.receptiveAnalLikelinessFactor;
-                }
-            }else if(onTop){
+            if(r.amOntop(this)){
                 if(circumcised){
                     degree *= sim.circumcisionLikelinessFactor;
                 }

@@ -558,7 +558,7 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     }
     @Override
     public abstract void draw(Object object, Graphics2D graphics, DrawInfo2D info);
-    public abstract boolean attemptCoitalInfection(HIVMicroSim sim, HIVInfection infection, int stage, int frequency, Agent agent, double degree);
+    public abstract boolean attemptCoitalInfection(HIVMicroSim sim, HIVInfection infection, int stage, int frequency, Agent agent, double degree, Relationship r);
     public boolean attemptInfection(HIVMicroSim sim, HIVInfection infection, int stage, double degree, int mode){
 //////////////////////Basic infection algorithm will need refining.
 

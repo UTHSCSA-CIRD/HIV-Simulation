@@ -9,6 +9,7 @@ import Neighborhoods.NeighborhoodTemplates;
 import hivMicroSim.HIV.HIVInfection;
 import hivMicroSim.HIVLogger;
 import hivMicroSim.HIVMicroSim;
+import hivMicroSim.Relationship;
 import java.util.ArrayList;
 import sim.portrayal.*;
 import sim.engine.*;
@@ -184,7 +185,7 @@ public class Female extends Agent implements Steppable{
                     if(littleOne.attemptInfection(sim, infs.get(roll), hiv.getStage(), 1, Agent.MODEMOTHERCHILD)){
                         //Poor little guy was infected :( 
                         sim.logger.insertInfection(HIVLogger.INFECT_MOTHERTOCHILD, ID, littleOne.ID, 
-                                infs.get(roll).getGenotype(), true);
+                                infs.get(roll).getGenotype(), true, -1);
                         littleOne.infect(sim.genotypeList.get(infs.get(roll).getGenotype()));
                     }
                 }
@@ -193,7 +194,7 @@ public class Female extends Agent implements Steppable{
     }
     
     @Override
-    public boolean attemptCoitalInfection(HIVMicroSim sim, HIVInfection infection, int stage, int frequency, Agent agent, double degree){
+    public boolean attemptCoitalInfection(HIVMicroSim sim, HIVInfection infection, int stage, int frequency, Agent agent, double degree, Relationship r){
         if(infected && hiv.hasGenoType(infection.getGenotype()))return false;
         //this calculates the potential reduction from alloimmunity, then passes it on to attemptInfection. 
         int alloImmunity = getAlloImmunity(agent.ID);
@@ -202,7 +203,12 @@ public class Female extends Agent implements Steppable{
         }
         //Since we're in the female class, we'll add the "female factor" to the degree since the risk of infection is higher
         //for the female in heterosexual coitus. -- later additional factors may be added for homosexual coitus for males. 
-        degree = degree*sim.femaleLikelinessFactor;
+        if(r.orientation == Relationship.HETERO){
+            degree *=sim.femaleLikelinessFactor;
+        }else{
+            degree *= sim.femaleToFemaleLikelinessFactor;
+        }
+        
 ////////////////////////This needs refining.
         for(int i = 0; i< frequency; i++){
             if(attemptInfection(sim, infection, stage, degree, Agent.MODECOITIS)) return true;
