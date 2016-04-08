@@ -26,7 +26,7 @@ public class SeroImmunity implements java.io.Serializable{
             }
         }else{
             rL =0;
-            exposed = false; //reset
+            exposed = false; //reset (switch needs to be flipped each tick)
         }
     }
     public int getGenotype(){
