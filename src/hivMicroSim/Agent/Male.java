@@ -4,7 +4,6 @@
  * and open the template in the editor.
  */
 package hivMicroSim.Agent;
-import hivMicroSim.AlloImmunity;
 import hivMicroSim.HIV.DiseaseMatrix;
 import hivMicroSim.HIV.Genotype;
 import hivMicroSim.HIV.HIVInfection;
@@ -12,7 +11,6 @@ import hivMicroSim.HIVLogger;
 import hivMicroSim.HIVMicroSim;
 import hivMicroSim.Infection;
 import hivMicroSim.Relationship;
-import hivMicroSim.SeroImmunity;
 import java.util.ArrayList;
 import sim.portrayal.*;
 import sim.engine.*;
@@ -83,12 +81,10 @@ public class Male extends Agent implements Steppable{
             deathFromOtherCauses(state);
             return;
         }
-        if(age >= 216){
+        if(age == 216){
             width = 2;
             height = 2;
-        }else{
-            width = 1;
-            height = 1;
+            sim.network.addNode(this);
         }
         //adjust disease
         if(infected){

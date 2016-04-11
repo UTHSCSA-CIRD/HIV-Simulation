@@ -4,14 +4,12 @@
  * and open the template in the editor.
  */
 package hivMicroSim.Agent;
-import hivMicroSim.AlloImmunity;
 import hivMicroSim.HIV.DiseaseMatrix;
 import hivMicroSim.HIV.HIVInfection;
 import hivMicroSim.HIVLogger;
 import hivMicroSim.HIVMicroSim;
 import hivMicroSim.Infection;
 import hivMicroSim.Relationship;
-import hivMicroSim.SeroImmunity;
 import java.util.ArrayList;
 import sim.portrayal.*;
 import sim.engine.*;
@@ -89,9 +87,13 @@ public class Female extends Agent implements Steppable{
             return;
         }
         int roll;
+        
         if(age >= 216){
-            width = 1.5;
-            height = 1.5;
+            if(age == 216){
+                width = 2;
+                height = 2;
+                sim.network.addNode(this);
+            }
             if(pregnant){
                 if(pregnancy.step()){
                     //a little one is born! Now.... if mom is HIV positive... 

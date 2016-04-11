@@ -449,7 +449,7 @@ public class HIVMicroSim extends SimState{
                 agent = new Male(i, faithfulness, condomUse, want, lack, ccr51, ccr52, ccr21, ccr22, HLA_A1, HLA_A2, HLA_B1, HLA_B2, HLA_C1, HLA_C2, age, life);
             }
             agents.setObjectLocation(agent,random.nextInt(gridWidth), random.nextInt(gridHeight));
-            network.addNode(agent); // handles the network only! Display of nodes handled by continuous 2D
+            if(agent.getAge() >=216) network.addNode(agent);
             stopper = schedule.scheduleRepeating(Schedule.EPOCH, 1, agent);
             agent.setStoppable(stopper);
             s[i] = agent;
@@ -520,7 +520,7 @@ public class HIVMicroSim extends SimState{
                 Agent connect;
                 Agent agent;
                 Relationship e;
-                Bag allAgents = agents.allObjects;
+                Bag allAgents = network.getAllNodes();
                 for(Object o : allAgents){
                     agent = (Agent) o;
                     if(!agent.alive) continue;
@@ -554,12 +554,13 @@ public class HIVMicroSim extends SimState{
                     }
                     if(roll < agent.getLack()){
                         //create a relationship.
+                        int tries = 0; //prevent infinite look in case of small pool of agents.
                         do{
                             ii = random.nextInt(allAgents.size());
                             connect = (Agent)allAgents.get(ii);
-                        }while((agent.isFemale() == connect.isFemale()) || (connect.getAge() < 216) || (!connect.alive));
-////////////////////////// Should probably create a "Wants" or something algorithm into each agent and use that instead of something like
-                        //////////this-- currently the recipient's "lack" is not being considered and all relationships are just relationships.
+                            tries ++;
+                        }while(((agent.isFemale() == connect.isFemale()) || (connect.getAge() < 216) || (!connect.alive) )&& tries <10);
+                        if(tries ==10)continue;
                         if(connect.wantsConnection(getGaussianRangeDouble(-10,10))){
                             int edgeVal;
                             if(connect.getWantLevel() > agent.getWantLevel()){
