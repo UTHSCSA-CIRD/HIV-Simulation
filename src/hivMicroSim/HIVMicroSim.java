@@ -399,7 +399,6 @@ public class HIVMicroSim extends SimState{
         currentID++;
         //add to grids
         agents.setObjectLocation(agent,random.nextInt(gridWidth), random.nextInt(gridHeight));
-        network.network.addNode(agent); // handles the network only! Display of nodes handled by continuous 2D
         //add to schedule
         stopper = schedule.scheduleRepeating(agent);
         //set stoppable
@@ -480,18 +479,17 @@ public class HIVMicroSim extends SimState{
         return s;
     }
     public int attemptFindConnection(Agent me, Bag s){
-        double rollD;
+        
         int connectID;
         Agent connect;
         Relationship edge;
         int bagSize = s.numObjs;
         int edgeVal;
-        rollD = random.nextDouble()*10;
         int tries = 0;
         do{//repeat until we find a connection of suitable age and gender.
             connectID = random.nextInt(bagSize);
             connect = (Agent)s.objs[connectID];
-            tries++; //is this the cause of the program freezing...? 
+            tries++;//prevent an infinite loop if there aren't any agents in the network
         }while((!connect.acceptGender(me.isFemale()) || !me.acceptGender(connect.isFemale()) || me.isRelated(connect) || me.hasEdge(connect.ID)) && tries <= 10);
         if(tries == 11) return 0;
         //-- newly added-- just because they are "seeking" doesn't mean that they don't need to "want" the other. 
@@ -499,11 +497,7 @@ public class HIVMicroSim extends SimState{
         if(connect.wantsConnection(getGaussianRangeDouble(-faithfulnessMax,faithfulnessMax, false),random.nextInt(selectivityRoll), me)){ //using this function so we can add more advanced code in there later
             //this one is selected.
             //make sure this relationship doesn't already exist...
-            if(connect.getWantLevel() > me.getWantLevel()){
-                edgeVal = ((connect.getWantLevel()-me.getWantLevel())/2) + me.getWantLevel();
-            }else{
-                edgeVal = ((me.getWantLevel()-connect.getWantLevel())/2) + connect.getWantLevel();
-            }
+            edgeVal = (int)((me.getWantLevel() + connect.getWantLevel())/2);
             int relationship = Relationship.RELATIONSHIP;
             int ii;
             ii = getGaussianRange(0,faithfulnessMax,false);
@@ -724,7 +718,7 @@ public class HIVMicroSim extends SimState{
                     agent = (Agent) o;
                     //remove links
                     agent.removeOneShots(state);
-                    if(agent.getNetwork().size()>0 && agent.getFaithfulness() != 10){// if < =0 no network.
+                    if(agent.getNetwork().size()>0 && agent.getFaithfulness() != faithfulnessMax){// if < =0 no network.
                         diff = Math.abs(agent.getNetworkLevel()- agent.getWantLevel());// getting the difference between their wants and what's provided.
                         diff +=(agent.getLack()/agent.getFaithfulness());
                         ii = random.nextInt(agent.getNetwork().size());
