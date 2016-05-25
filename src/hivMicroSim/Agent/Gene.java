@@ -26,7 +26,7 @@ public abstract class Gene {
     public static final byte CCR5D32 = 1; // 8% allele frequency in europeans ~ 1% or less in other races. 
     public static final double CCR5D32Effect = .5;
     public static final byte CCR5HHEP1 = 2;
-    public static final double CCR5HHEP1Effect = 1.5; // 32% in europeanhttp://www.ncbi.nlm.nih.gov/pmc/articles/PMC3958329/
+    public static final double CCR5HHEP1Effect = 1.5; // 32% in european http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3958329/
     
     //CCR2 --- http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3958329/
     /*

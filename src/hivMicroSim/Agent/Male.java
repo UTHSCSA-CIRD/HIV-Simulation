@@ -82,8 +82,8 @@ public class Male extends Agent implements Steppable{
             return;
         }
         if(age == 216){
-            width = 2;
-            height = 2;
+            width = 1.5;
+            height = 1.5;
             sim.network.addNode(this);
         }
         //adjust disease

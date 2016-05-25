@@ -90,8 +90,8 @@ public class Female extends Agent implements Steppable{
         
         if(age >= 216){
             if(age == 216){
-                width = 2;
-                height = 2;
+                width = 1.5;
+                height = 1.5;
                 sim.network.addNode(this);
             }
             if(pregnant){

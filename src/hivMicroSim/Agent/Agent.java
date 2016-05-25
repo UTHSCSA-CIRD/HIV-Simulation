@@ -88,6 +88,13 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         alloImmunity = new ArrayList<>();
         infections = new ArrayList<>();
         this.age = age;
+        if(age >= 216){
+            width = 1.5;
+            height = 1.5;
+        }else{
+            width = 1;
+            height = 1;
+        }
         this.life = life;
         
         infected = false;
