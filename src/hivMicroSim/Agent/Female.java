@@ -308,16 +308,12 @@ public class Female extends Agent implements Steppable{
         }
         //System.out.print("DEBUG: Lack: " + lack + " want: " + wantLevel + " Network Level: " + networkLevel + " of size " + network.size() + " produced: " );
         adjustLack((adj/12));
-        degradeImmunity();
         //System.out.print(" new lack: " + lack + "\n");
     }
     
     public boolean attemptCoitalInfection(HIVMicroSim sim, HIVInfection infection, int stage, int frequency, int agent, double degree){
         //this calculates the potential reduction from alloimmunity, then passes it on to attemptInfection. 
-        int alloImmunity = getAlloImmunity(agent);
-        if(alloImmunity > 100){
-            degree *= 1/(alloImmunity *.01);
-        }
+        
         //Since we're in the female class, we'll add the "female factor" to the degree since the risk of infection is higher
         //for the female in heterosexual coitus. -- later additional factors may be added for homosexual coitus for males. 
         degree = degree*sim.femaleLikelinessFactor;

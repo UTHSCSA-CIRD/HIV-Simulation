@@ -13,38 +13,51 @@ import sim.field.network.Edge;
 public class Relationship extends Edge implements java.io.Serializable{
     private final static long serialVersionUID = 1;
     
-    private final int type;
+    private final int level;
         public static final int MARRIAGE = 3;
         public static final int RELATIONSHIP = 2;
         public static final int ONETIME = 1;
-    private final int coitalFrequency;
-    private final Agent m,f;
+    private final int type;
+        public static final int MsW = 1;
+        public static final int MsM = 2;
+    private int coitalFrequency;
+    private final Agent a,b;
     
+    public int getLevel(){
+        return level;
+    }
     public int getType(){
         return type;
     }
     public int getCoitalFrequency(){
         return coitalFrequency;
     }
-    public Agent getMale(){
-        return m;
-    }
-    public Agent getFemale(){
-        return f;
+    public void setCoitalFrequency(int frequency, int agentID){
+        coitalFrequency = frequency;
+        if(a.ID == agentID) b.calculateNetworkLevel();
+        else a.calculateNetworkLevel();
     }
     
-    public Relationship(int type, Agent M, Agent F){
-        super(M,F, type);
-        this.type = type;
-        m = M;
-        f = F;
-        coitalFrequency = 1;
+    public Agent getPartner(Agent me){
+        if(a.ID == me.ID) return b;
+        return a;
     }
-    public Relationship(int type, Agent M, Agent F, int frequency){
-        super(M,F, type);
-        this.type = type;
-        m = M;
-        f = F;
+    public Relationship(int level, Agent A, Agent B){
+        super(A,B, level);
+        this.level = level;
+        a = A;
+        b = B;
+        coitalFrequency = 1;
+        if(a.isFemale() || b.isFemale()) type = MsW;
+        else type = MsM;
+    }
+    public Relationship(int level, Agent A, Agent B, int frequency){
+        super(A,B, level);
+        this.level = level;
+        a = A;
+        b = B;
         coitalFrequency = frequency;
+        if(a.isFemale() || b.isFemale()) type = MsW;
+        else type = MsM;
     }
 }

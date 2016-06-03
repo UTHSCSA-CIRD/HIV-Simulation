@@ -4,50 +4,56 @@
  * and open the template in the editor.
  */
 package hivMicroSim.HIV;
+import hivMicroSim.HIVMicroSim;
 import java.util.ArrayList;
-import java.util.Collections;
+
 /**
- *
+ * The disease matrix handles all of the global disease related variables as well as this agent's disease progression.
+ * In the future it will also contain information about treatment and possibly behavioral changes. For now
+ * it deals mostly with the wellness, stage, and infectivity.
  * @author ManuelLS
  */
 public class DiseaseMatrix implements java.io.Serializable{
     private static final long serialVersionUID = 1;
     
+    //Stage info
     public static final int StageAcute = 1;
     public static final int StageLatency = 2;
     public static final int StageAIDS = 3;
     public static final int ACUTEXFACTOR = 15;
-    private static final int ACUTEMONTHS = 3;
-    private static final int AVERAGEVIRALLOAD = 600;
-    private static final int LATENCYMONTHS = 120; //10 years 
-    public static final int AIDSXFACTOR = 4;
-    private static final int AIDSMONTHS = 24;
-    private static final int AIDSLEVEL = AIDSMONTHS *(AIDSXFACTOR * AVERAGEVIRALLOAD);
-    private static final int ACUTELEVEL = ACUTEMONTHS * (ACUTEXFACTOR * AVERAGEVIRALLOAD);
-    private static final int LATENCYLEVEL = LATENCYMONTHS * AVERAGEVIRALLOAD;
+    private static final int ACUTEMONTHS = 2;
+    private static final int LATENCYWELLNESSTHRESHOLD = 200; // the threshold over which 
+    public static final int AIDSXFACTOR = 20;
+    
+    public static final double wellnessHazardMaxLatency = 10.0;
+    public static final double wellnessHazardMinLatency = -20.83;
+    
+    public static final double wellnessHazardMaxAIDS = 5.0;
+    public static final double wellnessHazardMinAIDS = -50.0;
+    public static final int[] wellnessLevels = {500,400,300,200,100};
+    public static final double[] wellnessHinderance = {.1,.2,.3,.7,.8};
     
     
-    
-    private ArrayList<HIVInfection> infections; //allows for multiple genotype infection.
+    //INSTANCE SPECIFIC FACTORS
     private int stage;
-    private int progression;
-    private int viralLoadFactor;//1 being the smallest viral load factor and indicates those that tend to live 25+ years without treatment.
+    private int duration;
+    private int infectionWellness = 700;
+    private int infectivity = 600;
+    private double wellnessHazardLatency = -4.2; //this agent's average wellness decline per tick after acute
+    private double wellnessHazardAIDS = -8.3; //this agent's average wellness decline per tick after acute
+    private boolean known = false;
     
-    public ArrayList<HIVInfection> getGenotypes(){
-        return infections;
-    }
+    
     public int getStage(){
         return stage;
     }
-    public int getProgression(){
-        return progression;
+    public int getDuration(){
+        return duration;
     }
-    public int getViralLoadFactor(){
-        return viralLoadFactor;
-    }
-    public boolean progress(int a){
-        //an algorithm to calculate the progression from one stage to the next, 
-        //returns true if progresses to the next stage -> 1- acute ->2- latent ->3- AIDs -> 4- Death
+    
+    public int progress(HIVMicroSim sim){
+        //an algorithm to calculate the progression of the diseas in the individual
+        //returns the wellness of the individual.
         switch(stage){
             case 1://acute
                 //Average viral load 600
@@ -78,24 +84,6 @@ public class DiseaseMatrix implements java.io.Serializable{
                 System.err.println("Cannot progress invalid/death stage");      
         }
         return false;
-    }
-    public void setViralLoadFactor(int a){
-        if(a > 0){
-            viralLoadFactor = a;
-        }
-    }
-    public void adjustViralLoadFactor(int a){
-        viralLoadFactor += a;
-        if(viralLoadFactor<1){viralLoadFactor = 1;}
-    }
-    public boolean addGenoType(HIVInfection a){
-        if (!infections.stream().noneMatch((b) -> (b.getGenotype() == a.getGenotype()))) {
-            return false;
-        }
-        viralLoadFactor += a.getVirulence();
-        infections.add(a);
-        Collections.sort(infections);
-        return true;
     }
     public DiseaseMatrix(HIVInfection a){
         infections = new ArrayList<>();
