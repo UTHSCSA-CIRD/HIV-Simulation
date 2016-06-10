@@ -13,6 +13,7 @@ import sim.portrayal.*;
 import sim.engine.*;
 
 import java.awt.*;
+import java.util.Iterator;
 import sim.portrayal.simple.OvalPortrayal2D;
 /**
  *
@@ -31,10 +32,10 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     //Genetic factors
     public final double hivImmunity;
     
-    
     //General Status
     protected boolean infected;
     protected DiseaseMatrix hiv = null;
+    protected double hinderance = 1;
     protected final ArrayList<Infection> infections;
     protected int age; // measured in months/ ticks. 
     protected int life; // how long this person should live without HIV/AIDS. This should probably
@@ -46,6 +47,8 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     protected double width = 1;
     protected double height = 1;
     protected Stoppable stopper;//MASON
+    
+    protected final ArrayList<Relationship> network;
     
     //infection modes
     public static final int MODEVI = 1;
@@ -59,7 +62,7 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     }
     
     public boolean isMarried(){return (relationship == Relationship.MARRIAGE);}
-    protected final ArrayList<Relationship> network;
+    
     
     public Agent(int id, Personality personality, double resistance, int age, int life){
         ID = id;
@@ -114,19 +117,20 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     public boolean isInfected(){
         return infected;
     }
-    public boolean infect(){
+    public boolean infect(HIVMicroSim sim){
         if(infected){ // already infected
             return false;
         }
 ///////////////////Enhancment necessary- basic formula////////////////////
-        double infectivity = a.getVirulence();
+        double latencyHazard = sim.getGaussianRangeDouble(DiseaseMatrix.wellnessHazardMinLatency, 
+                0,DiseaseMatrix.wellnessHazardAvgLatency, true);
+        double aidsHazard = sim.getGaussianRangeDouble(DiseaseMatrix.wellnessHazardMinAIDS, 
+                0,DiseaseMatrix.wellnessHazardAvgAIDS, true);
         infected = true;
         col = Color.red;
-        hiv = new DiseaseMatrix(new HIVInfection(a, (int)infectivity));
+        hiv = new DiseaseMatrix(DiseaseMatrix.normalWellness, DiseaseMatrix.normalInfectivity, 
+                latencyHazard, aidsHazard);
         return true;
-    }
-    public DiseaseMatrix getDiseaseMatrix(){
-        return hiv;
     }
     public ArrayList<Infection> getInfections(){
         return infections;
@@ -159,7 +163,7 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         return networkLevel;
     }
     public boolean wantsConnection(HIVMicroSim sim){
-        if(age < HIVMicroSim.networkEntranceAge) return false;
+        if(age < sim.networkEntranceAge) return false;
         if(pp.want == Personality.wantMin) return false;
         if(networkLevel == 0)return true;
         //handle extremely low faithfulness. 
@@ -182,9 +186,44 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     public int getNetworkSize(){
         return network.size();
     }
-    public void removeOneShots(SimState state);
-    public boolean addEdge(Relationship a);
-    public boolean removeEdge(Relationship a);
+    public void removeOneShots(SimState state){
+        HIVMicroSim sim = (HIVMicroSim) state;
+        Iterator<Relationship> itr = network.iterator();
+        Relationship r;
+        while(itr.hasNext()){
+            r = itr.next();
+            if(r.getLevel() == Relationship.ONETIME){
+                sim.network.removeEdge(r);
+                Agent a = r.getPartner(this);
+                a.removeEdge(r);
+                itr.remove();
+            }
+        }
+    }
+    public boolean addEdge(Relationship a){
+        if(network.add(a)){
+            networkLevel += a.getCoitalFrequency();
+            if(relationship < a.getLevel())relationship = a.getLevel();
+            return true;
+        }
+        return false;
+    }
+    public boolean removeEdge(Relationship a){
+        if(network.remove(a)){
+            networkLevel -=a.getCoitalFrequency();
+            if(relationship == a.getLevel()){
+                calculateRelationship();
+            }
+            return true;
+        }
+        return false;
+    }
+    public void calculateRelationship(){
+        relationship = 0;
+        for(Relationship r :network){ // can't use stream and filter since relationship is not stateless.
+            if(relationship< r.getLevel()) relationship = r.getLevel();
+        }
+    }
     public void calculateNetworkLevel(){
         //used to calculate the new network level after a coital frequency change.
         networkLevel = 0;
@@ -192,54 +231,88 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
             networkLevel += r.getCoitalFrequency();
         });
     }
+    public void hinderanceChange(){
+        //if there has been a change to the hinderance.
+        pp.hinderWant(hinderance);
+        int coitalLevel;
+        network.stream().forEach((r) -> {
+            r.setCoitalFrequency((int)Math.abs(pp.want + r.getPartner(this).getWantLevel())/2, ID);
+        });
+        calculateNetworkLevel();
+    }
     @Override
-    public abstract void step(SimState state);
+    public void step(SimState state){
+        HIVMicroSim sim = (HIVMicroSim) state;
+        age++;
+        if(age > life){
+            death(sim, true);
+            return;
+        }
+        if(age == 216){
+            width = 1.5;
+            height = 1.5;
+            sim.network.addNode(this);
+        }
+        if(infected){
+            if(hiv.progress(sim)){
+                //something has changed (hinderance or stage)
+                int stage = hiv.getStage();
+                switch(stage){
+                    case 1:
+                        col = Color.red;
+                        break;
+                    case 2:
+                        col = Color.GREEN;
+                        sim.logger.insertProgression(ID, stage);
+                        break;
+                    case 3: 
+                        col = Color.orange;
+                        sim.logger.insertProgression(ID, stage);
+                        break;
+                    case 4: 
+                        col = Color.black;
+                        death(sim,false);
+                }
+                if(hiv.getHinderence() != hinderance)hinderanceChange();
+            }
+        }
+        lack += pp.want -networkLevel;
+    }
     
     @Override
     public abstract void draw(Object object, Graphics2D graphics, DrawInfo2D info);
-    public boolean attemptInfection(HIVMicroSim sim, HIVInfection infection, int stage, double degree, int mode){
-//////////////////////Basic infection algorithm will need refining.
-
-        //moving this over sero immunity because the number of virons will effect the sero immunity. 
-        //Infection stage and its effect on virulence. 
-        if(stage == DiseaseMatrix.StageAcute) degree = degree * DiseaseMatrix.ACUTEXFACTOR; //int passed by value
-        else if (stage == DiseaseMatrix.StageAIDS) degree = degree * DiseaseMatrix.AIDSXFACTOR;
-        degree = infection.getVirulence() * degree; //now this is the infectivity of this contact.
-        //SeroImmunity -- starter algorithm. In sex workers this appears to be as important a factor as genomics. 
-        int sero = getSeroImmunity(infection.getGenotype());
-        //reducing degree prior to adding additional immunity - law of diminishing returns. 
-        if(sero > 10){
-            degree = degree * (1/(sero*.1));
-        }
-        if(degree >= 2000){
-            addSeroImmunity(infection.getGenotype(), (int)(degree/1000));
-        }else{
-            if(degree < 100){
-                addSeroImmunity(infection.getGenotype(), 0); // continued exposure, but no more additional immune response. 
-            }else{
-                addSeroImmunity(infection.getGenotype(), 1);
-            }
-        }
-        
-        //These factors should not have an effect on seroimmunity as they look at whether or not the viron can enter the cell, seroimmunity
-        //refers to the recognition of the virus particles. 
-        //CCR5 immunity
-        if(infection.getCCR5Resistance()){
-            if(ccr51 == Gene.CCR5D32 && ccr52 == Gene.CCR5D32) return false;
-            degree = degree * getCCR5SusceptibilityFactor();
-        }
-        degree = degree*getHLAImmuneFactor();
-        
+    public boolean attemptInfection(HIVMicroSim sim, double degree, int mode){
         switch(mode){
-            case MODEHETEROCOITIS:
-                degree = degree * sim.perInteractionLikelihood;
+            case MODEVI: // vaginal insertive - baseline
+                degree *= sim.perInteractionLikelihood * sim.likelinessFactorVI;
+                break;
+            case MODEVR:
+                degree *= sim.perInteractionLikelihood *sim.likelinessFactorVR;
+                break;
+            case MODEAI:
+                degree *= sim.perInteractionLikelihood * sim.likelinessFactorAI;
+                break;
+            case MODEAR:
+                degree *= sim.perInteractionLikelihood * sim.likelinessFactorAR;
                 break;
             case MODEMOTHERCHILD:
-                degree = degree * sim.motherToChildInfection;
+                degree *= sim.motherToChildInfection;
                 break;        
         }
         double roll = sim.random.nextDouble(); // next double between 0 and 1 (noninclusive)
         return (roll<degree); //as degree increases the chance of having a double below that increases. 
     }
-    public abstract void deathFromOtherCauses(SimState state);
+    public void death(HIVMicroSim sim, boolean natural){
+        sim.logger.insertDeath(ID, natural, infected);
+        //remove all relationships.
+        for(Relationship r : network){//start with the last element and work down to empty out the list
+            r.getPartner(this).removeEdge(r);
+            sim.network.removeEdge(r);
+        }
+        sim.network.removeNode(this);
+        networkLevel = 0;
+        network.clear();
+        alive = false;
+        stopper.stop();
+    }
 }

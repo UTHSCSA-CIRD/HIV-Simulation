@@ -27,7 +27,7 @@ public class HIVMicroSim extends SimState{
     private int currentID = 0;
     public int gridWidth = 100;
     public int gridHeight = 100;
-    public static int networkEntranceAge = 216;//18 years
+    public int networkEntranceAge = 216;//18 years
     
     //global agent descriptors- gaussian distribution between 1 and 10 with these as the means
     public double percentCondomUse = .5; //0-1 inclusive
@@ -37,7 +37,7 @@ public class HIVMicroSim extends SimState{
     public int femaleWant = 5; // 0-10
     
     //natural resistance -- replacing genes until further science is available 
-    public double resistanceMax = 10; //maximum resistance
+    public double resistanceMax = 2; //maximum resistance
     public double resistanceMin = 0;  //minimum resistance
     public double resistanceAvg = 1;  //average resistance.
     
@@ -48,27 +48,37 @@ public class HIVMicroSim extends SimState{
     
     //testing likelihoods and range between tests
     public double testingLikelihood = .5; //the percent of the population likely to get tested.
-    public double testingRangeMin = 1.0; //The minimum time period between tests
-    public double testingRangeMax = 10.0; //the maximum time period between tests
-    public double testingAverage = 2.0; //the average amount of time between tests
+    public int testingRangeMin = 12; //The minimum time period between tests
+    public int testingRangeMax = 120; //the maximum time period between tests
+    public int testingRangeAverage = 24; //the average amount of time between tests
     public double testAccuracy = .98; //The likelihood of testing positive when positive
     public double testTicks = 1; //number of ticks afer which the agent may test positive. 
     
-    //PrEP
-    public double PrEPEffectiveness = .96; // number less than or equal to 1.
-    //Gene prevelence = the prevelence of the alleles- this makes it a little easier to assign alleles. so 0-1 the sum of all versions of the alleles can't be > 1
-    
-    
-    /*http://www.k-state.edu/parasitology/biology198/answers1.html 
-    * Hardy-Weinberg Law - p^2 + 2pq + q^2 = 1 and p + q = 1; 
+   
+    /* Likeliness factors
+    http://www.cdc.gov/hiv/risk/estimates/riskbehaviors.html
+    '~Risk per 10,000 exposures
+    Needle Sharing (injection drug use)- 63
+    Percutaneous needle-stick - 23
+    receptive anal - 138
+    insertive anal - 11
+    receptive vaginal - 8
+    insertive vaginal - 4~'
+    http://www.who.int/hiv/topics/mtct/en/
+    "In the absence of any intervention, transmission rates range from 15% to 45%. 
+    This rate can be reduced to below 5% with effective interventions "
     */
-    public double femaleLikelinessFactor = 1.5; //the increased likelihood of females to aquire the virus. 
-    public double circumcisionLikelinessFactor = .5;
-    /*
-    * For a score of 1000 (No resistance, viral load 1000, male, uncircumcised) give a 1 in 10 chance per interaction.
-    */
-    public double perInteractionLikelihood = 0.00001; //we'll say this per 100 in viral load..? -- Obviously we'll need some adjustments here 
-    public double motherToChildInfection = .0005;
+    //mode
+    public double likelinessFactorVR = 8;
+    public double likelinessFactorVI = 4;
+    public double likelinessFactorAR = 138;
+    public double likelinessFactorAI = 11;
+    //preventative methods
+    public double likelinessFactorCircumcision = .5;
+    //interaction type (mother to child vs everything else.)
+    public double perInteractionLikelihood = 0.0001;
+    public double motherToChildInfection = .3;
+    
     //Population statistics
     public int averageAge = 300;//in months
     public int averageLifeSpan = 780;
@@ -137,69 +147,69 @@ public class HIVMicroSim extends SimState{
         }
     }
     
-    public int getGaussianRange(int min, int max, boolean reroll){
+    public int getGaussianRange(int min, int max, int avg, boolean reroll, boolean inclusive){
+        if(min == max) return min;
         if(min > max){
             int tmp = max;
             max = min;
             min = tmp;
         }
         double mean = ((max-min)/2)+ min;
-        double std = (max-mean)/3; //most numbers will be within 3 standard devaitions.
-        double rand;
-        do{
-            rand= (random.nextGaussian()*std)+mean;
-        }while(rand <= min || rand >= max);
-        return (int)rand;
-    }
-    public int getGaussianRange(int offset, int min, int max, boolean reroll) throws OffSetOutOfRangeException{
-        if(min > max){
-            int tmp = max;
-            max = min;
-            min = tmp;
+        if(avg > max || avg < min){
+            System.err.println("Average is out of range. Setting average to the mean.");
+            avg = (int)mean;
         }
-        double mean = ((max-min)/2)+ min;
-        if(mean + offset > max || mean + offset < min){
-            System.err.println("Offset of: " + offset + " will push the mean: " + mean + " out of range: " + min + " - " + max +".");
-            throw new OffSetOutOfRangeException();
-        }
-        double std = (max-mean)/3; //most numbers will be within 3 standard devaitions.
+        int offset = (int)mean - avg;
+        double std = (max-mean)/3; //most (95%) numbers will be within 3 standard devaitions.
         double rand;
-        do{
+        if(reroll){
+            if(inclusive){
+                do{
+                    rand= (random.nextGaussian()*std)+mean+ offset;
+                }while(rand <= min || rand >= max);
+            }else{
+                do{
+                    rand= (random.nextGaussian()*std)+mean+ offset;
+                }while(rand < min || rand > max);
+            }
+        }else{
             rand= (random.nextGaussian()*std)+mean+ offset;
-        }while(rand <= min || rand >= max);
+            if(inclusive){
+                if(rand < min) rand = min;
+                if(rand > max) rand = max;
+            }else{
+                if(rand <= min) rand = min + 1;
+                if(rand >= max) rand = max - 1; 
+            }
+        }
         return (int)rand;
     }
-    public double getGaussianRangeDouble(double min, double max, boolean reroll){
+    public double getGaussianRangeDouble(double min, double max, double avg, boolean reroll){
+        if(min == max) return min;
         if(min > max){
             double tmp = max;
             max = min;
             min = tmp;
         }
+         
         double mean = ((max-min)/2)+ min;
-        double std = (max-mean)/3; //most numbers will be within 3 standard devaitions.
-        double rand;
-        do{
-            rand = (random.nextGaussian()*std)+mean;
-        }while(rand <= min || rand >= max);
-        return rand;
-    }
-    public double getGaussianRangeDouble(double offset, double min, double max, boolean reroll) throws OffSetOutOfRangeException{
-        if(min > max){
-            double tmp = max;
-            max = min;
-            min = tmp;
+        if(avg > max || avg < min){
+            System.err.println("Average is out of range. Setting average to the mean.");
+            avg = mean;
         }
-        double mean = ((max-min)/2)+ min;
-        if(mean + offset > max || mean + offset < min){
-            System.err.println("Offset of: " + offset + " will push the mean: " + mean + " out of range: " + min + " - " + max +".");
-            throw new OffSetOutOfRangeException();
-        }
-        double std = (max-mean)/3; //most numbers will be within 3 standard devaitions.
+        double offset = mean - avg;
+        double std = (max-mean)/3; //most (95%) numbers will be within 3 standard devaitions.
         double rand;
-        do{
-            rand = (random.nextGaussian()*std)+mean+offset;
-        }while(rand <= min || rand >= max);
-        return rand;
+        if(reroll){
+            do{
+                rand= (random.nextGaussian()*std)+mean+ offset;
+            }while(rand <= min || rand >= max);
+        }else{
+            rand= (random.nextGaussian()*std)+mean+ offset;
+            if(rand < min) rand = min;
+            if(rand > max) rand = max;
+        }
+        return (int)rand;
     }
     
     
@@ -225,22 +235,6 @@ public class HIVMicroSim extends SimState{
     public void setFemaleWant(int a){
         if(a >=0 && a <= 10){
             femaleWant = a;
-        }
-    }
-    public double getFemaleLikelinessFactor(){
-        return femaleLikelinessFactor;
-    }
-    public void setFemaleLikelinessFactor(int a){
-        if(femaleLikelinessFactor > 1){
-            femaleLikelinessFactor = a;
-        }
-    }
-    public double getCircumcisionLikelinessFactor(){
-        return circumcisionLikelinessFactor;
-    }
-    public void setCircumcisionLikelinessFactor(int a){
-        if(circumcisionLikelinessFactor < 1 && circumcisionLikelinessFactor > 0){
-            circumcisionLikelinessFactor = a;
         }
     }
     public double getModelCondomUse(){
@@ -295,13 +289,7 @@ public class HIVMicroSim extends SimState{
                 
         Agent[] s = new Agent[numAgents];
         //create the agents
-        //set offsets
-        int offsetMF = maleFaithfulness -5;
-        int offsetFF = femaleFaithfulness -5;
-        int offsetMW = maleWant - 5;
-        int offsetFW = femaleWant - 5;
         int maxLife = averageLifeSpan + (int)(averageLifeSpan*.5);
-        double offsetCondom = percentCondomUse - .5;
         
         //currently used variables
         int faithfulness;
@@ -332,7 +320,7 @@ public class HIVMicroSim extends SimState{
             female = random.nextBoolean();
             try{
                 if(female){
-                    faithfulness = getGaussianRange(offsetFF, 0, 10, false);
+                    faithfulness = getGaussianRange(0, 10,  false);
                 }else{
                     faithfulness = getGaussianRange(offsetMF, 0, 10, false);
                 }
@@ -382,7 +370,7 @@ public class HIVMicroSim extends SimState{
             
             Agent agent; 
             if(female){
-                agent = new Female(i, faithfulness, condomUse, want, lack, ccr51, ccr52, ccr21, ccr22, HLA_A1, HLA_A2, HLA_B1, HLA_B2, HLA_C1, HLA_C2, age, life);
+                agent = new Female(i, faithfulness, condomUse, want, lack, age, life);
             }else{
                 agent = new Male(i, faithfulness, condomUse, want, lack, ccr51, ccr52, ccr21, ccr22, HLA_A1, HLA_A2, HLA_B1, HLA_B2, HLA_C1, HLA_C2, age, life);
             }

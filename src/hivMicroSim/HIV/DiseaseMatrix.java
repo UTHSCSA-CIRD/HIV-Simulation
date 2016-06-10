@@ -5,7 +5,6 @@
  */
 package hivMicroSim.HIV;
 import hivMicroSim.HIVMicroSim;
-import java.util.ArrayList;
 
 /**
  * The disease matrix handles all of the global disease related variables as well as this agent's disease progression.
@@ -20,15 +19,22 @@ public class DiseaseMatrix implements java.io.Serializable{
     public static final int StageAcute = 1;
     public static final int StageLatency = 2;
     public static final int StageAIDS = 3;
+    public static final int StageDeath = 4; //for error checking or debugging.
     public static final int ACUTEXFACTOR = 15;
     private static final int ACUTEMONTHS = 2;
     private static final int LATENCYWELLNESSTHRESHOLD = 200; // the threshold over which 
     public static final int AIDSXFACTOR = 20;
+    private static final int WELLNESSDEATHTHRESHOLD = 0;
+    
+    public static final int normalWellness = 700;
+    public static final double normalInfectivity = 1;
     
     public static final double wellnessHazardMaxLatency = 10.0;
+    public static final double wellnessHazardAvgLatency = -4.2;
     public static final double wellnessHazardMinLatency = -20.83;
     
     public static final double wellnessHazardMaxAIDS = 5.0;
+    public static final double wellnessHazardAvgAIDS = -8.3;
     public static final double wellnessHazardMinAIDS = -50.0;
     public static final int[] wellnessLevels = {500,400,300,200,100};
     public static final double[] wellnessHinderance = {.1,.2,.3,.7,.8};
@@ -38,12 +44,54 @@ public class DiseaseMatrix implements java.io.Serializable{
     private int stage;
     private int duration;
     private int infectionWellness = 700;
-    private int infectivity = 600;
+    private double hinderance;
+    private double infectivity = 1;
     private double wellnessHazardLatency = -4.2; //this agent's average wellness decline per tick after acute
     private double wellnessHazardAIDS = -8.3; //this agent's average wellness decline per tick after acute
     private boolean known = false;
+
+    public DiseaseMatrix() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
     
-    
+    public double getInfectivity(){
+        /**
+         * This method combines infectivity with the stage to get the current infectivity. 
+         */
+        double degree = infectivity;
+        if(stage == StageAcute){
+            degree *= ACUTEXFACTOR;
+        }else{
+            if(stage == StageAIDS){
+                degree *= AIDSXFACTOR;
+            }
+        }
+        return degree;
+    }
+    public double getHinderence(){
+        return hinderance;
+    }
+    public boolean updateHinderance(){
+        /**
+         * Updates the hinderance value of the disease.
+         * @return Returns true if the hinderance changed or false if the hinderance did not change. 
+         */
+        double hind = 0;
+        int level = 0;
+        while(level < 5 && infectionWellness < wellnessLevels[level]){
+            hind = wellnessHinderance[level];
+            level ++;
+        }
+        if(hind == hinderance) return false;
+        hinderance = hind;
+        return true;
+    }
+    public double getBaseInfectivity(){
+        /**
+         * This method disregards stage and only gives the base infectivity
+         */
+        return infectivity;
+    }
     public int getStage(){
         return stage;
     }
@@ -51,52 +99,58 @@ public class DiseaseMatrix implements java.io.Serializable{
         return duration;
     }
     
-    public int progress(HIVMicroSim sim){
+    public boolean progress(HIVMicroSim sim){
         //an algorithm to calculate the progression of the diseas in the individual
         //returns the wellness of the individual.
+        duration++;
+        double rand;
+        boolean change = false;
         switch(stage){
-            case 1://acute
-                //Average viral load 600
-                //up to 20X in acute stage. -using 15
-                progression += ACUTEXFACTOR*(a*viralLoadFactor);
-                if(progression > ACUTELEVEL){
-                    stage = 2;
-                    progression = 0;
-                    return true;
+            case StageAcute://acute
+                if(duration == ACUTEMONTHS){
+                    stage = StageLatency;
+                    change = true;
                 }
             break;
-            case 2: //clinical latency
-                progression += viralLoadFactor*a;
-                if(progression > LATENCYLEVEL){
-                    stage = 3;
-                    progression = 0;
-                    return true;
+            case StageLatency: //clinical latency
+                rand = sim.getGaussianRangeDouble(wellnessHazardMinLatency, wellnessHazardMaxLatency, wellnessHazardLatency, true);
+                infectionWellness +=rand;
+                if(infectionWellness < LATENCYWELLNESSTHRESHOLD){
+                    //progress to AIDS
+                    stage = StageAIDS;
+                    change = true;
                 }
             break;
-            case 3:
-                progression += AIDSXFACTOR*(a*viralLoadFactor);
-                if(progression > AIDSLEVEL){
-                    stage = 4;
-                    return true;
+            case StageAIDS:
+                rand = sim.getGaussianRangeDouble(wellnessHazardMinAIDS, wellnessHazardMaxAIDS, wellnessHazardAIDS, true);
+ 
+                infectionWellness +=rand;
+                if(infectionWellness <= WELLNESSDEATHTHRESHOLD){
+                    //progress to Death
+                    stage = StageDeath;
+                    change = true;
                 }
             break;
             default:
                 System.err.println("Cannot progress invalid/death stage");      
         }
-        return false;
+        if(updateHinderance())change = true;
+        return change;
     }
-    public DiseaseMatrix(HIVInfection a){
-        infections = new ArrayList<>();
-        infections.add(a);
-        stage = 1;
-        progression = 0;
-        viralLoadFactor = a.getVirulence();
+    public void discover(){
+        known = true;
     }
-    public DiseaseMatrix(HIVInfection b, int stage, int progression){
-        infections = new ArrayList<>();
-        infections.add(b);
-        this.stage = stage;
-        this.progression = progression;
-        viralLoadFactor = b.getVirulence();
+    public boolean isKnown(){
+        return known;
+    }
+    public DiseaseMatrix(int wellness, double infectivity, double latencyHazard, double aidsHazard){
+        infectionWellness = wellness;
+        this.infectivity = infectivity;
+        wellnessHazardLatency = latencyHazard;
+        wellnessHazardAIDS = aidsHazard;
+        hinderance = 0;
+        known = false;
+        stage = StageAcute;
+        duration = 0;
     }
 }

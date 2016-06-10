@@ -4,8 +4,8 @@
  * and open the template in the editor.
  */
 package hivMicroSim.Agent;
+import hivMicroSim.Generator;
 import hivMicroSim.HIV.DiseaseMatrix;
-import hivMicroSim.HIV.HIVInfection;
 import hivMicroSim.HIVLogger;
 import hivMicroSim.HIVMicroSim;
 import hivMicroSim.Infection;
@@ -24,138 +24,42 @@ public class Female extends Agent implements Steppable{
     private boolean pregnant;
     private Pregnancy pregnancy;
     
-    public Female(int id, int faithfullness, double condomUse, double wantLevel, double lack, byte ccr51, 
-            byte ccr52, byte ccr21, byte ccr22,byte HLAA1, byte HLAA2,
-            byte HLAB1, byte HLAB2, byte HLAC1, byte HLAC2, int age, int life){
-        super(id, faithfullness, condomUse, wantLevel, lack, ccr51, ccr52, ccr21, ccr22, HLAA1, HLAA2,
-            HLAB1, HLAB2, HLAC1, HLAC2, age, life);
-        
+    public Female(int id, Personality personality, double resistance, int age, int life){
+        super(id, personality, resistance, age, life);
     }
+    
     public boolean makePregnant(Pregnancy p){
         if(pregnant) return false;
         pregnant = true;
         pregnancy = p;
         return true;
     }
-    @Override
-    public boolean isFemale(){return true;}
     
     @Override
-    public boolean addEdge(Relationship a){
-        
-        if(a.getFemale()!= this){
-            return false; //invalid edge! 
-        }
-        //make sure we're not duplicating a relationship
-        int o = a.getMale().ID;
-        if (!network.stream().noneMatch((f) -> (f.getMale().ID == o))) return false;
-        network.add(a);
-        
-        //System.out.print("DEBUG: Add Relationship. Network Level: " + networkLevel + " added: " + a.getCoitalFrequency());
-        networkLevel += a.getCoitalFrequency();
-        if(a.getType() == Relationship.MARRIAGE){
-            married = true;
-        }
-        //System.out.print(" new Network Level: " + networkLevel + "\n");
-        return true;
-    }
-    @Override
-    public boolean removeEdge(Relationship a){
-        int o = a.getMale().ID;
-        for(int i = 0; i<network.size();i++){
-            Relationship r = network.get(i);
-            if(r.getMale().ID == o){
-                //System.out.print("DEBUG: Delete Relationship: " + networkLevel + " removed " + network.get(i).getCoitalFrequency());
-                networkLevel -= r.getCoitalFrequency();
-                if(r.getType() == Relationship.MARRIAGE){
-                    married = false;
-                }
-                network.remove(i);
-                //System.out.print(" new Network Level: " + networkLevel + "\n");
-                return true;
-            }
-        }
-        return false;// could not find the edge! 
-    }
-   
+    public boolean isFemale(){return true;}
+     
     @Override
     public void step(SimState state){
         HIVMicroSim sim = (HIVMicroSim) state;
-        age++;
-        if(age > life){
-            deathFromOtherCauses(state);
-            return;
-        }
-        int roll;
-        
-        if(age >= 216){
-            if(age == 216){
-                width = 1.5;
-                height = 1.5;
-                sim.network.addNode(this);
-            }
+        if(age >= sim.networkEntranceAge){
             if(pregnant){
                 if(pregnancy.step()){
                     //a little one is born! Now.... if mom is HIV positive... 
-                    Agent littleOne = sim.createNewAgent(pregnancy);
+                    Agent littleOne = Generator.generateAgent(sim, true);
                     pregnant = false;
                     pregnancy = null;
                     if(infected){
-                        ArrayList<HIVInfection> infs = hiv.getGenotypes();
-                        //attempt to infect the little one
-                        if(infs.size() > 1){
-                            roll = Math.abs(sim.getGaussianRange(-(infs.size()-1), (infs.size()-1)));
-                        }else{
-                            roll = 0;
-                        }
-                        if(littleOne.attemptInfection(sim, infs.get(roll), hiv.getStage(), 1, Agent.MODEMOTHERCHILD)){
+                        if(littleOne.attemptInfection(sim, hiv.getInfectivity(), Agent.MODEMOTHERCHILD)){
                             //Poor little guy was infected :( 
                             sim.logger.insertInfection(HIVLogger.INFECT_MOTHERTOCHILD, ID, littleOne.ID, 
-                                    infs.get(roll).getGenotype(), true);
-                            littleOne.infect(sim.genotypeList.get(infs.get(roll).getGenotype()));
+                                    true);
+                            littleOne.infect(sim);
                         }
                     }
                 }
             }
-        }else{
-            width = 1;
-            height = 1;
         }
-        //adjust disease
-        if(infected){
-            if(hiv.progress(age<216?2:1)){//if young, the disease progresses more rapidly. 
-                //we have progressed in the infection. 
-                int stage = hiv.getStage();
-                switch(stage){
-                    case 1:
-                        col = Color.red;
-                        break;
-                    case 2:
-                        col = Color.GREEN;
-                        sim.logger.insertProgression(ID, stage);
-                        break;
-                    case 3: 
-                        col = Color.orange;
-                        sim.logger.insertProgression(ID, stage);
-                        break;
-                    case 4: 
-                        col = Color.black;
-                        sim.logger.insertDeath(ID, false, true);
-                        //remove all relationships.
-                        for(Relationship r : network){//start with the last element and work down to empty out the list
-                            r.getMale().removeEdge(r);
-                            sim.network.removeEdge(r);
-                        }
-                        sim.network.removeNode(this);
-                        networkLevel = 0;
-                        network.clear();
-                        alive = false;
-                        stopper.stop();
-                }
-            }
-        }
-        //adjust for network edges (note, this does not change the edges, just adds their effect and potential infection. 
-        if(age <216) return;// network processing for children should be skipped. 
+        
         double adj = wantLevel;
         Agent other;
         int PFC; //protection-free coitis
