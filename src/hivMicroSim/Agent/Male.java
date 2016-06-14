@@ -5,8 +5,6 @@
  */
 package hivMicroSim.Agent;
 import hivMicroSim.HIV.DiseaseMatrix;
-import hivMicroSim.HIV.Genotype;
-import hivMicroSim.HIV.HIVInfection;
 import hivMicroSim.HIVLogger;
 import hivMicroSim.HIVMicroSim;
 import hivMicroSim.Infection;
@@ -32,96 +30,10 @@ public class Male extends Agent implements Steppable{
     @Override
     public boolean isFemale(){return false;}
     
-    @Override
-    public boolean addEdge(Relationship a){
-        
-        if(a.getMale() != this){
-            return false;
-        }
-        //make sure we're not duplicating a relationship
-        int o = a.getFemale().ID;
-        if (!network.stream().noneMatch((f) -> (f.getFemale().ID == o))) {
-            return false;
-        }
-        
-        network.add(a);
-        if(a.getType() == Relationship.MARRIAGE){
-            married = true;
-        }
-        //System.out.print("DEBUG: Add Relationship. Network Level: " + networkLevel + " added: " + a.getCoitalFrequency());
-        networkLevel += a.getCoitalFrequency();
-        //System.out.print(" new Network Level: " + networkLevel + "\n");
-        return true;
-    }
-    @Override
-    public boolean removeEdge(Relationship a){
-        
-        int o = a.getFemale().ID;
-        for(int i = 0; i<network.size();i++){
-            Relationship r = network.get(i);
-            if(r.getFemale().ID == o){
-                //System.out.print("DEBUG: Delete Relationship: " + networkLevel + " removed " + network.get(i).getCoitalFrequency());
-                networkLevel -= r.getCoitalFrequency();
-                if(r.getType() == Relationship.MARRIAGE){
-                    married = false;
-                }
-                network.remove(i);
-                //System.out.print(" new Network Level: " + networkLevel + "\n");
-                return true;
-            }
-        }
-        
-        return false;// could not find the edge! 
-    }
-    @Override
     public void step(SimState state){
+        super.step(state);
         HIVMicroSim sim = (HIVMicroSim) state;
-        age++;
-        if(age > life){
-            deathFromOtherCauses(state);
-            return;
-        }
-        if(age == 216){
-            width = 1.5;
-            height = 1.5;
-            sim.network.addNode(this);
-        }
-        //adjust disease
-        if(infected){
-            if(hiv.progress(age<216?2:1)){
-                //we have progressed in the infection. 
-                int stage = hiv.getStage();
-                switch(stage){
-                    case 1:
-                        col = Color.red;
-                        break;
-                    case 2:
-                        col = Color.GREEN;
-                        sim.logger.insertProgression(ID, stage);
-                        break;
-                    case 3: 
-                        col = Color.orange;
-                        sim.logger.insertProgression(ID, stage);
-                        break;
-                    case 4: 
-                        col = Color.black;
-                        sim.logger.insertDeath(ID, false, true);
-                        //remove all relationships.
-                        for(Relationship r :network){//start with the last element and work down to empty out the list
-                            r.getFemale().removeEdge(r);
-                            sim.network.removeEdge(r);
-                        }
-                        sim.network.removeNode(this);
-                        networkLevel = 0;
-                        network.clear();
-                        alive = false;
-                        stopper.stop();
-                }
-            }
-        }
-        if(age<216)return;
-        //adjust for network edges (note, this does not change the edges, just adds their effect and potential infection. 
-        double adj = wantLevel;
+        
         Agent other;
         int PFC; //protection-free coitis
         double PFCRoll = 0;
@@ -192,17 +104,12 @@ public class Male extends Agent implements Steppable{
                 
             }
         }
-        adjustLack((adj/12));
-        degradeImmunity();
+
     }
      public boolean attemptCoitalInfection(HIVMicroSim sim, HIVInfection infection, 
              int stage, int frequency, Agent agent, double degree){
         //this calculates the potential reduction from alloimmunity, then passes it on to attemptInfection. 
-        int alloImmunity = getAlloImmunity(agent.ID);
-        addAlloImmunity(agent, frequency);
-        if(alloImmunity > 100){
-            degree*= 1/(alloImmunity *.01);
-        }
+        
         //add circumcision factor later additional factors may be added for homosexual coitus. 
         if(circumcised){
             degree = degree*sim.circumcisionLikelinessFactor;
@@ -223,39 +130,5 @@ public class Male extends Agent implements Steppable{
         int h = (int)((info.draw.height) * height);
         
         graphics.fillRect(x,y,w, h);
-    }
-    @Override
-    public void removeOneShots(SimState state){
-        HIVMicroSim sim = (HIVMicroSim) state;
-        for(int i = network.size()-1; i >=0; i--){
-            Relationship r = network.get(i);
-            if(r.getType() == Relationship.ONETIME){
-                r.getFemale().removeEdge(r);
-                sim.network.removeEdge(r);
-                networkLevel -= r.getCoitalFrequency();
-                network.remove(i);
-            }
-        }
-    }
-    @Override
-    public void deathFromOtherCauses(SimState state){
-        //3 steps
-        HIVMicroSim sim = (HIVMicroSim)state;
-        sim.logger.insertDeath(ID, true, infected);
-        //1- remove networks
-        Agent other;
-        for(Relationship r : network){
-            other = r.getFemale();
-            other.removeEdge(r);
-            sim.network.removeEdge(r);
-        }
-        sim.network.removeNode(this);
-        //note- no need to remove this agent's network edges right now because it will be garbabe collected. 
-        //-also no reason to change it to dead, but just in case something funky happens, lets debug it to color yellow or something.
-        col = Color.CYAN;
-        //2- remove from sparse plot
-        sim.agents.remove(this);
-        //3- Remove from schedule
-        stopper.stop();
     }
 }

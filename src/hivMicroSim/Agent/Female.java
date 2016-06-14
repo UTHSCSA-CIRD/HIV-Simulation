@@ -5,10 +5,8 @@
  */
 package hivMicroSim.Agent;
 import hivMicroSim.Generator;
-import hivMicroSim.HIV.DiseaseMatrix;
 import hivMicroSim.HIVLogger;
 import hivMicroSim.HIVMicroSim;
-import hivMicroSim.Infection;
 import hivMicroSim.Relationship;
 import java.util.ArrayList;
 import sim.portrayal.*;
@@ -179,7 +177,6 @@ public class Female extends Agent implements Steppable{
                     }
 
                 }
-                addAlloImmunity(other, PFC);
                 if(other.infected){
                     //select a genotype from the other 
                     ArrayList<HIVInfection> otherInfections = other.getDiseaseMatrix().getGenotypes(); 
@@ -213,6 +210,7 @@ public class Female extends Agent implements Steppable{
         //System.out.print("DEBUG: Lack: " + lack + " want: " + wantLevel + " Network Level: " + networkLevel + " of size " + network.size() + " produced: " );
         adjustLack((adj/12));
         //System.out.print(" new lack: " + lack + "\n");
+        super.step(state);
     }
     
     public boolean attemptCoitalInfection(HIVMicroSim sim, HIVInfection infection, int stage, int frequency, int agent, double degree){
@@ -238,40 +236,5 @@ public class Female extends Agent implements Steppable{
         int h = (int)((info.draw.height) * height);
         
         graphics.fillOval(x,y,w, h);
-    }
-    @Override
-    public void removeOneShots(SimState state){
-        HIVMicroSim sim = (HIVMicroSim) state;
-        for(int i = network.size()-1; i >=0; i--){
-            Relationship r = network.get(i);
-            if(r.getType() == Relationship.ONETIME){
-                r.getMale().removeEdge(r);
-                sim.network.removeEdge(r);
-                networkLevel -= r.getCoitalFrequency();
-                network.remove(i);
-            }
-        }
-    }
-    @Override
-    public void deathFromOtherCauses(SimState state){
-        
-        //3 steps
-        HIVMicroSim sim = (HIVMicroSim)state;
-        sim.logger.insertDeath(ID, true, infected);
-        //1- remove networks
-        Agent other;
-        for(Relationship r : network){
-            other = r.getMale();
-            other.removeEdge(r);
-            sim.network.removeEdge(r);
-        }
-        sim.network.removeNode(this);
-        //note- no need to remove this agent's network edges right now because it will be garbabe collected. 
-        //-also no reason to change it to dead, but just in case something funky happens, lets debug it to color yellow or something.
-        col = Color.CYAN;
-        //2- remove from sparse plot
-        sim.agents.remove(this);
-        //3- Remove from schedule
-        stopper.stop();
     }
 }

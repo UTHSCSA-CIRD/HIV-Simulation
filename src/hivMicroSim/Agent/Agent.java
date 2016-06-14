@@ -132,6 +132,27 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
                 latencyHazard, aidsHazard);
         return true;
     }
+    public boolean attemptInfection(HIVMicroSim sim, double degree, int mode){
+        switch(mode){
+            case MODEVI: // vaginal insertive - baseline
+                degree *= sim.perInteractionLikelihood * sim.likelinessFactorVI;
+                break;
+            case MODEVR:
+                degree *= sim.perInteractionLikelihood *sim.likelinessFactorVR;
+                break;
+            case MODEAI:
+                degree *= sim.perInteractionLikelihood * sim.likelinessFactorAI;
+                break;
+            case MODEAR:
+                degree *= sim.perInteractionLikelihood * sim.likelinessFactorAR;
+                break;
+            case MODEMOTHERCHILD:
+                degree *= sim.motherToChildInfection;
+                break;        
+        }
+        double roll = sim.random.nextDouble(); // next double between 0 and 1 (noninclusive)
+        return (roll<degree); //as degree increases the chance of having a double below that increases. 
+    }
     public ArrayList<Infection> getInfections(){
         return infections;
     }
@@ -281,27 +302,7 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     
     @Override
     public abstract void draw(Object object, Graphics2D graphics, DrawInfo2D info);
-    public boolean attemptInfection(HIVMicroSim sim, double degree, int mode){
-        switch(mode){
-            case MODEVI: // vaginal insertive - baseline
-                degree *= sim.perInteractionLikelihood * sim.likelinessFactorVI;
-                break;
-            case MODEVR:
-                degree *= sim.perInteractionLikelihood *sim.likelinessFactorVR;
-                break;
-            case MODEAI:
-                degree *= sim.perInteractionLikelihood * sim.likelinessFactorAI;
-                break;
-            case MODEAR:
-                degree *= sim.perInteractionLikelihood * sim.likelinessFactorAR;
-                break;
-            case MODEMOTHERCHILD:
-                degree *= sim.motherToChildInfection;
-                break;        
-        }
-        double roll = sim.random.nextDouble(); // next double between 0 and 1 (noninclusive)
-        return (roll<degree); //as degree increases the chance of having a double below that increases. 
-    }
+    
     public void death(HIVMicroSim sim, boolean natural){
         sim.logger.insertDeath(ID, natural, infected);
         //remove all relationships.
