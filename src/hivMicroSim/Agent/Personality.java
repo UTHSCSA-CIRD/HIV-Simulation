@@ -6,33 +6,38 @@ package hivMicroSim.Agent;
  */
 public class Personality {
     //Static quantifying variables for extremes:
-    public static final int faithfulnessMin = 0;
-    public static final int faithfulnessMax = 10;
+    public static final int monogamousMin = 0;
+    public static final int monogamousMax = 10;
+    public static final int commitmentMin = 0;
+    public static final int commitmentMax = 10;
     public static final double condomMax = 1.0;
     public static final double condomMin = 0;
-    public static final int wantMin = 0;
-    public static final int wantMax = 10;
+    public static final int libidoMin = 0;
+    public static final int libidoMax = 10;
     //not stored in here yet, but this is the best place to keep the max and min.
     public static final int lackMin = 0;
     public static final int lackMax = 10;
     
     //current levels
-    protected int faithfulness; 
+    protected int monogamous; 
+    protected int commitment; 
     protected double condomUse; 
-    protected int want;
+    protected int libido;
     
     //base levels
-    protected final int baseFaithfulness; 
+    protected final int baseMonogamous; 
+    protected final int baseCommitment; 
     protected final double baseCondomUse; 
-    protected final int baseWant;
+    protected final int baseLibido;
     
-    public void hinderWant(double a){
-        want *= a;
+    public void hinderLibido(double a){
+        libido *= a;
     }
     
-    public Personality(int faith, int want, double condom){
-        baseFaithfulness = faithfulness = faith;
-        baseWant = this.want = want;
+    public Personality(int mono, int commit, int libido, double condom){
+        baseMonogamous = monogamous = mono;
+        baseCommitment = commitment = commit;
+        baseLibido = this.libido = libido;
         baseCondomUse = condomUse = condom;
     }
 }

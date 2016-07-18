@@ -5,13 +5,13 @@
  */
 package hivMicroSim;
 import hivMicroSim.Agent.*;
-import sim.engine.*;
+import sim.util.Bag;
 /**
  *This is a generator class made to clean up the HIV Micro Sim code and keep all of the generation and relationship code together. 
  * @author ManuelLS
  */
 public abstract class Generator{
-    public static Agent generateAgent(HIVMicroSim sim, boolean born){
+    public static Agent generateAgent(HIVMicroSim sim){
         /**
          * Generates a new agent.
          * @param sim The simulation this is a part of. This is needed for the random.
@@ -24,61 +24,68 @@ public abstract class Generator{
         Personality personality;
         Agent agent;
         
-        if(born){
-            age = 0;
-        }else{
-            age = sim.getGaussianRange(0, (int)(sim.averageLifeSpan * 1.5), sim.averageAge, true, true);
-        }
+        age = sim.getGaussianRange(0, (int)(sim.averageLifeSpan * 1.5), sim.averageAge, true, true);
+        
         
         female = sim.random.nextBoolean();
-        life = sim.getGaussianRange(age, (int)(sim.averageLifeSpan * 1.5), sim.averageLifeSpan, true, true);
-        personality = generatePersonality(sim, female);
-        if(female){
-            agent = new Female();
+        if(age > sim.averageLifeSpan){
+            life = sim.getGaussianRange(age, (int)(sim.averageLifeSpan * 1.5), age, true, true);
         }else{
-            agent = new Male();
+            life = sim.getGaussianRange(age, (int)(sim.averageLifeSpan * 1.5), sim.averageLifeSpan, true, true);
         }
+        personality = generatePersonality(sim, female);
+        hivImmunity = sim.getGaussianRangeDouble(0, 2, 1, true);
+        if(female){
+            agent = new Female(sim.currentID, personality, hivImmunity, age, life);
+        }else{
+            boolean circ;
+            circ = sim.random.nextDouble() < sim.percentCircum;
+            double rand = sim.random.nextDouble();
+            boolean msm = false, msw = false;
+            if(rand < (sim.percentMsMW+sim.percentMsM)) msm = true;
+            if(rand > sim.percentMsM) msw = true;
+            agent = new Male(sim.currentID, personality, hivImmunity, age, life, circ, msm, msw);
+        }
+        sim.currentID++;
+        return agent;
     }
     
     public static Personality generatePersonality(HIVMicroSim sim, boolean female){
         double condomUse;
-        int want;
-        int faithfulness;
+        int libido;
+        int monogamous;
+        int commitment;
         Personality ret;
-        
-        faithfulness = sim.getGaussianRange(Personality.faithfulnessMin, Personality.faithfulnessMax,
-                female? sim.femaleFaithfulness : sim.maleFaithfulness , false, true);
-        want = sim.getGaussianRange(Personality.wantMin, Personality.wantMax,
-                female? sim.femaleWant : sim.maleWant , false, true);
+        //min, max, average, reroll (if outside the bounds of min and max will it truncate or re-roll?
+        //inclusive (include the min and max)
+        monogamous = sim.getGaussianRange(Personality.monogamousMin, Personality.monogamousMax,
+                female? sim.femaleMonogamous : sim.maleMonogamous , !sim.allowExtremes, sim.allowExtremes);
+        commitment = sim.getGaussianRange(Personality.commitmentMin, Personality.commitmentMax,
+                female? sim.femaleCommittedness : sim.maleCommittedness , !sim.allowExtremes, sim.allowExtremes);
+        libido = sim.getGaussianRange(Personality.libidoMin, Personality.libidoMax,
+                female? sim.femaleLibido : sim.maleLibido , !sim.allowExtremes, sim.allowExtremes);
         condomUse = sim.getGaussianRangeDouble(Personality.condomMin, Personality.condomMax,
-                sim.percentCondomUse , false);
-        ret = new Personality(faithfulness, want, condomUse);
+                sim.percentCondomUse , !sim.allowExtremes);
+        ret = new Personality(monogamous, commitment, libido, condomUse);
         return ret;
     }
-    /*
-    public Agent createNewAgent(Pregnancy p){
-        
-    
-        
-        Agent agent;
-        if(female){
-            agent = new Female(currentID, faithfulness, condomUse, want, 0, p.getCCR51(), p.getCCR52(),p.getCCR21(), p.getCCR22(), p.getHLAA1(), p.getHLAA2(), p.getHLAB1(), p.getHLAB2(), p.getHLAC1(),p.getHLAC2(), 0, life);
-        }else{
-            agent = new Male(currentID, faithfulness, condomUse, want, 0, p.getCCR51(), p.getCCR52(),p.getCCR21(), p.getCCR22(), p.getHLAA1(), p.getHLAA2(), p.getHLAB1(), p.getHLAB2(), p.getHLAC1(),p.getHLAC2(), 0, life);
+    public static void generateInitialNetwork(HIVMicroSim sim){
+        Object o;
+        Agent connector;
+        Bag agents = sim.network.allNodes;
+        for(int i = 0; i < agents.size();i++){
+            o = agents.get(i);
+            if(o instanceof Agent){
+                connector = (Agent)o;
+            }else{
+                System.err.println("Error. Not an agent!");
+                continue;
+            }
+            if(connector.wantsConnection(sim)){
+                //We currently don't care about the return value, later renditions might allow the agent 
+                //to attempt to find a connection multiple times.
+                HandlerRelationship.findConnection(connector, sim);
+            }
         }
-        logger.insertBirth(agent);
-        currentID++;
-        //add to grids
-        agents.setObjectLocation(agent,random.nextInt(gridWidth), random.nextInt(gridHeight));
-        network.addNode(agent); // handles the network only! Display of nodes handled by continuous 2D
-        //add to schedule
-        stopper = schedule.scheduleRepeating(agent);
-        //set stoppable
-        agent.setStoppable(stopper);
-        return agent;
-    }
-    */
-    public static int getRelationship(Agent a, HIVMicroSim sim){
-        
     }
 }

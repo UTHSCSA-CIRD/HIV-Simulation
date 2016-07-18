@@ -139,7 +139,7 @@ public class HIVLogger implements sim.engine.Steppable{
         }else{
             log = log + "M\t";
         }
-        log = log + a.getFaithfulness() + "\t" + a.getWantLevel() + "\t" + a.getCondomUse() + "\t" + 
+        log = log + a.getCommitment() + "\t" + a.getMonogamous() + "\t"+ a.getLibido() + "\t" + a.getCondomUse() + "\t" + 
                 a.hivImmunity;
         try{
             agentOut.newLine();
@@ -178,8 +178,8 @@ public class HIVLogger implements sim.engine.Steppable{
                 log = log + "M\t";
             }
             
-            log = log + a.getFaithfulness() + "\t" + a.getWantLevel() + "\t" + a.getCondomUse() 
-                    + "\t" + a.hivImmunity;
+            log = log + a.getCommitment() + "\t" + a.getMonogamous() + "\t" + a.getLibido() + "\t" +
+                    a.getCondomUse() + "\t" + a.hivImmunity;
             try{
                 agentOut.newLine();
                 agentOut.write(log);
@@ -201,7 +201,7 @@ public class HIVLogger implements sim.engine.Steppable{
         eventOut.write("Agent\tAction\tAgent2/Stage\tStep");
         
         agentOut = new BufferedWriter(new FileWriter(agent, false),(8*1024)); // second argument F means will overwrite if exists. 
-        agentOut.write("ID\tEntry.Step\tGender\tFaithfulness\tWant\tCondom.Usage\tImmunity");
+        agentOut.write("ID\tEntry.Step\tGender\tCommitment\tMonogamous\tWant\tCondom.Usage\tImmunity");
         
         eventQueue = new ArrayDeque();
     }

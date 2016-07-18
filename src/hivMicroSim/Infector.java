@@ -21,7 +21,7 @@ public class Infector implements sim.engine.Steppable{
     private final static long serialVersionUID = 1;
     private int tick = 0;
     private final int initiateTick;
-    private final int infectNumber;
+    private int infectNumber;
     private Stoppable stopper;
     
     public void setStopper(Stoppable a){
@@ -42,20 +42,18 @@ public class Infector implements sim.engine.Steppable{
         Bag b = sim.agents.allObjects;
         int rand;
         Agent a;
+        if(infectNumber > b.size()){
+            System.err.println("Warning, number to infect is greater than network population, setting to .1%");
+            infectNumber = (int)Math.ceil(.1* b.size());
+        }
         for(int i = 0; i<infectNumber; i++){
             do{
                 rand = sim.random.nextInt(b.size());
                 a = (Agent)b.get(rand);
-                if(a.getAge()< 216) a = null;//We're not infecting children
-                else{
-                    if(!a.infect(sim.genotypeList.get(0))){
-                        //if they are immune to this strain we will loop to another.
-                        a = null;
-                    }
-                }
-                //continue to pull new random agents until you find one that is both old enough and can be infected
-                //with the genotype - note the java will not run the infection unless age is true. 
+                if(a.getAge()< sim.networkEntranceAge || a.isInfected()) a = null;//We're not infecting children
+                //continue to pull new random agents until you find one that is both old enough and not yet infected.
             }while(a == null);
+            a.infect(sim);
         }
         try{
             sim.logger = new HIVLogger(HIVLogger.LOG_ALL, "eventLog.txt", "yearLog.txt","agentLog.txt", sim.agents.size(), infectNumber);

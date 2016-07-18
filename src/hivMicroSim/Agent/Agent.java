@@ -13,7 +13,6 @@ import sim.portrayal.*;
 import sim.engine.*;
 
 import java.awt.*;
-import java.util.Iterator;
 import sim.portrayal.simple.OvalPortrayal2D;
 /**
  *
@@ -24,9 +23,7 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     //Behavioral Factors
     public final int ID;
     protected double networkLevel;
-    protected double lack; //lack of fulfillment in current relationships
     public boolean alive = true;
-    protected int relationship;
     Personality pp;
     
     //Genetic factors
@@ -47,7 +44,7 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     protected double width = 1;
     protected double height = 1;
     protected Stoppable stopper;//MASON
-    
+    protected int attemptsToInfect = 0;
     protected final ArrayList<Relationship> network;
     
     //infection modes
@@ -55,19 +52,14 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     public static final int MODEVR = 2;
     public static final int MODEAI = 3;
     public static final int MODEAR = 4;
-    public static final int MODEMOTHERCHILD = 10;
     
     public void setStoppable(Stoppable stop){
         stopper = stop;
     }
     
-    public boolean isMarried(){return (relationship == Relationship.MARRIAGE);}
-    
-    
     public Agent(int id, Personality personality, double resistance, int age, int life){
         ID = id;
         pp = personality;
-        lack = 0;
         hivImmunity = resistance;
         
         infections = new ArrayList<>();
@@ -86,34 +78,26 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         networkLevel = 0;
     }
     
-    
-    public int getFaithfulness(){
-        return pp.faithfulness;
+    public abstract boolean acceptsGender(boolean isFemale);
+    public int getCommitment(){
+        return pp.commitment;
     }
-    public double getCondomUse(){return pp.condomUse;}
+    public int getMonogamous(){
+        return pp.monogamous;
+    }
+    public double getCondomUse(){
+        return pp.condomUse;
+    }
     
     public int getLifeSpan(){
         return life;
     }
-    public double getWantLevel(){return pp.want;}
-    public double getLack(){
-        return lack;
+    public double getLibido(){
+        return pp.libido;
     }
-    public double adjustLack(double a){
-        lack += a;
-        if(lack > 10){
-            lack = 10;
-            return lack;
-        }
-        if(lack < 0){
-            lack = 0;
-        }
-        return lack;
-    }
-    
+
     public abstract boolean isFemale();
-    
-       
+     
     public boolean isInfected(){
         return infected;
     }
@@ -132,31 +116,50 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
                 latencyHazard, aidsHazard);
         return true;
     }
-    public boolean attemptInfection(HIVMicroSim sim, double degree, int mode){
-        switch(mode){
-            case MODEVI: // vaginal insertive - baseline
-                degree *= sim.perInteractionLikelihood * sim.likelinessFactorVI;
-                break;
-            case MODEVR:
-                degree *= sim.perInteractionLikelihood *sim.likelinessFactorVR;
-                break;
-            case MODEAI:
-                degree *= sim.perInteractionLikelihood * sim.likelinessFactorAI;
-                break;
-            case MODEAR:
-                degree *= sim.perInteractionLikelihood * sim.likelinessFactorAR;
-                break;
-            case MODEMOTHERCHILD:
-                degree *= sim.motherToChildInfection;
-                break;        
-        }
+    public boolean attemptInfection(HIVMicroSim sim, double degree){
+        attemptsToInfect++;
+        degree *= sim.perInteractionLikelihood * hivImmunity;
         double roll = sim.random.nextDouble(); // next double between 0 and 1 (noninclusive)
-        return (roll<degree); //as degree increases the chance of having a double below that increases. 
+        if(roll<degree){
+            infect(sim);
+            return true;
+        }
+        return false; //as degree increases the chance of having a double below that increases. 
+        
+    }
+    public boolean attemptCoitalInfection(HIVMicroSim sim, int frequency, double degree, int mode){
+        switch(mode){
+            case Agent.MODEAI:
+                degree *= sim.likelinessFactorAI;
+                break;
+            case Agent.MODEAR:
+                degree *= sim.likelinessFactorAR;
+                break;
+            case Agent.MODEVR:
+                degree *= sim.likelinessFactorVR;
+                break;
+            case Agent.MODEVI:
+                degree *= sim.likelinessFactorVI;
+                break;
+        }
+        for(int i = 0; i< frequency; i++){
+            if(attemptInfection(sim, degree)) return true;
+        }
+        return false;
+    }
+    public double getInfectivity(){
+        if(hiv == null) return 0; //shouldn't be called if it is null, but this stops potential null exception pointer errors
+        return hiv.getInfectivity();
     }
     public ArrayList<Infection> getInfections(){
         return infections;
     }
     public boolean addInfection(Infection a){
+        /**
+         * This is for adding NON-HIV infections.
+         * @param a The infection to add.
+         * @return Returns true for added the infection, false for could not add the infection. (e.g. already has infection a)
+         */
         if (!infections.stream().noneMatch((s) -> (s.getDisease() == a.getDisease()))) {
             return false;
         }
@@ -164,6 +167,11 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         return true;
     }
     public boolean removeInfection(int a){
+        /**
+         * This is for removing NON-HIV infections.
+         * @param a The infection to remove.
+         * @return Returns true for removed the infection, false for could not remove the infection. (e.g. does not have infection a to remove)
+         */
         for(int i = 0;i<infections.size(); i++){
             if(infections.get(i).getDisease() == a){
                 infections.remove(i);
@@ -178,53 +186,47 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     protected Color getColor(){
         return col;
     }
-    
+    public int getWellness(){
+        if(hiv == null) return 1000;
+        return(hiv.getWellness());
+    }
+    public int getInfectionDuration(){
+        if(hiv == null) return -1;
+        return(hiv.getDuration());
+    }
+    public double getHIVHazard(){
+        if(hiv == null) return 0;
+        if(hiv.getStage() == DiseaseMatrix.StageAcute) return 0;
+        if(hiv.getStage() == DiseaseMatrix.StageLatency) return hiv.getWellnessHazardLatency();
+        return hiv.getWellnessHazardAIDS();
+    }
     public ArrayList<Relationship> getNetwork(){return network;}
     public double getNetworkLevel(){
         return networkLevel;
     }
     public boolean wantsConnection(HIVMicroSim sim){
-        if(age < sim.networkEntranceAge) return false;
-        if(pp.want == Personality.wantMin) return false;
+        if(pp.libido == Personality.libidoMin) return false;
         if(networkLevel == 0)return true;
-        //handle extremely low faithfulness. 
-        if(pp.faithfulness == Personality.faithfulnessMin) return true;
-        //if all needs are met return
-        if(networkLevel >= pp.want) return false;
-        if(pp.faithfulness == Personality.faithfulnessMax) return false;
-        //failing all else we roll from - faithfulnessMax to positive faithfulness max. 
-        int roll = sim.random.nextInt(Personality.faithfulnessMax*2)-Personality.faithfulnessMax;
-        if(relationship ==  Relationship.MARRIAGE){
-            return (roll+(pp.faithfulness *2)) < lack;
-        }else{
-            if(relationship == Relationship.RELATIONSHIP){
-                return((roll+pp.faithfulness) < lack);
-            }else{
-                return(roll < lack);
-            }
-        }
+        //are their current needs met?
+        if(networkLevel >= pp.libido) return false;
+        //handle those at the extreme of polygamy. 
+        if(pp.monogamous == Personality.monogamousMin) return true;
+        //extremes of monogamy- they will not be with more than 1 person at the same time.
+        if(pp.monogamous == Personality.monogamousMax) return false;
+        //failing all else we roll from - monogamousMax to positive monogamousMax. 
+        int roll = sim.random.nextInt(Personality.monogamousMax*2)-Personality.monogamousMax;
+        return (roll+(pp.monogamous)) < networkLevel;
     }
     public int getNetworkSize(){
         return network.size();
     }
-    public void removeOneShots(SimState state){
-        HIVMicroSim sim = (HIVMicroSim) state;
-        Iterator<Relationship> itr = network.iterator();
-        Relationship r;
-        while(itr.hasNext()){
-            r = itr.next();
-            if(r.getLevel() == Relationship.ONETIME){
-                sim.network.removeEdge(r);
-                Agent a = r.getPartner(this);
-                a.removeEdge(r);
-                itr.remove();
-            }
-        }
+    public boolean hasAsPartner(Agent a){
+        int id = a.ID;
+        return network.stream().anyMatch((network1) -> (network1.getPartner(this).ID == id));
     }
     public boolean addEdge(Relationship a){
         if(network.add(a)){
             networkLevel += a.getCoitalFrequency();
-            if(relationship < a.getLevel())relationship = a.getLevel();
             return true;
         }
         return false;
@@ -232,18 +234,9 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     public boolean removeEdge(Relationship a){
         if(network.remove(a)){
             networkLevel -=a.getCoitalFrequency();
-            if(relationship == a.getLevel()){
-                calculateRelationship();
-            }
             return true;
         }
         return false;
-    }
-    public void calculateRelationship(){
-        relationship = 0;
-        for(Relationship r :network){ // can't use stream and filter since relationship is not stateless.
-            if(relationship< r.getLevel()) relationship = r.getLevel();
-        }
     }
     public void calculateNetworkLevel(){
         //used to calculate the new network level after a coital frequency change.
@@ -254,10 +247,9 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     }
     public void hinderanceChange(){
         //if there has been a change to the hinderance.
-        pp.hinderWant(hinderance);
-        int coitalLevel;
+        pp.hinderLibido(hinderance);
         network.stream().forEach((r) -> {
-            r.setCoitalFrequency((int)Math.abs(pp.want + r.getPartner(this).getWantLevel())/2, ID);
+            r.setCoitalFrequency((int)Math.abs(pp.libido + r.getPartner(this).getLibido())/2, ID);
         });
         calculateNetworkLevel();
     }
@@ -297,9 +289,7 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
                 if(hiv.getHinderence() != hinderance)hinderanceChange();
             }
         }
-        lack += pp.want -networkLevel;
     }
-    
     @Override
     public abstract void draw(Object object, Graphics2D graphics, DrawInfo2D info);
     
@@ -311,6 +301,7 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
             sim.network.removeEdge(r);
         }
         sim.network.removeNode(this);
+        if(natural) sim.agents.remove(this);
         networkLevel = 0;
         network.clear();
         alive = false;

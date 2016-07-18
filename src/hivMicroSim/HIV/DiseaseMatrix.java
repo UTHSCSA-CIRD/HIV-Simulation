@@ -53,7 +53,15 @@ public class DiseaseMatrix implements java.io.Serializable{
     public DiseaseMatrix() {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
-    
+    public int getWellness(){
+        return infectionWellness;
+    }
+    public double getWellnessHazardLatency(){
+        return wellnessHazardLatency;
+    }
+    public double getWellnessHazardAIDS(){
+        return wellnessHazardAIDS;
+    }
     public double getInfectivity(){
         /**
          * This method combines infectivity with the stage to get the current infectivity. 
