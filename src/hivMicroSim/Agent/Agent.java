@@ -47,6 +47,7 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     protected int attemptsToInfect = 0;
     protected final ArrayList<Relationship> network;
     
+    
     //infection modes
     public static final int MODEVI = 1;
     public static final int MODEVR = 2;
@@ -95,7 +96,9 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     public double getLibido(){
         return pp.libido;
     }
-
+    public int getAttemptsToInfect(){return attemptsToInfect;}
+    public double getHIVImmunity() {return hivImmunity;}
+    public double getHinderance(){ return hinderance;}
     public abstract boolean isFemale();
      
     public boolean isInfected(){
@@ -205,7 +208,6 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         return networkLevel;
     }
     public boolean wantsConnection(HIVMicroSim sim){
-        if(pp.libido == Personality.libidoMin) return false;
         if(networkLevel == 0)return true;
         //are their current needs met?
         if(networkLevel >= pp.libido) return false;
@@ -215,7 +217,7 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         if(pp.monogamous == Personality.monogamousMax) return false;
         //failing all else we roll from - monogamousMax to positive monogamousMax. 
         int roll = sim.random.nextInt(Personality.monogamousMax*2)-Personality.monogamousMax;
-        return (roll+(pp.monogamous)) < networkLevel;
+        return (roll+(pp.monogamous)) < networkLevel - pp.libido;
     }
     public int getNetworkSize(){
         return network.size();

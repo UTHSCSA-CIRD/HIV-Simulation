@@ -31,7 +31,7 @@ public class DiseaseMatrix implements java.io.Serializable{
     
     public static final double wellnessHazardMaxLatency = 10.0;
     public static final double wellnessHazardAvgLatency = -4.2;
-    public static final double wellnessHazardMinLatency = -20.83;
+    public static final double wellnessHazardMinLatency = -41.6;
     
     public static final double wellnessHazardMaxAIDS = 5.0;
     public static final double wellnessHazardAvgAIDS = -8.3;
@@ -47,7 +47,7 @@ public class DiseaseMatrix implements java.io.Serializable{
     private double hinderance;
     private double infectivity = 1;
     private double wellnessHazardLatency = -4.2; //this agent's average wellness decline per tick after acute
-    private double wellnessHazardAIDS = -8.3; //this agent's average wellness decline per tick after acute
+    private double wellnessHazardAIDS = -5.6; //this agent's average wellness decline per tick after acute
     private boolean known = false;
 
     public DiseaseMatrix() {

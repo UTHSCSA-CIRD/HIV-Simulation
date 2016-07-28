@@ -18,6 +18,12 @@
 *.Rproj*
 build*
 *.gliffy
+build\*
+nbproject\*
+build*
+nbproject*
+build/*
+nbproject/*
 
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
@@ -72,3 +78,5 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+*.properties
+nbproject/private/private.xml

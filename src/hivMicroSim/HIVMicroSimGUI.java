@@ -66,7 +66,7 @@ public class HIVMicroSimGUI extends GUIState{
         display.setClipping(false);
 
         displayFrame = display.createFrame();
-        displayFrame.setTitle("HIV Micro Simulation");
+        displayFrame.setTitle("HIV Simulation");
         
         c.registerFrame(displayFrame);
         

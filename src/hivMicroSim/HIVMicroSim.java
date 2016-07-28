@@ -23,10 +23,10 @@ public class HIVMicroSim extends SimState{
     //agents might only appear ever x months.
     public double agentGrowth = 0; 
     //Population growth per month
-    public double populationGrowth = .000583;
+    public double populationGrowth = .002;
     
     public int newAgents = 0;
-    public int numInfect = 2;//initial number of infected agents. 
+    public int numInfect = 2; //initial number of infected agents. 
     public int currentID = 0;
     public int gridWidth = 100;
     public int gridHeight = 100;
@@ -34,23 +34,23 @@ public class HIVMicroSim extends SimState{
     
     //global agent descriptors- gaussian distribution between 1 and 10 with these as the means
     public double percentCondomUse = .5; //0-1 inclusive
-    public int maleMonogamous = 5; //0-10
-    public int femaleMonogamous = 6; // 0-10
-    public int maleCommittedness = 5; //0-10
-    public int femaleCommittedness = 6; // 0-10
-    public int maleLibido = 6; // 0-10
-    public int femaleLibido= 5; // 0-10
+    public int maleMonogamous = 5;      //0-10
+    public int femaleMonogamous = 5;    // 0-10
+    public int maleCommittedness = 5;   //0-10
+    public int femaleCommittedness = 5; // 0-10
+    public int maleLibido = 15;  
+    public int femaleLibido= 15; 
     public boolean allowExtremes = true;
     public double commitmentChange = 0.05;
     
     //natural resistance -- replacing genes until further science is available 
-    public double resistanceMax = 2; //maximum resistance
+    public double resistanceMax = 2;  //maximum resistance
     public double resistanceMin = 0;  //minimum resistance
     public double resistanceAvg = 1;  //average resistance.
     
     //population percentages 
-    public double percentMsMW = .1; //0-1 (combined with MsM cannot exceed 1)
-    public double percentMsM = .02; // 0-1(combined with MsMW cannot exceed 1)
+    public double percentMsMW = .1;   //0-1 (combined with MsM cannot exceed 1)
+    public double percentMsM = .02;   // 0-1(combined with MsMW cannot exceed 1)
     public double percentCircum = .5; //percent circumcised
     
     //testing likelihoods and range between tests
@@ -81,7 +81,7 @@ public class HIVMicroSim extends SimState{
     public double likelinessFactorAR = 138;
     public double likelinessFactorAI = 11;
     //preventative methods
-    public double likelinessFactorCircumcision = .5;
+    public double likelinessFactorCircumcision = .49;
     //interaction type (mother to child vs everything else.)
     public double perInteractionLikelihood = 0.0001;
     
@@ -136,14 +136,6 @@ public class HIVMicroSim extends SimState{
             averageLifeSpan = a;
         }
     }
-    public double getPerInteractionLikelihood(){
-        return perInteractionLikelihood;
-    }
-    public void setPerInteractionLikelihood(double a){
-        if(a < .1){
-            perInteractionLikelihood = a;
-        }
-    }
     public double getPercentMsMW(){return percentMsMW;}
     public void setPercentMsMW(double a){
         if(a + percentMsM <=1){
@@ -165,7 +157,7 @@ public class HIVMicroSim extends SimState{
     }
     public double getCommitmentChange(){return commitmentChange;}
     public void setCommitmentChange(double a){
-        if(commitmentChange <=1 && commitmentChange >=0){
+        if(commitmentChange <=.1 && commitmentChange >=0){
             commitmentChange = a;
         }
     }
@@ -194,7 +186,7 @@ public class HIVMicroSim extends SimState{
         if(avg > max || avg < min){
             System.err.println("Average is out of range. Setting average to the mean.");
             //TODO: Remove before production release
-            java.lang.Thread.dumpStack(); //debugging command because this shouldn't happen.
+            //only for debug: java.lang.Thread.dumpStack(); //debugging command because this shouldn't happen.
             avg = (int)mean;
         }
         int offset = avg - (int)mean;
@@ -222,6 +214,20 @@ public class HIVMicroSim extends SimState{
         }
         return (int)rand;
     }
+    /**
+     * This selects a random gaussian number and converts it to the range (min, max) and average (avg) 
+     * indicated by the calling method. Min and max will be set 3 standard deviations from the mean and then
+     * offset to the avg. 
+     * @param min - Minimum value allowable.
+     * @param max - Maximum value allowable.
+     * @param avg - Average number- this allows for an offset greater than or less than mean.
+     * @param reroll - Whether or not to re-roll values that are outside the min and max range. W
+     * When false the value is truncated to the min/max, when true the value is re-rolled until it falls
+     * within the acceptable range. Inclusive is not added to double because the values less than or greater than the min and max
+     * are infinitesimally small and there is no way to create a standard fall back that is not inclusive. 
+     * (int is +/- 1. should double be 0.1? 0.0000000000000001? 
+     * @return - return the next random gaussian double within the specifications.
+     */
     public double getGaussianRangeDouble(double min, double max, double avg, boolean reroll){
         if(min == max) return min;
         if(min > max){
@@ -233,7 +239,7 @@ public class HIVMicroSim extends SimState{
         if(avg > max || avg < min){
             System.err.println("Average is out of range. Setting average to the mean.");
             //TODO: Remove before production release
-            java.lang.Thread.dumpStack();//debugging command because this shouldn't happen.
+            //only for debug: java.lang.Thread.dumpStack();//debugging command because this shouldn't happen.
             avg = mean;
         }
         double offset = (avg - mean);
@@ -251,7 +257,8 @@ public class HIVMicroSim extends SimState{
         return rand;
     }
     
-    public boolean allowsExtremes(){return allowExtremes;}
+    
+    public boolean getAllowExtremes(){return allowExtremes;}
     public void setAllowExtremes(boolean allow){allowExtremes = allow;}
     public int getMaleMonogamous(){return maleMonogamous;}
     public int getFemaleMonogamous(){return femaleMonogamous;}
@@ -280,12 +287,12 @@ public class HIVMicroSim extends SimState{
         }
     }
     public void setMaleLibido(int a){
-        if(a >=Personality.lackMin && a <= Personality.lackMax){
+        if(a >=Personality.libidoMin && a <= Personality.libidoMax){
             maleLibido = a;
         }
     }
     public void setFemaleLibido(int a){
-        if(a >=Personality.lackMin && a <= Personality.lackMax){
+        if(a >=Personality.libidoMin && a <= Personality.libidoMax){
             femaleLibido = a;
         }
     }
@@ -334,7 +341,6 @@ public class HIVMicroSim extends SimState{
             System.err.println("Exception when creating logger!! " + e.getLocalizedMessage());
             debugLog = new DebugLogger();
         }
-        
         agents = new SparseGrid2D(gridWidth, gridHeight);
         network = new ListNetwork(false);
         currentID = numAgents;
@@ -344,7 +350,7 @@ public class HIVMicroSim extends SimState{
         Stoppable stopper;
         Agent agent;
         for(int i = 0; i < numAgents; i++){
-            agent = Generator.generateAgent(this);
+            agent = Generator.generateAgent(this, true);
             agents.setObjectLocation(agent,random.nextInt(gridWidth), random.nextInt(gridHeight));
             if(agent.getAge() >= networkEntranceAge) network.addNode(agent);
             stopper = schedule.scheduleRepeating(Schedule.EPOCH, 1, agent);
@@ -362,12 +368,7 @@ public class HIVMicroSim extends SimState{
                 //remove oneshots and process relationships created last round or during
                 //initialization.
                 HandlerRelationship.processRelationships(sim);
-                double roll;
-                double diff;
-                int ii;
-                Agent connect;
                 Agent agent;
-                Relationship e;
                 Bag allAgents = network.getAllNodes();
                 for(Object o : allAgents){
                     agent = (Agent) o;
@@ -395,7 +396,7 @@ public class HIVMicroSim extends SimState{
                     Agent agent;
                     Stoppable stopper;
                     for(i = 0; i<sim.agentGrowth; i++){
-                        agent = Generator.generateAgent(sim);
+                        agent = Generator.generateAgent(sim, false);
                         agents.setObjectLocation(agent,random.nextInt(gridWidth), random.nextInt(gridHeight));
                         if(agent.getAge() >=sim.networkEntranceAge) network.addNode(agent);
                         stopper = schedule.scheduleRepeating(sim.schedule.getSteps(), 1, agent);

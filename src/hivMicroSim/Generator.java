@@ -11,7 +11,7 @@ import sim.util.Bag;
  * @author ManuelLS
  */
 public abstract class Generator{
-    public static Agent generateAgent(HIVMicroSim sim){
+    public static Agent generateAgent(HIVMicroSim sim, boolean init){
         /**
          * Generates a new agent.
          * @param sim The simulation this is a part of. This is needed for the random.
@@ -23,8 +23,9 @@ public abstract class Generator{
         int age;
         Personality personality;
         Agent agent;
-        
-        age = sim.getGaussianRange(0, (int)(sim.averageLifeSpan * 1.5), sim.averageAge, true, true);
+        //if this is the initial run of the generation we will use the average age, otherwise we will use the network entrance age as the mean. 
+        //Meaning that agents can join the model at an older age, but that in general they are around the network entrance age. 
+        age = sim.getGaussianRange(0, (int)(sim.averageLifeSpan * 1.5), init ? sim.averageAge : sim.networkEntranceAge, true, true);
         
         
         female = sim.random.nextBoolean();

@@ -13,7 +13,7 @@ public class Personality {
     public static final double condomMax = 1.0;
     public static final double condomMin = 0;
     public static final int libidoMin = 0;
-    public static final int libidoMax = 10;
+    public static final int libidoMax = 30;
     //not stored in here yet, but this is the best place to keep the max and min.
     public static final int lackMin = 0;
     public static final int lackMax = 10;

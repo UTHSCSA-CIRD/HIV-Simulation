@@ -30,18 +30,19 @@ public class HandlerRelationship {
         Agent other;
         int rand;
         int tries = 0;
+        int triesMax = (int)a.getLibido() - a.getNetworkSize();
         
         //search up to 10 times for an acceptable agent.
         //In the future other trials can be added besides just gender. E.g. selectivity
         do{
             rand = sim.random.nextInt(nodes.size());
             other = (Agent)nodes.get(rand);
-            if(!a.acceptsGender(other.isFemale()) || a.hasAsPartner(other)) other = null;
+            if(!a.acceptsGender(other.isFemale()) || a.hasAsPartner(other)
+                    || !other.wantsConnection(sim) || !other.acceptsGender(a.isFemale())) other = null;
             tries ++;
-        }while(other == null && tries <= 10);
+        }while(other == null && tries <= triesMax);
         if (other == null) return -1; //if could not find acceptable agent 
-        if (!other.acceptsGender(a.isFemale())) return -1; //if the other agent doesn't accept our gender
-        if (!other.wantsConnection(sim)) return -1; //if the other agent doesn't want a connection
+        
         //Yay, we have found a connection
         Relationship edge;
         int freq;
@@ -79,9 +80,8 @@ public class HandlerRelationship {
                 edge.adjustCommitmentLevel(-Relationship.commitmentMax);
             }else{
                 //average minus the mean.
-                double change = (a.getCommitment()/b.getCommitment())/2-((Personality.commitmentMax + Personality.commitmentMin)/2);
+                double change = ((a.getCommitment()+b.getCommitment())/2)/(Personality.commitmentMax - Personality.commitmentMin);
                 //change -= Math.abs(a.getLibido()-b.getLibido()); //reduce the change by the diff
-                change /= (Personality.commitmentMax - Personality.commitmentMin); //divided by the amount possible (10)
                 change = change + ((sim.random.nextDouble()*2)-1);//add the change augment to a random number between -1 and 1
                 edge.adjustCommitmentLevel(change);
             }
