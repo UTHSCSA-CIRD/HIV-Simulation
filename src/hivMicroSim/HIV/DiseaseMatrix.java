@@ -29,27 +29,29 @@ public class DiseaseMatrix implements java.io.Serializable{
     public static final int normalWellness = 700;
     public static final double normalInfectivity = 1;
     
-    public static final double wellnessHazardMaxLatency = 10.0;
+    public static final double wellnessHazardMaxLatency = 41.6;
     public static final double wellnessHazardAvgLatency = -4.2;
     public static final double wellnessHazardMinLatency = -41.6;
     
-    public static final double wellnessHazardMaxAIDS = 5.0;
+    public static final double wellnessHazardMaxAIDS = 50.0;
     public static final double wellnessHazardAvgAIDS = -8.3;
     public static final double wellnessHazardMinAIDS = -50.0;
     public static final int[] wellnessLevels = {500,400,300,200,100};
-    public static final double[] wellnessHinderance = {.1,.2,.3,.7,.8};
+    public static final double[] wellnessHinderance = {.9,.8,.7,.3,.2};
     
     
     //INSTANCE SPECIFIC FACTORS
     private int stage;
     private int duration;
+    private int aidsTick = -1; //the number of ticks since the agent converted to aids
     private int infectionWellness = 700;
     private double hinderance;
     private double infectivity = 1;
     private double wellnessHazardLatency = -4.2; //this agent's average wellness decline per tick after acute
     private double wellnessHazardAIDS = -5.6; //this agent's average wellness decline per tick after acute
     private boolean known = false;
-
+    
+    public int getAIDsTick(){return aidsTick;}
     public DiseaseMatrix() {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
@@ -107,17 +109,20 @@ public class DiseaseMatrix implements java.io.Serializable{
         return duration;
     }
     
-    public boolean progress(HIVMicroSim sim){
-        //an algorithm to calculate the progression of the diseas in the individual
+    public int progress(HIVMicroSim sim){
+        //an algorithm to calculate the progression of the disease in the individual
         //returns the wellness of the individual.
+        //0 - no change
+        //- stage changed
+        //odd- hinderance changed
+        int change = 0;
         duration++;
         double rand;
-        boolean change = false;
         switch(stage){
             case StageAcute://acute
                 if(duration == ACUTEMONTHS){
                     stage = StageLatency;
-                    change = true;
+                    change -=2;
                 }
             break;
             case StageLatency: //clinical latency
@@ -126,23 +131,24 @@ public class DiseaseMatrix implements java.io.Serializable{
                 if(infectionWellness < LATENCYWELLNESSTHRESHOLD){
                     //progress to AIDS
                     stage = StageAIDS;
-                    change = true;
+                    change -=2;
+                    aidsTick = 0;
                 }
             break;
             case StageAIDS:
+                aidsTick++;
                 rand = sim.getGaussianRangeDouble(wellnessHazardMinAIDS, wellnessHazardMaxAIDS, wellnessHazardAIDS, true);
- 
                 infectionWellness +=rand;
                 if(infectionWellness <= WELLNESSDEATHTHRESHOLD){
                     //progress to Death
                     stage = StageDeath;
-                    change = true;
+                    change -=2;
                 }
             break;
             default:
                 System.err.println("Cannot progress invalid/death stage");      
         }
-        if(updateHinderance())change = true;
+        if(updateHinderance())change += 1;
         return change;
     }
     public void discover(){

@@ -54,8 +54,24 @@ public class Male extends Agent implements Steppable{
     public void step(SimState state){
         //All male specific factors have been removed for the moment...
         super.step(state);
+        HIVMicroSim sim = (HIVMicroSim)state;
+        if(age == sim.networkEntranceAge && alive){
+            if(MSM && sim.MSMnetwork){
+                sim.networkM.addNode(this);
+            }
+            if(MSW || !sim.MSMnetwork){
+                sim.networkMF.addNode(this);
+            }
+        }
     }
-    
+    @Override
+    public void death(HIVMicroSim sim, boolean natural){
+        super.death(sim, natural);
+        if(MSM && sim.MSMnetwork) sim.networkM.removeNode(this);
+        if(MSW || !sim.MSMnetwork) sim.networkMF.removeNode(this);
+        networkLevel = 0;
+        network.clear();
+    }
     @Override
     public boolean attemptCoitalInfection(HIVMicroSim sim, int frequency, double degree, int mode){
         //add circumcision factor later additional factors may be added for homosexual coitus. 

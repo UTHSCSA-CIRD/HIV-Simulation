@@ -32,7 +32,6 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     //General Status
     protected boolean infected;
     protected DiseaseMatrix hiv = null;
-    protected double hinderance = 1;
     protected final ArrayList<Infection> infections;
     protected int age; // measured in months/ ticks. 
     protected int life; // how long this person should live without HIV/AIDS. This should probably
@@ -98,7 +97,10 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     }
     public int getAttemptsToInfect(){return attemptsToInfect;}
     public double getHIVImmunity() {return hivImmunity;}
-    public double getHinderance(){ return hinderance;}
+    public double getHinderance(){ 
+        if(hiv == null) return 1;
+        return hiv.getHinderence();
+    }
     public abstract boolean isFemale();
      
     public boolean isInfected(){
@@ -249,11 +251,14 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     }
     public void hinderanceChange(){
         //if there has been a change to the hinderance.
-        pp.hinderLibido(hinderance);
+        pp.hinderLibido(hiv.getHinderence());
         network.stream().forEach((r) -> {
             r.setCoitalFrequency((int)Math.abs(pp.libido + r.getPartner(this).getLibido())/2, ID);
         });
         calculateNetworkLevel();
+    }
+    public int getBaseLibido(){
+        return pp.baseLibido;
     }
     @Override
     public void step(SimState state){
@@ -263,32 +268,42 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
             death(sim, true);
             return;
         }
-        if(age == 216){
+        if(age == sim.networkEntranceAge && alive){
             width = 1.5;
             height = 1.5;
-            sim.network.addNode(this);
+            if(isFemale()){ 
+                sim.networkMF.addNode(this);
+            }
         }
         if(infected){
-            if(hiv.progress(sim)){
+            int change = hiv.progress(sim);
+            if(change < 0){
                 //something has changed (hinderance or stage)
                 int stage = hiv.getStage();
+                
                 switch(stage){
                     case 1:
                         col = Color.red;
                         break;
                     case 2:
                         col = Color.GREEN;
-                        sim.logger.insertProgression(ID, stage);
+                        sim.logger.insertProgression(ID, stage, 2);
                         break;
                     case 3: 
                         col = Color.orange;
-                        sim.logger.insertProgression(ID, stage);
+                        sim.logger.insertProgression(ID, stage, hiv.getDuration()-2);
                         break;
                     case 4: 
                         col = Color.black;
                         death(sim,false);
+                        if(networkLevel != 0){// DEBUG
+                            System.err.println("Fail.... ");
+                        }
+                        break;
                 }
-                if(hiv.getHinderence() != hinderance)hinderanceChange();
+            }
+            if(change%2 == 1){
+                hinderanceChange();
             }
         }
     }
@@ -296,16 +311,30 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     public abstract void draw(Object object, Graphics2D graphics, DrawInfo2D info);
     
     public void death(HIVMicroSim sim, boolean natural){
-        sim.logger.insertDeath(ID, natural, infected);
+        int ticks;
+        if(!natural){
+            ticks = hiv.getAIDsTick();
+        }else{
+            ticks = -1;
+        }
+        sim.logger.insertDeath(ID, natural, infected, ticks);
         //remove all relationships.
         for(Relationship r : network){//start with the last element and work down to empty out the list
             r.getPartner(this).removeEdge(r);
-            sim.network.removeEdge(r);
+            if(r.network == Relationship.networkMF){
+                sim.networkMF.removeEdge(r);
+            }else{//later this might become a switch statement, but there are only 2 networks. At some point there might
+                //be relationship subclasses that remove themselves to simplify this part.
+                sim.networkM.removeEdge(r);
+            }
         }
-        sim.network.removeNode(this);
+        if(isFemale()){//males will handle this on their own as removing a node from the network is a cpu/access intensive process
+            sim.networkMF.removeNode(this);
+            networkLevel = 0;
+            network.clear();
+        }
         if(natural) sim.agents.remove(this);
-        networkLevel = 0;
-        network.clear();
+        
         alive = false;
         stopper.stop();
     }

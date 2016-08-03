@@ -18,7 +18,8 @@ public class HIVMicroSimGUI extends GUIState{
     public Display2D display;
     public JFrame displayFrame;
     
-    NetworkPortrayal2D edgePortrayal = new NetworkPortrayal2D();
+    NetworkPortrayal2D edgePortrayalMF = new NetworkPortrayal2D();
+    NetworkPortrayal2D edgePortrayalM = new NetworkPortrayal2D();
     SparseGridPortrayal2D nodePortrayal = new SparseGridPortrayal2D();
     
     public static void main(String[] args){
@@ -47,8 +48,10 @@ public class HIVMicroSimGUI extends GUIState{
     public void setupPortrayals(){
         HIVMicroSim sim = (HIVMicroSim) state;
         
-        edgePortrayal.setField( new SpatialNetwork2D(sim.agents, sim.network));
-        edgePortrayal.setPortrayalForAll(new SimpleEdgePortrayal2D());
+        edgePortrayalMF.setField( new SpatialNetwork2D(sim.agents, sim.networkMF));
+        edgePortrayalM.setField( new SpatialNetwork2D(sim.agents, sim.networkM));
+        edgePortrayalMF.setPortrayalForAll(new SimpleEdgePortrayal2D());
+        edgePortrayalM.setPortrayalForAll(new SimpleEdgePortrayal2D());
         nodePortrayal.setField(sim.agents);
         
         display.reset();
@@ -71,7 +74,8 @@ public class HIVMicroSimGUI extends GUIState{
         c.registerFrame(displayFrame);
         
         displayFrame.setVisible(true);
-        display.attach(edgePortrayal, "Relationships");
+        display.attach(edgePortrayalMF, "Relationships ANY");
+        display.attach(edgePortrayalM, "Relationships M2M");
         display.attach(nodePortrayal, "Agents");
     }
     

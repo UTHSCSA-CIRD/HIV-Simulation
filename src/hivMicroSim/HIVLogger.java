@@ -31,25 +31,28 @@ public class HIVLogger implements sim.engine.Steppable{
     
     private final ArrayDeque eventQueue;//an UNSYNCHRONIZED queue reported on javadocs to be faster than linked list.
     
-    public final static int INFECT_MOTHERTOCHILD = 1;
-    public final static int INFECT_HETERO = 0;
-    public final static int LOG_ALL = 10;
-    public final static int LOG_INFECT = 0;
-    public final static int LOG_PROGRESSION = 1;
-    public final static int LOG_DEATH = 2;
-    public final static int LOG_CONCEPTION = 3;
-    public final static int LOG_BIRTH = 4;
+    
+
+    //log levels.
+    public final static int LOG_ALL = 100;
+    public final static int LOG_NONE = -1; // do not log.
+    public final static int LOG_YEARLY = 0; //logs yearly amounts, but nothing relating to the individual agents
+    public final static int LOG_INFECT = 10; // last level that logs agents.
+    public final static int LOG_PROGRESSION = 20;
+    public final static int LOG_DEATH = 30;
+    public final static int LOG_DEATH_NATURAL = 35;
+    public final static int LOG_ENTRY = 40;
     
     private int year = 0;
     private int month = 0; // month 0 (first call to step) will be the initial pre simulation values
     private int turn = 0;
     //keeping yearly tallies since all these are reported and it
     //means we don't have to query all agents
-    private int yearBirth = 0;
-    private int yearDeath = 0;
-    private int yearMortality = 0;
-    private int yearInfect = 0;
-    private int yearPrevalence = 0;
+    private int yearGrowth = 0; // the number of new agents added.
+    private int yearDeath = 0; //the total number of agents that died of any cause
+    private int yearMortality = 0; // the number of agents that died of AIDs
+    private int yearInfect = 0;  //The number of agents infected that year.
+    private int prevalence = 0; //The number of agents living with the disease that year.
     private int yearLiving = 0; //the number of agents alive at the start of the year for rate calculations;
     private int livingAgents = 0;
     
@@ -58,7 +61,7 @@ public class HIVLogger implements sim.engine.Steppable{
     
     @Override
     public void step(SimState state){
-        if(logLevel == -1)return;    
+        if(logLevel == LOG_NONE)return;   
         //handle queue
         Object o;
         while((o = eventQueue.pollFirst()) != null){
@@ -73,22 +76,23 @@ public class HIVLogger implements sim.engine.Steppable{
         turn++;
         month++;
         if(month > 12){
-            String log = year + "\t"+ yearLiving + "\t" + yearInfect + "\t" + yearPrevalence + "\t" 
-                    + yearMortality + "\t" + yearBirth + "\t" + yearDeath;
+            String log = year + "\t"+ yearLiving + "\t" + yearInfect + "\t" + prevalence + "\t" 
+                    + yearMortality + "\t" + yearGrowth + "\t" + yearDeath;
             try{
                 yearOut.newLine();
                 yearOut.write(log);
             }catch(IOException e){
                 System.err.println("Could not write yearly report for year: " + year + " "+e.getLocalizedMessage()+"\n" + log);
             }
-            yearLiving = livingAgents;
-            yearBirth = yearDeath=yearMortality=yearInfect=0;
+            yearLiving = livingAgents;//the number of agents at the start of the year
+            yearGrowth = yearDeath=yearMortality=yearInfect=0; //reset the yearly values
             year++;
             month = 1;
         }
     }
+    
     public void close(){
-        if(logLevel == -1)return;
+        if(logLevel == LOG_NONE)return;
         try{
             yearOut.flush();
             eventOut.flush();
@@ -97,111 +101,112 @@ public class HIVLogger implements sim.engine.Steppable{
             eventOut.close();
             agentOut.close();
         }catch(IOException e){
-            System.err.println("Could not close! " + e.getLocalizedMessage());
+            System.err.println("Could not close log file! " + e.getLocalizedMessage());
         }
     }
-    public void insertInfection(int infectMode, int agent1, int agent2, boolean newInfect){
-        yearInfect ++;
+    
+    public void insertInfection(int infectMode, int infector, int infected, int commitmentLevel, int attemptsToInfect){
+        yearInfect++;
+        prevalence++;
         if(logLevel < LOG_INFECT) return;
-        String log = "";
-        if(infectMode == INFECT_HETERO){
-            if(newInfect){
-                yearPrevalence++;
-                log = agent1 + "\tNew Heterosexual Infection\t" + agent2 +"\t"+ turn;
-            }else{
-                log = agent1 + "\tHeterosexual Infection\t" + agent2 +"\t"+ turn;
-            }
-        }else if(infectMode == INFECT_MOTHERTOCHILD){
-            yearPrevalence++;
-            log = agent1 + "\tM2C Infection\t" + agent2 +"\t"+ turn;
+        String log = turn + "\t" + infector +"\t" ;
+        switch(infectMode){
+            case Agent.MODEAI:
+                log = log + "Anal Insertive";
+                break;
+            case Agent.MODEAR:
+                log = log + "Anal Receptive";
+                break;
+            case Agent.MODEVR:
+                log = log + "Vaginal Receptive";
+                break;
+            case Agent.MODEVI:
+                log = log + "Vaginal Insertive";
+                break;
         }
+        log = log + "\t" + infected + "\t" + commitmentLevel + "\t" + attemptsToInfect;
         eventQueue.add(log);
     }
-    public void insertProgression(int agent, int stage){
+    
+    public void insertProgression(int agent, int stage, int ticks){
         if(logLevel < LOG_PROGRESSION) return;
-        String log = agent + "\tProgression\t" + stage + "\t" + turn;
+        String log = turn + "\t" + agent + "\tProgression\t" + stage + "\t" + ticks;
         eventQueue.add(log);
     }
-    public void insertConception(int agent1, int agent2){
-        if(logLevel < LOG_CONCEPTION) return;
-        String log = agent1 + "\tConceived\t" +agent2 + "\t" + turn; 
-        eventQueue.add(log);
-    }
-    public void insertBirth(Agent a){
-        livingAgents++;
-        yearBirth++;
-        if(logLevel < LOG_BIRTH) return;
-        String log = a.ID + "\tBorn\t\t" + turn; 
-        eventQueue.add(log);
-        log = a.ID + "\t" + turn + "\t";
+    private void logNewAgent(Agent a){
+        //this is really just so that the initial dump can use THIS method and we don't have to maintain 2 logs inserting
+        //new agents... there was already a fun little bug where changes to insertNewAgent weren't carried over into the
+        //initial dump.
+        if(logLevel < LOG_INFECT) return;
+        String log2 = turn +"\t" + a.ID + "\t";
         if(a.isFemale()){
-            log = log + "F\t";
+            log2 = log2 + "F\tNA\tNA\t";
         }else{
-            log = log + "M\t";
+            hivMicroSim.Agent.Male m = (hivMicroSim.Agent.Male)a;
+            log2 = log2 + "M\t" + m.getMSW() + "\t" + m.getMSM() + "\t";
         }
-        log = log + a.getCommitment() + "\t" + a.getMonogamous() + "\t"+ a.getLibido() + "\t" + a.getCondomUse() + "\t" + 
+        log2 = log2 + a.getCommitment() + "\t" + a.getMonogamous() + "\t"+ a.getLibido() + "\t" + a.getCondomUse() + "\t" + 
                 a.hivImmunity;
         try{
             agentOut.newLine();
-            agentOut.write(log);
+            agentOut.write(log2);
         }catch(IOException e){
-            System.err.println("Could not print to agent: " + e.getLocalizedMessage() + "\n" + log);
+            System.err.println("Could not print to agent: " + e.getLocalizedMessage() + "\n" + log2);
         }
-    }
-    public void insertDeath(int agent1, boolean natural, boolean infected){
-        yearDeath++;
-        livingAgents--;
-        if(logLevel < LOG_DEATH) return;
-        String log = agent1 + "\t";
-        if(natural){
-            if(infected){
-                yearPrevalence--;
-                log = log + "Infected ";
-            }
-            log = log + "Non-AIDS Death\t\t" + turn;
-        }else{
-            yearMortality++;
-            yearPrevalence--;
-            log = log + "AIDS Death\t\t" + turn;
-        }
+        if(logLevel < LOG_ENTRY) return;
+        String log = turn +"\t" + a.ID + "\tEntered\t" + a.getAge(); 
         eventQueue.add(log);
     }
-    public void firstSet(sim.util.Bag agents){// for setting up that initial number of homozygous CCR5Delta32 mutations. 
-        Agent a;
-        for(Object o : agents){
-            a = (Agent)o;
-            if(logLevel < LOG_INFECT)continue;
-            String log = a.ID + "\t0\t";
-            if(a.isFemale()){
-                log = log + "F\t";
-            }else{
-                log = log + "M\t";
-            }
-            
-            log = log + a.getCommitment() + "\t" + a.getMonogamous() + "\t" + a.getLibido() + "\t" +
-                    a.getCondomUse() + "\t" + a.hivImmunity;
-            try{
-                agentOut.newLine();
-                agentOut.write(log);
-            }catch(IOException e){
-                System.err.println("Could not print to agent: " + e.getLocalizedMessage() + "\n" + log);
+    public void insertNewAgent(Agent a){
+        livingAgents++;
+        yearGrowth++;
+        logNewAgent(a);
+    }
+    
+    public void insertDeath(int agent, boolean natural, boolean infected, int ticks){//ticks is only used in the event of AIDS death
+        yearDeath++;
+        livingAgents--;
+        if(infected) {
+            prevalence--;
+            if(!natural){
+                yearMortality++;
             }
         }
+        if((logLevel < LOG_DEATH_NATURAL && natural) || (logLevel< LOG_DEATH && !natural)) return;
+        String log = turn + "\t"+ agent + "\t";
+        if(natural){
+            if(infected){
+                log = log + "Infected ";
+            }
+            log = log + "Non-AIDS Death\t" ;
+        }else{
+            log = log + "AIDS Death\t" + ticks;
+        }
+        log = log + "\t\t";
+        eventQueue.add(log);
+    }
+    
+    public void firstSet(sim.util.Bag agents){
+        //log the initial bag.
+        if(logLevel < LOG_INFECT)return; // last level that records agents
+        agents.stream().forEach((o) -> {
+            logNewAgent((Agent)o);
+        });
     }
     
     public HIVLogger(int level, String event, String year, String agent, int numAgents, int numInfect) throws IOException{
         logLevel = level;
-        yearPrevalence = numInfect;
-        livingAgents = yearLiving= numAgents;
+        prevalence = numInfect;
+        livingAgents = yearLiving = numAgents;
         
         yearOut = new BufferedWriter(new FileWriter(year, false),(8*1024)); // second argument F means will overwrite if exists. 
-        yearOut.write("Year\tStarting.Population\tIncidence\tPrevelance\tMortality\tBirth.Rate\tDeath.Rate");
+        yearOut.write("Year\tStarting.Population\tIncidence\tPrevelance\tMortality\tGrowth\tDeath.Rate");
         
         eventOut = new BufferedWriter(new FileWriter(event, false),(8*1024)); // second argument F means will overwrite if exists. 
-        eventOut.write("Agent\tAction\tAgent2/Stage\tStep");
+        eventOut.write("Tick\tAgent\tAction\tDesc1(StageAgeAgent)\tDesc2(TicksCommitmentLevel)\tDesc3(AtteptsToInfect)");
         
         agentOut = new BufferedWriter(new FileWriter(agent, false),(8*1024)); // second argument F means will overwrite if exists. 
-        agentOut.write("ID\tEntry.Step\tGender\tCommitment\tMonogamous\tWant\tCondom.Usage\tImmunity");
+        agentOut.write("Entry.Step\tID\tGender\tMSW\tMSM\tCommitment\tMonogamous\tLibido\tCondom.Usage\tImmunity");
         
         eventQueue = new ArrayDeque();
     }

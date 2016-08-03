@@ -14,6 +14,10 @@ public class Relationship extends Edge implements java.io.Serializable{
     private final static long serialVersionUID = 1;
     public final static int commitmentMax = 10;
     public final static int commitmentDissolve = 0;
+    
+    public final static int networkMF = 0;
+    public final static int networkM = 1;
+    
     //commitmentLevel is a double to allow for minute changes, however it should be represented as an
     //integer value to applications outside this class and should truncate down. e.g. 0.56 = 0, 1.12 = 1
     private double commitmentLevel;
@@ -22,6 +26,7 @@ public class Relationship extends Edge implements java.io.Serializable{
         public static final int MsM = 2;
     private int coitalFrequency;
     private final Agent a,b;
+    public final int network;
     
     public int getCommitmentLevel(){
         return (int)commitmentLevel;
@@ -51,7 +56,7 @@ public class Relationship extends Edge implements java.io.Serializable{
         return a;
     }
     
-    public Relationship(Agent A, Agent B, int level, int frequency){
+    public Relationship(Agent A, Agent B, int level, int frequency, int network){
         super(A,B, level);
         commitmentLevel = level;
         a = A;
@@ -59,5 +64,6 @@ public class Relationship extends Edge implements java.io.Serializable{
         coitalFrequency = frequency;
         if(a.isFemale() || b.isFemale()) type = MsW;
         else type = MsM;
+        this.network = network;
     }
 }

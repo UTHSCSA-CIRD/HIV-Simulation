@@ -14,14 +14,11 @@ public class Personality {
     public static final double condomMin = 0;
     public static final int libidoMin = 0;
     public static final int libidoMax = 30;
-    //not stored in here yet, but this is the best place to keep the max and min.
-    public static final int lackMin = 0;
-    public static final int lackMax = 10;
     
     //current levels
-    protected int monogamous; 
-    protected int commitment; 
-    protected double condomUse; 
+    protected int monogamous;
+    protected int commitment;
+    protected double condomUse;
     protected int libido;
     
     //base levels
@@ -31,7 +28,7 @@ public class Personality {
     protected final int baseLibido;
     
     public void hinderLibido(double a){
-        libido *= a;
+        libido = (int)(baseLibido * a);
     }
     
     public Personality(int mono, int commit, int libido, double condom){

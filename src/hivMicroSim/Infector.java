@@ -42,8 +42,8 @@ public class Infector implements sim.engine.Steppable{
         Bag b = sim.agents.allObjects;
         int rand;
         Agent a;
-        if(infectNumber > b.size()){
-            System.err.println("Warning, number to infect is greater than network population, setting to .1%");
+        if(infectNumber > (b.size()*.5)){
+            System.err.println("Warning, number to infect is greater than half the population, setting to 1%");
             infectNumber = (int)Math.ceil(.1* b.size());
         }
         for(int i = 0; i<infectNumber; i++){
@@ -56,7 +56,7 @@ public class Infector implements sim.engine.Steppable{
             a.infect(sim);
         }
         try{
-            sim.logger = new HIVLogger(HIVLogger.LOG_ALL, "eventLog.txt", "yearLog.txt","agentLog.txt", sim.agents.size(), infectNumber);
+            sim.logger = new HIVLogger(sim.logLevel, "eventLog.txt", "yearLog.txt","agentLog.txt", sim.agents.size(), infectNumber);
             sim.schedule.scheduleRepeating(sim.schedule.getSteps(), 0, sim.logger);
             sim.logger.firstSet(b);
         }catch(IOException e){

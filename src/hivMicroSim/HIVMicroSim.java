@@ -6,6 +6,7 @@
 package hivMicroSim;
 
 import hivMicroSim.Agent.Agent;
+import hivMicroSim.Agent.Male;
 import hivMicroSim.Agent.Personality;
 import sim.engine.*;
 import sim.field.grid.SparseGrid2D;
@@ -17,7 +18,9 @@ import java.io.IOException;
  */
 public class HIVMicroSim extends SimState{
     public SparseGrid2D agents;
-    public ListNetwork network;
+    public ListNetwork networkMF; // male female sexual network
+    public ListNetwork networkM; // male to male sexual network
+    public boolean MSMnetwork = true;
     public int numAgents = 100;
     //records the current growth of new agents. Is a double because growth is by month and new
     //agents might only appear ever x months.
@@ -90,6 +93,7 @@ public class HIVMicroSim extends SimState{
     public int averageLifeSpan = 780;
     public double pregnancyChance = .008;
     public HIVLogger logger;
+    public int logLevel = HIVLogger.LOG_DEATH;
     public DebugLogger debugLog;
     private String simDebugFile = "simDebug.txt";
     private int simDebugLevel = DebugLogger.LOG_ALL;
@@ -141,6 +145,12 @@ public class HIVMicroSim extends SimState{
         if(a + percentMsM <=1){
             percentMsMW = a;
         }
+    }
+    public boolean getMSMNewtork(){
+        return MSMnetwork;
+    }
+    public void setMSMNetwork(boolean a){
+        MSMnetwork = a;
     }
     public double getPercentMsM(){return percentMsM;}
     public void setPercentMsM(double a){
@@ -325,7 +335,8 @@ public class HIVMicroSim extends SimState{
     public HIVMicroSim(long seed){
         super(seed);
         agents = new SparseGrid2D(100, 100);
-        network = new ListNetwork();
+        networkMF = new ListNetwork();
+        networkM = new ListNetwork();
         logger = new HIVLogger();
         
     }
@@ -342,8 +353,8 @@ public class HIVMicroSim extends SimState{
             debugLog = new DebugLogger();
         }
         agents = new SparseGrid2D(gridWidth, gridHeight);
-        network = new ListNetwork(false);
-        currentID = numAgents;
+        networkMF = new ListNetwork(false);
+        networkM = new ListNetwork(false);
         
         //generate starter agents, add them to the network and object location.
         Agent[] s = new Agent[numAgents];
@@ -352,7 +363,21 @@ public class HIVMicroSim extends SimState{
         for(int i = 0; i < numAgents; i++){
             agent = Generator.generateAgent(this, true);
             agents.setObjectLocation(agent,random.nextInt(gridWidth), random.nextInt(gridHeight));
-            if(agent.getAge() >= networkEntranceAge) network.addNode(agent);
+            if(agent.getAge() >= networkEntranceAge) {
+                if(agent.isFemale()){
+                    networkMF.addNode(agent);
+                }else{
+                    Male m = (Male)agent;
+                    //if they have sex with other men and the msm network is active they will be added to that network
+                    if(m.getMSM() && MSMnetwork){ 
+                        networkM.addNode(m);
+                    }
+                    //if they have sex with women OR the msm network is not active, add them to the mf network.
+                    if(m.getMSW() || !MSMnetwork){
+                        networkMF.addNode(m);
+                    }
+                }
+            }
             stopper = schedule.scheduleRepeating(Schedule.EPOCH, 1, agent);
             agent.setStoppable(stopper);
             s[i] = agent;
@@ -369,9 +394,12 @@ public class HIVMicroSim extends SimState{
                 //initialization.
                 HandlerRelationship.processRelationships(sim);
                 Agent agent;
-                Bag allAgents = network.getAllNodes();
+                //this has to be changed to the agents object and a check for age must be added because there 
+                //may be multiple networks in play. In the future this method can handle walking over all the networks
+                Bag allAgents = agents.allObjects;
                 for(Object o : allAgents){
                     agent = (Agent) o;
+                    if(agent.getAge() < networkEntranceAge || !agent.alive)continue;
                     //set up new networks
                     if(agent.wantsConnection(sim)){
                         HandlerRelationship.findConnection(agent, sim);
@@ -390,15 +418,30 @@ public class HIVMicroSim extends SimState{
             @Override
             public void step(SimState state) {
                 HIVMicroSim sim = (HIVMicroSim) state;
-                sim.agentGrowth += sim.populationGrowth*sim.network.allNodes.size();
+                sim.agentGrowth += sim.populationGrowth*sim.agents.allObjects.size();
                 if(sim.agentGrowth>=1){
                     int i;
                     Agent agent;
                     Stoppable stopper;
                     for(i = 0; i<sim.agentGrowth; i++){
                         agent = Generator.generateAgent(sim, false);
+                        logger.insertNewAgent(agent);
                         agents.setObjectLocation(agent,random.nextInt(gridWidth), random.nextInt(gridHeight));
-                        if(agent.getAge() >=sim.networkEntranceAge) network.addNode(agent);
+                        if(agent.getAge() >=sim.networkEntranceAge){
+                            if(agent.isFemale()){
+                                networkMF.addNode(agent);
+                            }else{
+                                Male m = (Male)agent;
+                                //if they have sex with other men and the msm network is active they will be added to that network
+                                if(m.getMSM() && MSMnetwork){ 
+                                    networkM.addNode(m);
+                                }
+                                //if they have sex with women OR the msm network is not active, add them to the mf network.
+                                if(m.getMSW() || !MSMnetwork){
+                                    networkMF.addNode(m);
+                                }
+                            }
+                        }
                         stopper = schedule.scheduleRepeating(sim.schedule.getSteps(), 1, agent);
                         agent.setStoppable(stopper);
                     }

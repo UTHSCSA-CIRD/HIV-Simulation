@@ -73,7 +73,7 @@ public abstract class Generator{
     public static void generateInitialNetwork(HIVMicroSim sim){
         Object o;
         Agent connector;
-        Bag agents = sim.network.allNodes;
+        Bag agents = sim.agents.allObjects;
         for(int i = 0; i < agents.size();i++){
             o = agents.get(i);
             if(o instanceof Agent){
@@ -82,6 +82,7 @@ public abstract class Generator{
                 System.err.println("Error. Not an agent!");
                 continue;
             }
+            if(connector.getAge() < sim.networkEntranceAge) continue;
             if(connector.wantsConnection(sim)){
                 //We currently don't care about the return value, later renditions might allow the agent 
                 //to attempt to find a connection multiple times.
