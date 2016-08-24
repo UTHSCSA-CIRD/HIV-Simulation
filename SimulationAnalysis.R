@@ -1,81 +1,92 @@
 library(ggplot2)
 library(reshape2)
 library(car)#recode
+library(sqldf)
 agentLog = read.table("agentLog.txt", header = TRUE, sep = "\t")
 eventLog = read.table("eventLog.txt", header = TRUE, sep = "\t")
 yearLog = read.table("yearLog.txt", header = TRUE, sep = "\t")
-#heteroInfect = eventLog[(eventLog$Action == "New Heterosexual Infection"),"Agent.1"]
-#homoInfect = eventLog[(eventLog$Action == "New Homosexual Infection"),"Agent.1"]
-sexualInfect = eventLog[(eventLog$Action == "New Heterosexual Infection")|(eventLog$Action == "New Homosexual Infection"),"Agent.1"]
-rNot = table(sexualInfect)
-#rNotHomo = table(homoInfect)
-#rNotHetero = table(heteroInfect)
-yearLog$percentInfected = yearLog$Prevelance/yearLog$Starting.Population
-yearLog$incidenceRate = yearLog$Incidence/yearLog$Starting.Population
+vaginalInfect = eventLog[grep("Vaginal", eventLog$Action),]
+analInfect = eventLog[grep("Anal", eventLog$Action),]
+infect = rbind(vaginalInfect, analInfect)
+rNot = table(infect$Agent)
+yearLog$percentInfected = yearLog$Prevelance/yearLog$Starting.Population * 100
+yearLog$incidenceRate = yearLog$Incidence/yearLog$Starting.Population * 1000
 highR0 = as.data.frame(rNot[rNot>2])
-iAgents = agentLog[agentLog$ID%in%rownames(highR0),]
+iAgents = agentLog[agentLog$ID%in%highR0$Var1,]
 #changing this to grep for 'sexual' to avoid mother to child infections.
-infAgents = agentLog[agentLog$ID%in%eventLog[grepl("*sexual*",eventLog$Action), "Agent"],]
-lmAgents = agentLog
-lmAgents$Infected = agentLog$ID%in%eventLog[grepl("*sexual*",eventLog$Action), "Agent"]
+infAgents = agentLog[agentLog$ID %in% infect[,"Desc1.StageAgeAgent."],]
 popGrowthRate = log(yearLog[nrow(yearLog), "Starting.Population"]/yearLog[1,"Starting.Population"])/nrow(yearLog)
-agentLog$CCR5 = interaction(agentLog$CCR51, agentLog$CCR52, drop = TRUE)
-agentLog$CCR2 = interaction(agentLog$CCR21, agentLog$CCR22, drop = TRUE)
-agentLog$HLA_A = interaction(agentLog$HLA_A1, agentLog$HLA_A2, drop = TRUE)
-agentLog$HLA_B = interaction(agentLog$HLA_B1, agentLog$HLA_B2, drop = TRUE)
-agentLog$HLA_C= interaction(agentLog$HLA_C1, agentLog$HLA_C2, drop = TRUE)
-agentLog$CCR5 = recode(agentLog$CCR5, "'CCR5 Haplotype HHE.CCR5 Delta 32' = 'CCR5 Delta 32.CCR5 Haplotype HHE';'CCR5 Wild Type.CCR5 Haplotype HHE' = 'CCR5 Haplotype HHE.CCR5 Wild Type';'CCR5 Wild Type.CCR5 Delta 32'= 'CCR5 Delta 32.CCR5 Wild Type'")
-agentLog$CCR2 = recode(agentLog$CCR2, "'CCR2 Wild Type.CCR2 V64I' = 'CCR2 V64I.CCR2 Wild Type'")
-agentLog$HLA_A = recode(agentLog$HLA_A, "'HLA A01 A03.HLA A01' = 'HLA A01.HLA A01 A03'; 'HLA A01 A03.HLA A01 A24'='HLA A01 A24.HLA A01 A03'; 'HLA A01 A24.HLA A01'='HLA A01.HLA A01 A24';
-                        'HLA A01.HLA A02 '='HLA A02.HLA A01';'HLA A01 A24.HLA A24'='HLA A02.HLA A01 A24';'HLA A01 A03.HLA A02'='HLA A02.HLA A01 A03';
-                        'HLA A01 A03.HLA A03'='HLA A03.HLA A01 A03';'HLA A01 A24.HLA A02'='HLA A03.HLA A01 A24';'HLA A01.HLA A03'='HLA A03.HLA A01';
-                        'HLA A02.HLA A03'='HLA A03.HLA A02';'HLA A01 A03.HLA A24'='HLA A24.HLA A01 A03';'HLA A01 A24.HLA A03'='HLA A24.HLA A01 A24';
-                        'HLA A01.HLA A24'='HLA A24.HLA A01';'HLA A02.HLA A24'='HLA A24.HLA A02';'HLA A03.HLA A24'='HLA A24.HLA A03'")
-#Single Variable Plots
+infectPattern = sqldf(
+  'select inf.*, e.infector, ePA.toAIDs, ePD.toDeath, disc.toDiscovery, rNot.infected, duration.Infection_Duration
+  from infAgents inf
+  left join (select "Desc1.StageAgeAgent." infected, Agent infector from eventLog where Action like "Vaginal%" or Action like "Anal%") e on inf.ID == e.infected
+  left join (select Agent, "Desc2.TicksCommitmentLevel." toAIDs from eventLog where Action == "Progression" and "Desc1.StageAgeAgent." == 3) ePA on inf.ID == ePA.Agent
+  left join (select Agent, "Desc1.StageAgeAgent." toDeath from eventLog where Action == "AIDS Death") ePD on inf.ID == ePD.Agent
+  left join (select Agent, "Desc2.TicksCommitmentLevel." toDiscovery from eventLog where Action == "Discovery") disc on inf.ID == disc.Agent
+  left join (select Agent, count(*) infected from infect group by Agent) rNot on inf.ID == rNot.Agent 
+  left join (select e.Agent Agent, (e.Tick - ei.Tick) Infection_Duration 
+  from eventLog e 
+  join (select Tick, "Desc1.StageAgeAgent." Agent 
+  from eventLog
+  where Action in ("Vaginal Insertive","Vaginal Receptive","Anal Insertive","Anal Receptive")
+  ) ei on e.Agent = ei.Agent
+  where e.Action in ("AIDS Death", "Infected Non-AIDS Death")) duration on duration.Agent = inf.ID
+  ')
+#For some reason the number of people infected is showing up as a character sometimes. 
+infectPattern$infected = as.integer(infectPattern$infected)
+infectPattern$infected[is.na(infectPattern$infected)] = 0
+infectPattern$InfPerYear = infectPattern$infected/(infectPattern$Infection_Duration/12)
+
+
 plot(yearLog$Year, yearLog$incidenceRate, type = "l")
 plot(yearLog$Year, yearLog$percentInfected, type = "l")
 plot(yearLog$Starting.Population, type = "l")
+
 #Multivariable plots
 tmp = yearLog[, c("Year","Starting.Population","Prevelance")];melted = melt(tmp, id = "Year");ggplot(data = melted, aes(x = Year, y = value, color = variable)) + geom_line() 
-tmp = yearLog[, c("Year","percentInfected","incidenceRate")];tmp$mortalityRate = (yearLog$Mortality/yearLog$Starting.Population);melted = melt(tmp, id = "Year");ggplot(data = melted, aes(x = Year, y = value, color = variable)) + geom_line() 
-tmp = yearLog[, c("Year","Birth.Rate","Mortality")];tmp$NaturalDeath = (yearLog$Death.Rate - yearLog$Mortality);melted = melt(tmp, id = "Year");ggplot(data = melted, aes(x = Year, y = value, color = variable)) + geom_line() 
-#Genes Over time
-ggplot(agentLog,aes(Entry.Step, fill = CCR5)) + geom_area(stat = "bin", position = "fill")
-ggplot(agentLog,aes(Entry.Step, fill = CCR2)) + geom_area(stat = "bin", position = "fill")
-#ggplot(agentLog,aes(Entry.Step, fill = HLA_A)) + geom_area(stat = "bin", position = "fill")
+tmp = yearLog[, c("Year","percentInfected","incidenceRate")];tmp$mortalityRate = (yearLog$Mortality/yearLog$Starting.Population * 1000);melted = melt(tmp, id = "Year");ggplot(data = melted, aes(x = Year, y = value, color = variable)) + geom_line()
 
-#resistance
-ggplot(agentLog,aes(Entry.Step, fill = as.factor(CCR5Factor))) + geom_area(stat="bin", position = "fill")
-ggplot(agentLog,aes(Entry.Step, fill = as.factor(HLAFactor))) + geom_area(stat="bin", position = "fill")
 #Rnot and t-test- Compare population profiles for non-infected, infected, and high Rnot
-paste("Mean rNot, sexual transmission:", mean(rNot))
-#paste("Mean rNot, Heterosexual transmission:",mean(rNotHetero))
-#paste("Mean rNot, Homosexual transmission:",mean(rNotHomo))
+
+paste("Mean rNot (in those that did infect others):", mean(rNot))
 paste("Max rNot:", max(rNot))
-#heterosexual vs homosexual infection
-#paste("HeteroSexual Infection:", length(heteroInfect)/(length(sexualInfect)), "Homosexual Infection:", length(homoInfect)/(length(sexualInfect)))
+
 summary(agentLog)
 summary(infAgents)
 summary(iAgents)
+
 #all infected vs non infected 
-t.test(infAgents$Faithfulness, agentLog$Faithfulness)
-t.test(infAgents$Want, agentLog$Want)
+t.test(infAgents$Commitment, agentLog$Commitment)
+t.test(infAgents$Monogamous, agentLog$Monogamous)
+t.test(infAgents$Libido, agentLog$Libido)
 t.test(infAgents$Condom.Usage, agentLog$Condom.Usage)
-t.test(infAgents$CCR5Factor, agentLog$CCR5Factor)
-t.test(infAgents$HLAFactor, agentLog$HLAFactor)
+t.test(infAgents$Immunity, agentLog$Immunity)
+
 #t.test(infAgents$Selectivity, agentLog$Selectivity)
 #all agents and high infectors
-t.test(agentLog$Faithfulness, iAgents$Faithfulness)
-t.test(agentLog$Want, iAgents$Want)
-t.test(agentLog$Condom.Usage, iAgents$Condom.Usage)
-t.test(agentLog$CCR5Factor, iAgents$CCR5Factor)
-t.test(agentLog$HLAFactor, iAgents$HLAFactor)
+t.test(iAgents$Commitment, agentLog$Commitment)
+t.test(iAgents$Monogamous, agentLog$Monogamous)
+t.test(iAgents$Libido, agentLog$Libido)
+t.test(iAgents$Condom.Usage, agentLog$Condom.Usage)
+t.test(iAgents$Immunity, agentLog$Immunity)
+
 #t.test(agentLog$Selectivity, iAgents$Selectivity)
 #infected agents (minus initial infected who were randomly selected) and high infectors
-t.test(infAgents$Faithfulness, iAgents$Faithfulness)
-t.test(infAgents$Want, iAgents$Want)
-t.test(infAgents$Condom.Usage, iAgents$Condom.Usage)
-t.test(infAgents$CCR5Factor, iAgents$CCR5Factor)
-t.test(infAgents$HLAFactor, iAgents$HLAFactor)
-#t.test(infAgents$Selectivity, iAgents$Selectivity)
+t.test(iAgents$Commitment, infAgents$Commitment)
+t.test(iAgents$Monogamous, infAgents$Monogamous)
+t.test(iAgents$Libido, infAgents$Libido)
+t.test(iAgents$Condom.Usage, infAgents$Condom.Usage)
+t.test(iAgents$Immunity, infAgents$Immunity)
+
+########Looking at the duration of infection#####
+#build the infection data set
+
+paste("Mean years to AIDS:", (mean(infectPattern$toAIDs, na.rm = TRUE)+2)/12)
+paste("Mean years to AIDS Death:", (mean(infectPattern$toAIDs + infectPattern$toDeath, na.rm = TRUE)+2)/12)
+paste("Mean years to Death from AIDs:", (mean(infectPattern$toDeath, na.rm = TRUE))/12)
+paste("Mean time to discovery: ", (mean(infectPattern$toDiscovery, na.rm = TRUE)/12))
+paste("Mean overall survival: ", (mean(infectPattern$Infection_Duration, na.rm = TRUE)/12))
+paste("Mean infections per year infected: ", mean(infectPattern$InfPerYear, na.rm = TRUE))
+paste("Expected infections per infected individual: ", mean(infectPattern$InfPerYear, na.rm = TRUE) * (mean(infectPattern$Infection_Duration, na.rm = TRUE)/12))
+#Is knowledge power? Split up pre and post discovery infections 
 

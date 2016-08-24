@@ -53,10 +53,27 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     public static final int MODEAI = 3;
     public static final int MODEAR = 4;
     
+    //Testing
+    private int lastTest; //records the step of the last test.
+    
+    public int getLastTest(){
+        return lastTest;
+    }
+    public double getTestingLikelihood(){
+        return pp.testingLikelihood;
+    }
+    
     public void setStoppable(Stoppable stop){
         stopper = stop;
     }
-    
+    /**
+     * Create a new agent.
+     * @param id The ID of the agent. This should be a unique identification number.
+     * @param personality Personality matrix of the agent.
+     * @param resistance The agent's resistance/susceptibility to HIV infection. 1 means no resistance or susceptibility.
+     * @param age The agent's starting age.
+     * @param life The agent's age at death.
+     */
     public Agent(int id, Personality personality, double resistance, int age, int life){
         ID = id;
         pp = personality;
@@ -77,29 +94,52 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         network = new ArrayList<>();
         networkLevel = 0;
     }
-    
+    /**
+     * Abstract method as it is only important or males.
+     * @param isFemale The male or female status of the other agent.
+     * @return Whether or not this agent accepts the other agent's gender.
+     */
     public abstract boolean acceptsGender(boolean isFemale);
+    /**
+     * Returns the current commitment level of the agent.
+     * @return How likely the agent is to remain with another agent in a long term relationship.
+     */
     public int getCommitment(){
         return pp.commitment;
     }
+    /**
+     * Returns the current monogamy rating of the agent. 
+     * @return How likely the agent is to prefer a single partner. 
+     */
     public int getMonogamous(){
         return pp.monogamous;
     }
+    /**
+     * Returns the current condom usage of the agent. 
+     * @return How likely the agent is to use a condom. 
+     */
     public double getCondomUse(){
         return pp.condomUse;
     }
-    
+    /**
+     * Get how long the agent will live.
+     * @return The age at which the agent will pass from non-AIDs related death.
+     */
     public int getLifeSpan(){
         return life;
     }
+    /**
+     * How many times a month the agent current wants to have some form of intercourse. 
+     * @return The libido of the agent.
+     */
     public double getLibido(){
         return pp.libido;
     }
     public int getAttemptsToInfect(){return attemptsToInfect;}
     public double getHIVImmunity() {return hivImmunity;}
-    public double getHinderance(){ 
+    public double getHindrance(){ 
         if(hiv == null) return 1;
-        return hiv.getHinderence();
+        return hiv.getHindrance();
     }
     public abstract boolean isFemale();
      
@@ -249,16 +289,34 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
             networkLevel += r.getCoitalFrequency();
         });
     }
-    public void hinderanceChange(){
-        //if there has been a change to the hinderance.
-        pp.hinderLibido(hiv.getHinderence());
+    /**
+     * 
+     * Processes the change of a wellness or other hindrance change on all of 
+     * the agent's relationships and recalculates the network level.
+     */
+    public void hindranceChange(){
+        //if there has been a change to the hindrance.
+        pp.hinderLibido(hiv.getHindrance());
         network.stream().forEach((r) -> {
             r.setCoitalFrequency((int)Math.abs(pp.libido + r.getPartner(this).getLibido())/2, ID);
         });
         calculateNetworkLevel();
     }
+    /**
+     * Will return the base libido prior to any changes caused by disease or other influences on their personality.
+     * @return base libido
+     */
     public int getBaseLibido(){
         return pp.baseLibido;
+    }
+    /**
+     * Does the agent know that they are infected with HIV? 
+     * @return Will return true if known, false if not infected or unknown.
+     */
+    public boolean isKnown(){
+        
+        if(hiv != null) return hiv.isKnown();
+        return false;
     }
     @Override
     public void step(SimState state){
@@ -276,9 +334,20 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
             }
         }
         if(infected){
+            if(!hiv.isKnown() && pp.testingLikelihood > 0){
+                double test = sim.random.nextDouble();
+                if(test < pp.testingLikelihood){
+                    lastTest = (int)sim.schedule.getSteps();
+                    if(hiv.getDuration() > sim.testTicks){//is it within the detectable range? 
+                        test = sim.random.nextDouble();
+                        if(test < sim.testAccuracy)hiv.discover(); //that's a bad day. 
+                        discoverHIV(sim);
+                    }
+                }
+            }
             int change = hiv.progress(sim);
             if(change < 0){
-                //something has changed (hinderance or stage)
+                //something has changed (hindrance or stage)
                 int stage = hiv.getStage();
                 
                 switch(stage){
@@ -303,7 +372,7 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
                 }
             }
             if(change%2 == 1){
-                hinderanceChange();
+                hindranceChange();
             }
         }
     }
@@ -337,5 +406,12 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         
         alive = false;
         stopper.stop();
+    }
+    public void discoverHIV(HIVMicroSim sim){
+        //breaking this out so that it's easier to find and adjust later.
+        //change personality. 
+        pp.changePersonality(0, 0, 0, sim.knownHIVcondom, 0);
+        //report known status; 
+        sim.logger.insertDiscovery(ID, hiv.getStage(), hiv.getDuration());
     }
 }

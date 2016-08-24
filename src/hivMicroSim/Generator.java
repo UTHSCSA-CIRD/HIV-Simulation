@@ -67,7 +67,7 @@ public abstract class Generator{
                 female? sim.femaleLibido : sim.maleLibido , !sim.allowExtremes, sim.allowExtremes);
         condomUse = sim.getGaussianRangeDouble(Personality.condomMin, Personality.condomMax,
                 sim.percentCondomUse , !sim.allowExtremes);
-        ret = new Personality(monogamous, commitment, libido, condomUse);
+        ret = new Personality(monogamous, commitment, libido, condomUse, sim.testingLikelihood);
         return ret;
     }
     public static void generateInitialNetwork(HIVMicroSim sim){

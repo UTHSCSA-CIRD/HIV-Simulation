@@ -38,6 +38,7 @@ public class HIVLogger implements sim.engine.Steppable{
     public final static int LOG_NONE = -1; // do not log.
     public final static int LOG_YEARLY = 0; //logs yearly amounts, but nothing relating to the individual agents
     public final static int LOG_INFECT = 10; // last level that logs agents.
+    public final static int LOG_DISCOVERY = 15;
     public final static int LOG_PROGRESSION = 20;
     public final static int LOG_DEATH = 30;
     public final static int LOG_DEATH_NATURAL = 35;
@@ -130,7 +131,12 @@ public class HIVLogger implements sim.engine.Steppable{
     
     public void insertProgression(int agent, int stage, int ticks){
         if(logLevel < LOG_PROGRESSION) return;
-        String log = turn + "\t" + agent + "\tProgression\t" + stage + "\t" + ticks;
+        String log = turn + "\t" + agent + "\tProgression\t" + stage + "\t" + ticks + "\t";
+        eventQueue.add(log);
+    }
+    public void insertDiscovery(int agent, int stage, int ticks){
+        if(logLevel < LOG_DISCOVERY) return;
+        String log = turn + "\t" + agent + "\tDiscovery\t" + stage + "\t" + ticks + "\t";
         eventQueue.add(log);
     }
     private void logNewAgent(Agent a){

@@ -37,7 +37,7 @@ public class DiseaseMatrix implements java.io.Serializable{
     public static final double wellnessHazardAvgAIDS = -8.3;
     public static final double wellnessHazardMinAIDS = -50.0;
     public static final int[] wellnessLevels = {500,400,300,200,100};
-    public static final double[] wellnessHinderance = {.9,.8,.7,.3,.2};
+    public static final double[] wellnessHindrance = {.9,.8,.7,.3,.2};
     
     
     //INSTANCE SPECIFIC FACTORS
@@ -45,7 +45,7 @@ public class DiseaseMatrix implements java.io.Serializable{
     private int duration;
     private int aidsTick = -1; //the number of ticks since the agent converted to aids
     private int infectionWellness = 700;
-    private double hinderance;
+    private double hindrance;
     private double infectivity = 1;
     private double wellnessHazardLatency = -4.2; //this agent's average wellness decline per tick after acute
     private double wellnessHazardAIDS = -5.6; //this agent's average wellness decline per tick after acute
@@ -78,22 +78,22 @@ public class DiseaseMatrix implements java.io.Serializable{
         }
         return degree;
     }
-    public double getHinderence(){
-        return hinderance;
+    public double getHindrance(){
+        return hindrance;
     }
-    public boolean updateHinderance(){
+    public boolean updateHindrance(){
         /**
-         * Updates the hinderance value of the disease.
-         * @return Returns true if the hinderance changed or false if the hinderance did not change. 
+         * Updates the hindrance value of the disease.
+         * @return Returns true if the hindrance changed or false if the hindrance did not change. 
          */
         double hind = 0;
         int level = 0;
         while(level < 5 && infectionWellness < wellnessLevels[level]){
-            hind = wellnessHinderance[level];
+            hind = wellnessHindrance[level];
             level ++;
         }
-        if(hind == hinderance) return false;
-        hinderance = hind;
+        if(hind == hindrance) return false;
+        hindrance = hind;
         return true;
     }
     public double getBaseInfectivity(){
@@ -114,7 +114,7 @@ public class DiseaseMatrix implements java.io.Serializable{
         //returns the wellness of the individual.
         //0 - no change
         //- stage changed
-        //odd- hinderance changed
+        //odd- hindrance changed
         int change = 0;
         duration++;
         double rand;
@@ -148,7 +148,7 @@ public class DiseaseMatrix implements java.io.Serializable{
             default:
                 System.err.println("Cannot progress invalid/death stage");      
         }
-        if(updateHinderance())change += 1;
+        if(updateHindrance())change += 1;
         return change;
     }
     public void discover(){
@@ -162,7 +162,7 @@ public class DiseaseMatrix implements java.io.Serializable{
         this.infectivity = infectivity;
         wellnessHazardLatency = latencyHazard;
         wellnessHazardAIDS = aidsHazard;
-        hinderance = 0;
+        hindrance = 0;
         known = false;
         stage = StageAcute;
         duration = 0;

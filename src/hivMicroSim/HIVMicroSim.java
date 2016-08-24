@@ -57,12 +57,12 @@ public class HIVMicroSim extends SimState{
     public double percentCircum = .5; //percent circumcised
     
     //testing likelihoods and range between tests
-    public double testingLikelihood = .5; //the percent of the population likely to get tested.
-    public int testingRangeMin = 12; //The minimum time period between tests
-    public int testingRangeMax = 120; //the maximum time period between tests
-    public int testingRangeAverage = 24; //the average amount of time between tests
+    public double testingLikelihood = .02083; //The likelihood of the average agent to get tested in any given tick. 
+                                        //Assuming 50% of the population gets tested every 2 years
+                                            //1/24/2
     public double testAccuracy = .98; //The likelihood of testing positive when positive
     public double testTicks = 1; //number of ticks afer which the agent may test positive. 
+    public double knownHIVcondom = .25; //increases the likelihood of using condoms by 25%
     
    
     /* Likeliness factors
@@ -93,7 +93,7 @@ public class HIVMicroSim extends SimState{
     public int averageLifeSpan = 780;
     public double pregnancyChance = .008;
     public HIVLogger logger;
-    public int logLevel = HIVLogger.LOG_DEATH;
+    public int logLevel = HIVLogger.LOG_DEATH_NATURAL; 
     public DebugLogger debugLog;
     private String simDebugFile = "simDebug.txt";
     private int simDebugLevel = DebugLogger.LOG_ALL;
@@ -171,6 +171,13 @@ public class HIVMicroSim extends SimState{
             commitmentChange = a;
         }
     }
+    public double getTestingLikelihood(){
+        return testingLikelihood;
+    }
+    public void setTestingLikelihood(double a){
+        if(a >= Personality.testingMin && a <= Personality.testingMax) testingLikelihood = a;
+    }
+    
     /**
      * This selects a random gaussian number and converts it to the range (min, max) and average (avg) 
      * indicated by the calling method. Min and max will be set 3 standard deviations from the mean and then

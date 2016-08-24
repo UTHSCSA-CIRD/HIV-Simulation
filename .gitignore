@@ -83,3 +83,4 @@ nbproject/private/private.xml
 *.properties
 *.xml
 build/built-jar.properties
+.RData
