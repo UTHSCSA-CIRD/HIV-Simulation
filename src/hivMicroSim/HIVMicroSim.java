@@ -95,8 +95,8 @@ public class HIVMicroSim extends SimState{
     public HIVLogger logger;
     public int logLevel = HIVLogger.LOG_DEATH_NATURAL; 
     public DebugLogger debugLog;
-    private String simDebugFile = "simDebug.txt";
-    private int simDebugLevel = DebugLogger.LOG_ALL;
+    private final String simDebugFile = "simDebug.txt";
+    private final int simDebugLevel = DebugLogger.LOG_ALL;
     public int initializationOnTick = 10; // the tick on which we will initiate infection. 
     
     public int getStartInfected(){
@@ -364,7 +364,6 @@ public class HIVMicroSim extends SimState{
         networkM = new ListNetwork(false);
         
         //generate starter agents, add them to the network and object location.
-        Agent[] s = new Agent[numAgents];
         Stoppable stopper;
         Agent agent;
         for(int i = 0; i < numAgents; i++){
@@ -387,7 +386,6 @@ public class HIVMicroSim extends SimState{
             }
             stopper = schedule.scheduleRepeating(Schedule.EPOCH, 1, agent);
             agent.setStoppable(stopper);
-            s[i] = agent;
         }
         //generate initial network.
         Generator.generateInitialNetwork(this);
