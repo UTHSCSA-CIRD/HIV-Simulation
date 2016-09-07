@@ -137,10 +137,7 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     }
     public int getAttemptsToInfect(){return attemptsToInfect;}
     public double getHIVImmunity() {return hivImmunity;}
-    public double getHindrance(){ 
-        if(hiv == null) return 1;
-        return hiv.getHindrance();
-    }
+    
     public abstract boolean isFemale();
      
     public boolean isInfected(){
@@ -151,14 +148,18 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
             return false;
         }
 ///////////////////Enhancment necessary- basic formula////////////////////
-        double latencyHazard = sim.getGaussianRangeDouble(DiseaseMatrix.wellnessHazardMinLatency, 
-                0,DiseaseMatrix.wellnessHazardAvgLatency, true);
-        double aidsHazard = sim.getGaussianRangeDouble(DiseaseMatrix.wellnessHazardMinAIDS, 
-                0,DiseaseMatrix.wellnessHazardAvgAIDS, true);
+        //min = min, max - the length of the agent's life (arbitrary because a cap is required), average - average time to AIDS
+        //reroll- true, we will not truncate to the high or low, inclusive- true, the max and min are acceptable values, 
+        //mean- average time to aids, standard deviation- 1/3 the difference between the average and the min. Offset- none
+        int latencyTime = sim.getGaussianRange(DiseaseMatrix.minTimeToAIDS, 
+                life,DiseaseMatrix.averageTimeToAIDS, true, true, DiseaseMatrix.averageTimeToAIDS, (DiseaseMatrix.averageTimeToAIDS-DiseaseMatrix.minTimeToAIDS)/3, 0 );
+        int aidsTime = sim.getGaussianRange(DiseaseMatrix.minTimeToDeath, 
+                life,DiseaseMatrix.averageTimeToDeath, true, true, DiseaseMatrix.averageTimeToDeath, (DiseaseMatrix.averageTimeToDeath-DiseaseMatrix.minTimeToDeath)/3, 0 );
+        
         infected = true;
         col = Color.red;
-        hiv = new DiseaseMatrix(DiseaseMatrix.normalWellness, DiseaseMatrix.normalInfectivity, 
-                latencyHazard, aidsHazard);
+        hiv = new DiseaseMatrix(DiseaseMatrix.normalInfectivity, 
+                latencyTime, aidsTime);
         return true;
     }
     public boolean attemptInfection(HIVMicroSim sim, double degree){
@@ -231,19 +232,9 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     protected Color getColor(){
         return col;
     }
-    public int getWellness(){
-        if(hiv == null) return 1000;
-        return(hiv.getWellness());
-    }
     public int getInfectionDuration(){
         if(hiv == null) return -1;
         return(hiv.getDuration());
-    }
-    public double getHIVHazard(){
-        if(hiv == null) return 0;
-        if(hiv.getStage() == DiseaseMatrix.StageAcute) return 0;
-        if(hiv.getStage() == DiseaseMatrix.StageLatency) return hiv.getWellnessHazardLatency();
-        return hiv.getWellnessHazardAIDS();
     }
     public ArrayList<Relationship> getNetwork(){return network;}
     public double getNetworkLevel(){
@@ -289,19 +280,7 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
             networkLevel += r.getCoitalFrequency();
         });
     }
-    /**
-     * 
-     * Processes the change of a wellness or other hindrance change on all of 
-     * the agent's relationships and recalculates the network level.
-     */
-    public void hindranceChange(){
-        //if there has been a change to the hindrance.
-        pp.hinderLibido(hiv.getHindrance());
-        network.stream().forEach((r) -> {
-            r.setCoitalFrequency((int)Math.abs(pp.libido + r.getPartner(this).getLibido())/2, ID);
-        });
-        calculateNetworkLevel();
-    }
+    
     /**
      * Will return the base libido prior to any changes caused by disease or other influences on their personality.
      * @return base libido
@@ -345,8 +324,7 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
                     }
                 }
             }
-            int change = hiv.progress(sim);
-            if(change < 0){
+            if(hiv.progress(sim)){
                 //something has changed (hindrance or stage)
                 int stage = hiv.getStage();
                 
@@ -370,9 +348,6 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
                         }
                         break;
                 }
-            }
-            if(change%2 == 1){
-                hindranceChange();
             }
         }
     }

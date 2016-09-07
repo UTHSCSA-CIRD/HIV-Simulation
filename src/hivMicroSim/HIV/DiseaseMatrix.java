@@ -22,48 +22,30 @@ public class DiseaseMatrix implements java.io.Serializable{
     public static final int StageDeath = 4; //for error checking or debugging.
     public static final int ACUTEXFACTOR = 15;
     private static final int ACUTETICKS = 7;
-    private static final int LATENCYWELLNESSTHRESHOLD = 200; // the threshold over which 
     public static final int AIDSXFACTOR = 20;
-    private static final int WELLNESSDEATHTHRESHOLD = 0;
-    
-    public static final int normalWellness = 700;
+        
     public static final double normalInfectivity = 1;
     
-    public static final double wellnessHazardMaxLatency = 9.615;
-    public static final double wellnessHazardAvgLatency = -0.9615;
-    public static final double wellnessHazardMinLatency = -9.615;
-    
-    public static final double wellnessHazardMaxAIDS = 16.666;
-    public static final double wellnessHazardAvgAIDS = -1.666;
-    public static final double wellnessHazardMinAIDS = -16.666;
-    public static final int[] wellnessLevels = {500,400,300,200,100};
-    public static final double[] wellnessHindrance = {.9,.8,.7,.3,.2};
+    public static final int minTimeToAIDS = 52;
+    public static final int averageTimeToAIDS = 520;
+    public static final int minTimeToDeath = 12;
+    public static final int averageTimeToDeath = 156;
     
     
     //INSTANCE SPECIFIC FACTORS
     private int stage;
     private int duration;
     private int aidsTick = -1; //the number of ticks since the agent converted to aids
-    private int infectionWellness = 700;
-    private double hindrance;
     private double infectivity = 1;
-    private double wellnessHazardLatency = -0.9615; //this agent's average wellness decline per tick after acute
-    private double wellnessHazardAIDS = -1.666; //this agent's average wellness decline per tick after acute
+    private final int timeToAIDS;
+    private final int timeToDeath;
     private boolean known = false;
     
     public int getAIDsTick(){return aidsTick;}
     public DiseaseMatrix() {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
-    public int getWellness(){
-        return infectionWellness;
-    }
-    public double getWellnessHazardLatency(){
-        return wellnessHazardLatency;
-    }
-    public double getWellnessHazardAIDS(){
-        return wellnessHazardAIDS;
-    }
+    
     public double getInfectivity(){
         /**
          * This method combines infectivity with the stage to get the current infectivity. 
@@ -78,24 +60,7 @@ public class DiseaseMatrix implements java.io.Serializable{
         }
         return degree;
     }
-    public double getHindrance(){
-        return hindrance;
-    }
-    public boolean updateHindrance(){
-        /**
-         * Updates the hindrance value of the disease.
-         * @return Returns true if the hindrance changed or false if the hindrance did not change. 
-         */
-        double hind = 0;
-        int level = 0;
-        while(level < 5 && infectionWellness < wellnessLevels[level]){
-            hind = wellnessHindrance[level];
-            level ++;
-        }
-        if(hind == hindrance) return false;
-        hindrance = hind;
-        return true;
-    }
+    
     public double getBaseInfectivity(){
         /**
          * This method disregards stage and only gives the base infectivity
@@ -109,47 +74,39 @@ public class DiseaseMatrix implements java.io.Serializable{
         return duration;
     }
     
-    public int progress(HIVMicroSim sim){
+    public boolean progress(HIVMicroSim sim){
         //an algorithm to calculate the progression of the disease in the individual
         //returns the wellness of the individual.
         //0 - no change
         //- stage changed
         //odd- hindrance changed
-        int change = 0;
         duration++;
-        double rand;
         switch(stage){
             case StageAcute://acute
                 if(duration == ACUTETICKS){
                     stage = StageLatency;
-                    change -=2;
+                    return true;
                 }
             break;
             case StageLatency: //clinical latency
-                rand = sim.getGaussianRangeDouble(wellnessHazardMinLatency, wellnessHazardMaxLatency, wellnessHazardLatency, true, 0, (wellnessHazardMaxLatency/3), wellnessHazardLatency);
-                infectionWellness +=rand;
-                if(infectionWellness < LATENCYWELLNESSTHRESHOLD){
-                    //progress to AIDS
+                if(duration==timeToAIDS){
                     stage = StageAIDS;
-                    change -=2;
                     aidsTick = 0;
+                    return true;
                 }
             break;
             case StageAIDS:
                 aidsTick++;
-                rand = sim.getGaussianRangeDouble(wellnessHazardMinAIDS, wellnessHazardMaxAIDS, wellnessHazardAIDS, true, 0, (wellnessHazardAIDS/3), wellnessHazardAIDS);
-                infectionWellness +=rand;
-                if(infectionWellness <= WELLNESSDEATHTHRESHOLD){
+                if(aidsTick == timeToDeath){
                     //progress to Death
                     stage = StageDeath;
-                    change -=2;
+                    return true;
                 }
             break;
             default:
                 System.err.println("Cannot progress invalid/death stage");
         }
-        if(updateHindrance())change += 1;
-        return change;
+        return false;
     }
     public void discover(){
         known = true;
@@ -157,12 +114,10 @@ public class DiseaseMatrix implements java.io.Serializable{
     public boolean isKnown(){
         return known;
     }
-    public DiseaseMatrix(int wellness, double infectivity, double latencyHazard, double aidsHazard){
-        infectionWellness = wellness;
+    public DiseaseMatrix(double infectivity, int toAidsTime, int aidsTime){
         this.infectivity = infectivity;
-        wellnessHazardLatency = latencyHazard;
-        wellnessHazardAIDS = aidsHazard;
-        hindrance = 0;
+        timeToAIDS = toAidsTime;
+        timeToDeath = aidsTime;
         known = false;
         stage = StageAcute;
         duration = 0;
