@@ -53,7 +53,7 @@ public abstract class Generator{
     
     public static Personality generatePersonality(HIVMicroSim sim, boolean female){
         double condomUse;
-        int libido;
+        double libido;
         int monogamous;
         int commitment;
         Personality ret;
@@ -63,8 +63,8 @@ public abstract class Generator{
                 female? sim.femaleMonogamous : sim.maleMonogamous , !sim.allowExtremes, sim.allowExtremes);
         commitment = sim.getGaussianRange(Personality.commitmentMin, Personality.commitmentMax,
                 female? sim.femaleCommittedness : sim.maleCommittedness , !sim.allowExtremes, sim.allowExtremes);
-        libido = sim.getGaussianRange(Personality.libidoMin, Personality.libidoMax,
-                female? sim.femaleLibido : sim.maleLibido , !sim.allowExtremes, sim.allowExtremes);
+        libido = sim.getGaussianRangeDouble(Personality.libidoMin, Personality.libidoMax,
+                female? sim.femaleLibido : sim.maleLibido , true); // re-rolled no truncated- extremes in this are no longer considered because it's a double.
         condomUse = sim.getGaussianRangeDouble(Personality.condomMin, Personality.condomMax,
                 sim.percentCondomUse , !sim.allowExtremes);
         ret = new Personality(monogamous, commitment, libido, condomUse, sim.testingLikelihood);

@@ -55,6 +55,7 @@ public class HandlerRelationship {
         int rand;
         int tries = 0;
         int triesMax = (int)a.getLibido() - a.getNetworkSize();
+        if(triesMax == 0) triesMax = 1;
         
         //search up to 10 times for an acceptable agent.
         //In the future other trials can be added besides just gender. E.g. selectivity
@@ -69,7 +70,7 @@ public class HandlerRelationship {
         
         //Yay, we have found a connection
         Relationship edge;
-        int freq;
+        double freq;
         if(a.getCommitment() == Personality.commitmentMin || other.getCommitment() == Personality.commitmentMin){
             rand = Relationship.commitmentDissolve;
             freq = 1;
@@ -77,7 +78,7 @@ public class HandlerRelationship {
             rand = sim.getGaussianRange(Relationship.commitmentDissolve, Relationship.commitmentMax, 
                 (a.getCommitment()+other.getCommitment())/2, false, true);
             if(rand == Relationship.commitmentDissolve)freq = 1; 
-            else freq = (int)(a.getLibido() + other.getLibido())/2;
+            else freq = (a.getLibido() + other.getLibido())/2;
         }
         edge = new Relationship(a, other, rand, freq, network);
         a.addEdge(edge);
@@ -103,15 +104,17 @@ public class HandlerRelationship {
                 if(a.isInfected()) sexualTransmission(sim, a, b, edge);
                 else sexualTransmission(sim, b, a, edge);
             }//end infected
-            if(a.getCommitment() == Personality.commitmentMin || b.getCommitment() == Personality.commitmentMin){
-                //Dissolve.
-                edge.adjustCommitmentLevel(-Relationship.commitmentMax);
-            }else{
-                //average minus the mean.
-                double change = ((a.getCommitment()+b.getCommitment())/2)/(Personality.commitmentMax - Personality.commitmentMin);
-                //change -= Math.abs(a.getLibido()-b.getLibido()); //reduce the change by the diff
-                change = change + ((sim.random.nextDouble()*2)-1);//add the change augment to a random number between -1 and 1
-                edge.adjustCommitmentLevel(change);
+            if(edge.getCommitmentLevel() != Relationship.commitmentDissolve){
+                if(a.getCommitment() == Personality.commitmentMin || b.getCommitment() == Personality.commitmentMin){
+                    //Dissolve.
+                    edge.adjustCommitmentLevel(-Relationship.commitmentMax);
+                }else{
+                    //average minus the mean.
+                    double change = ((a.getCommitment()+b.getCommitment())/2)/(Personality.commitmentMax - Personality.commitmentMin);
+                    //change -= Math.abs(a.getLibido()-b.getLibido()); //reduce the change by the diff
+                    change = change + ((sim.random.nextDouble()*2)-1);//add the change augment to a random number between -1 and 1
+                    edge.adjustCommitmentLevel(change);
+                }
             }
             if(edge.getCommitmentLevel() == Relationship.commitmentDissolve){
                 iter.remove();
@@ -132,15 +135,17 @@ public class HandlerRelationship {
                     if(a.isInfected()) sexualTransmission(sim, a, b, edge);
                     else sexualTransmission(sim, b, a, edge);
                 }//end infected
-                if(a.getCommitment() == Personality.commitmentMin || b.getCommitment() == Personality.commitmentMin){
-                    //Dissolve.
-                    edge.adjustCommitmentLevel(-Relationship.commitmentMax);
-                }else{
-                    //average minus the mean.
-                    double change = ((a.getCommitment()+b.getCommitment())/2)/(Personality.commitmentMax - Personality.commitmentMin);
-                    //change -= Math.abs(a.getLibido()-b.getLibido()); //reduce the change by the diff
-                    change = change + ((sim.random.nextDouble()*2)-1);//add the change augment to a random number between -1 and 1
-                    edge.adjustCommitmentLevel(change);
+                if(edge.getCommitmentLevel() != Relationship.commitmentDissolve){
+                    if(a.getCommitment() == Personality.commitmentMin || b.getCommitment() == Personality.commitmentMin){
+                        //Dissolve.
+                        edge.adjustCommitmentLevel(-Relationship.commitmentMax);
+                    }else{
+                        //average minus the mean.
+                        double change = ((a.getCommitment()+b.getCommitment())/2)/(Personality.commitmentMax - Personality.commitmentMin);
+                        //change -= Math.abs(a.getLibido()-b.getLibido()); //reduce the change by the diff
+                        change = change + ((sim.random.nextDouble()*2)-1);//add the change augment to a random number between -1 and 1
+                        edge.adjustCommitmentLevel(change);
+                    }
                 }
                 if(edge.getCommitmentLevel() == Relationship.commitmentDissolve){
                     iter.remove();
@@ -156,15 +161,23 @@ public class HandlerRelationship {
         int PFC = 0; //protection-free coitis
         double ac = infected.getCondomUse();
         double bc = nonInfected.getCondomUse();
+        //calculate the number of acts this tick. This is because with coitalFrequency being a double we will likely need to
+        //roll. 
+        double roll;
+        int coitis = (int)edge.getCoitalFrequency(); // note that coitis could be 0
+        roll = sim.random.nextDouble();
+        if(roll < edge.getCoitalFrequency()-coitis) coitis++;
+        
+        
         if(ac == Personality.condomMin || bc == Personality.condomMin){
             if(ac == Personality.condomMax || bc == Personality.condomMax){
                 if(sim.random.nextBoolean())
-                    PFC = edge.getCoitalFrequency();
+                    PFC = coitis;
                 else
                     //TODO: Version 2- condom not 100%
                     return; //currently condom usage is assumed 100% effective, we know it's not, so this will be addressed
             }else{
-                PFC = edge.getCoitalFrequency();
+                PFC = coitis;
             }
         }else{
             if(ac == Personality.condomMax || bc == Personality.condomMax){
@@ -178,8 +191,8 @@ public class HandlerRelationship {
                 else
                     avgC = avgC-commitChange;
                 avgC = 1-avgC;
-                double roll;
-                for(int i = 0; i<edge.getCoitalFrequency(); i++){
+                
+                for(int i = 0; i<coitis; i++){
                     roll = sim.random.nextDouble();
                     if(roll > avgC) PFC++;
                 }
@@ -194,14 +207,14 @@ public class HandlerRelationship {
             return;
         }
         if(nonInfected.isFemale()){
-            if(nonInfected.attemptCoitalInfection(sim, edge.getCoitalFrequency(), infected.getInfectivity(), Agent.MODEVR)){
+            if(nonInfected.attemptCoitalInfection(sim, PFC, infected.getInfectivity(), Agent.MODEVR)){
                 sim.logger.insertInfection(Agent.MODEVR, infected.ID, nonInfected.ID, edge.getCommitmentLevel(), nonInfected.getAttemptsToInfect());
             }
             return;
         }
         //currently randomly flipping between insertive and receptive.
         int mode = sim.random.nextBoolean() ? Agent.MODEAI : Agent.MODEAR;
-        if(nonInfected.attemptCoitalInfection(sim, edge.getCoitalFrequency(), infected.getInfectivity(), mode)){
+        if(nonInfected.attemptCoitalInfection(sim, PFC, infected.getInfectivity(), mode)){
             sim.logger.insertInfection(mode, infected.ID, nonInfected.ID, edge.getCommitmentLevel(), nonInfected.getAttemptsToInfect());
         }
     }

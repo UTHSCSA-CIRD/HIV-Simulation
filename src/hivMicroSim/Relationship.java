@@ -24,7 +24,7 @@ public class Relationship extends Edge implements java.io.Serializable{
     private final int type;
         public static final int MsW = 1;
         public static final int MsM = 2;
-    private int coitalFrequency;
+    private double coitalFrequency;
     private final Agent a,b;
     public final int network;
     
@@ -42,7 +42,7 @@ public class Relationship extends Edge implements java.io.Serializable{
     public int getType(){
         return type;
     }
-    public int getCoitalFrequency(){
+    public double getCoitalFrequency(){
         return coitalFrequency;
     }
     public void setCoitalFrequency(int frequency, int agentID){
@@ -56,7 +56,7 @@ public class Relationship extends Edge implements java.io.Serializable{
         return a;
     }
     
-    public Relationship(Agent A, Agent B, int level, int frequency, int network){
+    public Relationship(Agent A, Agent B, int level, double frequency, int network){
         super(A,B, level);
         commitmentLevel = level;
         a = A;

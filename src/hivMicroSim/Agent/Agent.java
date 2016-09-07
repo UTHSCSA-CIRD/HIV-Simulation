@@ -306,7 +306,7 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
      * Will return the base libido prior to any changes caused by disease or other influences on their personality.
      * @return base libido
      */
-    public int getBaseLibido(){
+    public double getBaseLibido(){
         return pp.baseLibido;
     }
     /**

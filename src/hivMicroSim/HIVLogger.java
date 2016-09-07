@@ -45,7 +45,8 @@ public class HIVLogger implements sim.engine.Steppable{
     public final static int LOG_ENTRY = 40;
     
     private int year = 0;
-    private int month = 0; // month 0 (first call to step) will be the initial pre simulation values
+    private int tick = 0; // tick 0 (first call to step) will be the initial pre simulation values
+    private int ticksPerYear = 52;
     private int turn = 0;
     //keeping yearly tallies since all these are reported and it
     //means we don't have to query all agents
@@ -75,8 +76,8 @@ public class HIVLogger implements sim.engine.Steppable{
         }
         //if it's on a year change, handle the year.
         turn++;
-        month++;
-        if(month > 12){
+        tick++;
+        if(tick > ticksPerYear){
             String log = year + "\t"+ yearLiving + "\t" + yearInfect + "\t" + prevalence + "\t" 
                     + yearMortality + "\t" + yearGrowth + "\t" + yearDeath;
             try{
@@ -88,7 +89,7 @@ public class HIVLogger implements sim.engine.Steppable{
             yearLiving = livingAgents;//the number of agents at the start of the year
             yearGrowth = yearDeath=yearMortality=yearInfect=0; //reset the yearly values
             year++;
-            month = 1;
+            tick = 1;
         }
     }
     

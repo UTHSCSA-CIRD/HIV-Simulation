@@ -13,7 +13,7 @@ public class Personality {
     public static final double condomMax = 1.0;
     public static final double condomMin = 0;
     public static final int libidoMin = 0;
-    public static final int libidoMax = 30;
+    public static final int libidoMax = 7;
     public static final double testingMin = 0;
     public static final double testingMax = 1.0;
     
@@ -22,7 +22,7 @@ public class Personality {
     protected int monogamous;
     protected int commitment;
     protected double condomUse;
-    protected int libido;
+    protected double libido;
     protected double testingLikelihood;
     
     
@@ -30,13 +30,13 @@ public class Personality {
     protected final int baseMonogamous; 
     protected final int baseCommitment; 
     protected final double baseCondomUse; 
-    protected final int baseLibido;
+    protected final double baseLibido;
     protected final double baseTestingLikelihood;
     
     public void hinderLibido(double a){
-        libido = (int)(baseLibido * a);
+        libido = (baseLibido * a);
     }
-    public void changePersonality(int mono, int commit, int lib, double condom, double testing){
+    public void changePersonality(int mono, int commit, double lib, double condom, double testing){
         monogamous += mono;
         if (monogamous > monogamousMax)monogamous = monogamousMax;
         if (monogamous < monogamousMin)monogamous = monogamousMin;
@@ -58,7 +58,7 @@ public class Personality {
         if (testingLikelihood < testingMin)testingLikelihood = testingMin;
     }
     
-    public Personality(int mono, int commit, int libido, double condom, double testing){
+    public Personality(int mono, int commit, double libido, double condom, double testing){
         baseMonogamous = monogamous = mono;
         baseCommitment = commitment = commit;
         baseLibido = this.libido = libido;

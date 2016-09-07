@@ -35,7 +35,7 @@ infectPattern = sqldf(
 #For some reason the number of people infected is showing up as a character sometimes. 
 infectPattern$infected = as.integer(infectPattern$infected)
 infectPattern$infected[is.na(infectPattern$infected)] = 0
-infectPattern$InfPerYear = infectPattern$infected/(infectPattern$Infection_Duration/12)
+infectPattern$InfPerYear = infectPattern$infected/(infectPattern$Infection_Duration/52)
 
 
 plot(yearLog$Year, yearLog$incidenceRate, type = "l")
@@ -81,12 +81,12 @@ t.test(iAgents$Immunity, infAgents$Immunity)
 ########Looking at the duration of infection#####
 #build the infection data set
 
-paste("Mean years to AIDS:", (mean(infectPattern$toAIDs, na.rm = TRUE)+2)/12)
-paste("Mean years to AIDS Death:", (mean(infectPattern$toAIDs + infectPattern$toDeath, na.rm = TRUE)+2)/12)
-paste("Mean years to Death from AIDs:", (mean(infectPattern$toDeath, na.rm = TRUE))/12)
-paste("Mean time to discovery: ", (mean(infectPattern$toDiscovery, na.rm = TRUE)/12))
-paste("Mean overall survival: ", (mean(infectPattern$Infection_Duration, na.rm = TRUE)/12))
+paste("Mean years to AIDS:", (mean(infectPattern$toAIDs, na.rm = TRUE)+2)/52)
+paste("Mean years to AIDS Death:", (mean(infectPattern$toAIDs + infectPattern$toDeath, na.rm = TRUE)+2)/52)
+paste("Mean years to Death from AIDs:", (mean(infectPattern$toDeath, na.rm = TRUE))/52)
+paste("Mean time to discovery: ", (mean(infectPattern$toDiscovery, na.rm = TRUE)/52))
+paste("Mean overall survival: ", (mean(infectPattern$Infection_Duration, na.rm = TRUE)/52))
 paste("Mean infections per year infected: ", mean(infectPattern$InfPerYear, na.rm = TRUE))
-paste("Expected infections per infected individual: ", mean(infectPattern$InfPerYear, na.rm = TRUE) * (mean(infectPattern$Infection_Duration, na.rm = TRUE)/12))
+paste("Expected infections per infected individual: ", mean(infectPattern$InfPerYear, na.rm = TRUE) * (mean(infectPattern$Infection_Duration, na.rm = TRUE)/52))
 #Is knowledge power? Split up pre and post discovery infections 
 
