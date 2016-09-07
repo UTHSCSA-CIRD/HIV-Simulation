@@ -21,7 +21,7 @@ public class DiseaseMatrix implements java.io.Serializable{
     public static final int StageAIDS = 3;
     public static final int StageDeath = 4; //for error checking or debugging.
     public static final int ACUTEXFACTOR = 15;
-    private static final int ACUTEMONTHS = 2;
+    private static final int ACUTETICKS = 7;
     private static final int LATENCYWELLNESSTHRESHOLD = 200; // the threshold over which 
     public static final int AIDSXFACTOR = 20;
     private static final int WELLNESSDEATHTHRESHOLD = 0;
@@ -29,13 +29,13 @@ public class DiseaseMatrix implements java.io.Serializable{
     public static final int normalWellness = 700;
     public static final double normalInfectivity = 1;
     
-    public static final double wellnessHazardMaxLatency = 41.6;
-    public static final double wellnessHazardAvgLatency = -4.2;
-    public static final double wellnessHazardMinLatency = -41.6;
+    public static final double wellnessHazardMaxLatency = 9.615;
+    public static final double wellnessHazardAvgLatency = -0.9615;
+    public static final double wellnessHazardMinLatency = -9.615;
     
-    public static final double wellnessHazardMaxAIDS = 50.0;
-    public static final double wellnessHazardAvgAIDS = -8.3;
-    public static final double wellnessHazardMinAIDS = -50.0;
+    public static final double wellnessHazardMaxAIDS = 16.666;
+    public static final double wellnessHazardAvgAIDS = -1.666;
+    public static final double wellnessHazardMinAIDS = -16.666;
     public static final int[] wellnessLevels = {500,400,300,200,100};
     public static final double[] wellnessHindrance = {.9,.8,.7,.3,.2};
     
@@ -47,8 +47,8 @@ public class DiseaseMatrix implements java.io.Serializable{
     private int infectionWellness = 700;
     private double hindrance;
     private double infectivity = 1;
-    private double wellnessHazardLatency = -4.2; //this agent's average wellness decline per tick after acute
-    private double wellnessHazardAIDS = -5.6; //this agent's average wellness decline per tick after acute
+    private double wellnessHazardLatency = -0.9615; //this agent's average wellness decline per tick after acute
+    private double wellnessHazardAIDS = -1.666; //this agent's average wellness decline per tick after acute
     private boolean known = false;
     
     public int getAIDsTick(){return aidsTick;}
@@ -120,13 +120,13 @@ public class DiseaseMatrix implements java.io.Serializable{
         double rand;
         switch(stage){
             case StageAcute://acute
-                if(duration == ACUTEMONTHS){
+                if(duration == ACUTETICKS){
                     stage = StageLatency;
                     change -=2;
                 }
             break;
             case StageLatency: //clinical latency
-                rand = sim.getGaussianRangeDouble(wellnessHazardMinLatency, wellnessHazardMaxLatency, wellnessHazardLatency, true);
+                rand = sim.getGaussianRangeDouble(wellnessHazardMinLatency, wellnessHazardMaxLatency, wellnessHazardLatency, true, 0, (wellnessHazardMaxLatency/3), wellnessHazardLatency);
                 infectionWellness +=rand;
                 if(infectionWellness < LATENCYWELLNESSTHRESHOLD){
                     //progress to AIDS
@@ -137,7 +137,7 @@ public class DiseaseMatrix implements java.io.Serializable{
             break;
             case StageAIDS:
                 aidsTick++;
-                rand = sim.getGaussianRangeDouble(wellnessHazardMinAIDS, wellnessHazardMaxAIDS, wellnessHazardAIDS, true);
+                rand = sim.getGaussianRangeDouble(wellnessHazardMinAIDS, wellnessHazardMaxAIDS, wellnessHazardAIDS, true, 0, (wellnessHazardAIDS/3), wellnessHazardAIDS);
                 infectionWellness +=rand;
                 if(infectionWellness <= WELLNESSDEATHTHRESHOLD){
                     //progress to Death
@@ -146,7 +146,7 @@ public class DiseaseMatrix implements java.io.Serializable{
                 }
             break;
             default:
-                System.err.println("Cannot progress invalid/death stage");      
+                System.err.println("Cannot progress invalid/death stage");
         }
         if(updateHindrance())change += 1;
         return change;
@@ -157,11 +157,11 @@ public class DiseaseMatrix implements java.io.Serializable{
     public boolean isKnown(){
         return known;
     }
-    public DiseaseMatrix(int wellness, double infectivity, double latencyHazard, double aidsHazard){
-        infectionWellness = wellness;
+    public DiseaseMatrix(double infectivity){
+        infectionWellness = normalWellness;
         this.infectivity = infectivity;
-        wellnessHazardLatency = latencyHazard;
-        wellnessHazardAIDS = aidsHazard;
+        wellnessHazardLatency = wellnessHazardAvgLatency;
+        wellnessHazardAIDS = wellnessHazardAvgAIDS;
         hindrance = 0;
         known = false;
         stage = StageAcute;

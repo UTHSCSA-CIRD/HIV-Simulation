@@ -26,14 +26,14 @@ public class HIVMicroSim extends SimState{
     //agents might only appear ever x months.
     public double agentGrowth = 0; 
     //Population growth per month
-    public double populationGrowth = .002;
+    public double populationGrowth = .0005;
     
     public int newAgents = 0;
     public int numInfect = 2; //initial number of infected agents. 
     public int currentID = 0;
     public int gridWidth = 100;
     public int gridHeight = 100;
-    public int networkEntranceAge = 216;//18 years
+    public int networkEntranceAge = 936;//18 years
     
     //global agent descriptors- gaussian distribution between 1 and 10 with these as the means
     public double percentCondomUse = .5; //0-1 inclusive
@@ -41,8 +41,8 @@ public class HIVMicroSim extends SimState{
     public int femaleMonogamous = 5;    // 0-10
     public int maleCommittedness = 5;   //0-10
     public int femaleCommittedness = 5; // 0-10
-    public int maleLibido = 15;  
-    public int femaleLibido= 15; 
+    public int maleLibido = 2;
+    public int femaleLibido= 2; 
     public boolean allowExtremes = true;
     public double commitmentChange = 0.05;
     
@@ -57,11 +57,11 @@ public class HIVMicroSim extends SimState{
     public double percentCircum = .5; //percent circumcised
     
     //testing likelihoods and range between tests
-    public double testingLikelihood = .02083; //The likelihood of the average agent to get tested in any given tick. 
+    public double testingLikelihood = .00481; //The likelihood of the average agent to get tested in any given tick. 
                                         //Assuming 50% of the population gets tested every 2 years
                                             //1/24/2
     public double testAccuracy = .98; //The likelihood of testing positive when positive
-    public double testTicks = 1; //number of ticks afer which the agent may test positive. 
+    public double testTicks = 4; //number of ticks afer which the agent may test positive. 
     public double knownHIVcondom = .25; //increases the likelihood of using condoms by 25%
     
    
@@ -89,15 +89,14 @@ public class HIVMicroSim extends SimState{
     public double perInteractionLikelihood = 0.0001;
     
     //Population statistics
-    public int averageAge = 300;//in months
-    public int averageLifeSpan = 780;
-    public double pregnancyChance = .008;
+    public int averageAge = 1300;//in months
+    public int averageLifeSpan = 3380;
     public HIVLogger logger;
     public int logLevel = HIVLogger.LOG_DEATH_NATURAL; 
     public DebugLogger debugLog;
     private final String simDebugFile = "simDebug.txt";
     private final int simDebugLevel = DebugLogger.LOG_ALL;
-    public int initializationOnTick = 10; // the tick on which we will initiate infection. 
+    public int initializationOnTick = 52; // the tick on which we will initiate infection. 
     
     public int getStartInfected(){
         return numInfect;
@@ -144,6 +143,12 @@ public class HIVMicroSim extends SimState{
     public void setPercentMsMW(double a){
         if(a + percentMsM <=1){
             percentMsMW = a;
+        }
+    }
+    public int getNetworkEntranceAge(){return networkEntranceAge;}
+    public void setNetworkEntranceAge(int a){
+        if(a >0){
+            networkEntranceAge = a;
         }
     }
     public boolean getMSMNewtork(){
@@ -208,6 +213,9 @@ public class HIVMicroSim extends SimState{
         }
         int offset = avg - (int)mean;
         double std = (max-mean)/3; //most (95%) numbers will be within 3 standard devaitions.
+        return getGaussianRange(min, max, avg, reroll, inclusive, mean, std, offset);
+    }
+    public int getGaussianRange(int min, int max, int avg, boolean reroll, boolean inclusive, double mean, double std, int offset){
         double rand;
         if(reroll){
             if(inclusive){
@@ -261,10 +269,13 @@ public class HIVMicroSim extends SimState{
         }
         double offset = (avg - mean);
         double std = (max-mean)/3; //most (95%) numbers will be within 3 standard devaitions.
+        return (getGaussianRangeDouble(min, max, avg, reroll, mean, std, offset));
+    }
+    public double getGaussianRangeDouble(double min, double max, double avg, boolean reroll, double mean, double std, double offset){
         double rand;
         if(reroll){
             do{
-                rand= (random.nextGaussian()*std)+mean+ offset;
+                rand= (random.nextGaussian()*std)+ mean + offset;
             }while(rand <= min || rand >= max);
         }else{
             rand= (random.nextGaussian()*std)+mean+ offset;
@@ -273,7 +284,6 @@ public class HIVMicroSim extends SimState{
         }
         return rand;
     }
-    
     
     public boolean getAllowExtremes(){return allowExtremes;}
     public void setAllowExtremes(boolean allow){allowExtremes = allow;}
