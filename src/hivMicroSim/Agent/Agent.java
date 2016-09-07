@@ -151,14 +151,10 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
             return false;
         }
 ///////////////////Enhancment necessary- basic formula////////////////////
-        double latencyHazard = sim.getGaussianRangeDouble(DiseaseMatrix.wellnessHazardMinLatency, 
-                0,DiseaseMatrix.wellnessHazardAvgLatency, true);
-        double aidsHazard = sim.getGaussianRangeDouble(DiseaseMatrix.wellnessHazardMinAIDS, 
-                0,DiseaseMatrix.wellnessHazardAvgAIDS, true);
+        
         infected = true;
         col = Color.red;
-        hiv = new DiseaseMatrix(DiseaseMatrix.normalWellness, DiseaseMatrix.normalInfectivity, 
-                latencyHazard, aidsHazard);
+        hiv = new DiseaseMatrix(DiseaseMatrix.normalInfectivity);
         return true;
     }
     public boolean attemptInfection(HIVMicroSim sim, double degree){

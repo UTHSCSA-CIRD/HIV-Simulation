@@ -157,11 +157,11 @@ public class DiseaseMatrix implements java.io.Serializable{
     public boolean isKnown(){
         return known;
     }
-    public DiseaseMatrix(int wellness, double infectivity, double latencyHazard, double aidsHazard){
-        infectionWellness = wellness;
+    public DiseaseMatrix(double infectivity){
+        infectionWellness = normalWellness;
         this.infectivity = infectivity;
-        wellnessHazardLatency = latencyHazard;
-        wellnessHazardAIDS = aidsHazard;
+        wellnessHazardLatency = wellnessHazardAvgLatency;
+        wellnessHazardAIDS = wellnessHazardAvgAIDS;
         hindrance = 0;
         known = false;
         stage = StageAcute;
