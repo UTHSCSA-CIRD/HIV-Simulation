@@ -29,7 +29,7 @@ public class HIVMicroSim extends SimState{
     public double populationGrowth = .0005;
     
     public int newAgents = 0;
-    public int numInfect = 2; //initial number of infected agents. 
+    public int numInfect = 0; //initial number of infected agents. 
     public int currentID = 0;
     public int gridWidth = 100;
     public int gridHeight = 100;
@@ -64,6 +64,10 @@ public class HIVMicroSim extends SimState{
     public double testTicks = 4; //number of ticks afer which the agent may test positive. 
     public double knownHIVcondom = .25; //increases the likelihood of using condoms by 25%
     
+    //network analsysis variables
+    public int relationshipHistorySize = 3;
+    public int relationshipHistoryLength = 12; //3 months 3*4(weeks in a month)
+    
    
     /* Likeliness factors
     http://www.cdc.gov/hiv/risk/estimates/riskbehaviors.html
@@ -96,8 +100,20 @@ public class HIVMicroSim extends SimState{
     public DebugLogger debugLog;
     private final String simDebugFile = "simDebug.txt";
     private final int simDebugLevel = DebugLogger.LOG_ALL;
-    public int initializationOnTick = 52; // the tick on which we will initiate infection. 
+    public int initializationOnTick = 300; // the tick on which we will initiate infection. 
     
+    
+    //Network analysis variable get/sets
+    public int getRelationshipHistorySize(){return relationshipHistorySize;}
+    public int getRelationshipHistoryLength(){return relationshipHistoryLength;}
+    public void setRelationshipHistorySize(int a){
+        if(a > 0) relationshipHistorySize = a;
+    }
+    public void setRelationshipHistoryLength(int a){
+        if(a>0) relationshipHistoryLength = a;
+    }
+    
+    //all other variable get/sets
     public int getStartInfected(){
         return numInfect;
     }

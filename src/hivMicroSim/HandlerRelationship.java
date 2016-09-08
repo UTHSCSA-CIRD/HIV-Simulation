@@ -81,8 +81,8 @@ public class HandlerRelationship {
             else freq = (a.getLibido() + other.getLibido())/2;
         }
         edge = new Relationship(a, other, rand, freq, network);
-        a.addEdge(edge);
-        other.addEdge(edge);
+        a.addEdge(edge, sim.relationshipHistorySize, sim.schedule.getSteps());
+        other.addEdge(edge, sim.relationshipHistorySize, sim.schedule.getSteps());
         if(network == Relationship.networkMF){
             sim.networkMF.addEdge(edge);
         }else{

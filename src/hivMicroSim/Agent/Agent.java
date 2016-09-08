@@ -8,9 +8,11 @@ import hivMicroSim.HIV.DiseaseMatrix;
 import hivMicroSim.HIVMicroSim;
 import hivMicroSim.Infection;
 import hivMicroSim.Relationship;
+import hivMicroSim.RelationshipHistory;
 import java.util.ArrayList;
 import sim.portrayal.*;
 import sim.engine.*;
+import java.util.LinkedList;
 
 import java.awt.*;
 import sim.portrayal.simple.OvalPortrayal2D;
@@ -56,6 +58,9 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     //Testing
     private int lastTest; //records the step of the last test.
     
+    //network testing
+    private LinkedList<RelationshipHistory> history;
+    
     public int getLastTest(){
         return lastTest;
     }
@@ -93,6 +98,7 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         infected = false;
         network = new ArrayList<>();
         networkLevel = 0;
+        history = new LinkedList();
     }
     /**
      * Abstract method as it is only important or males.
@@ -264,9 +270,13 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         int id = a.ID;
         return network.stream().anyMatch((network1) -> (network1.getPartner(this).ID == id));
     }
-    public boolean addEdge(Relationship a){
+    public boolean addEdge(Relationship a, int networkSize, long tick){
         if(network.add(a)){
             networkLevel += a.getCoitalFrequency();
+            if(history.size()== networkSize){
+                history.removeLast();
+            }
+            history.addFirst(new RelationshipHistory(a.getPartner(this), tick ));
             return true;
         }
         return false;
@@ -317,6 +327,11 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     @Override
     public void step(SimState state){
         HIVMicroSim sim = (HIVMicroSim) state;
+        //network testing
+        while(!history.isEmpty() && history.getLast().startingTick + sim.relationshipHistoryLength >= sim.schedule.getSteps()){
+            history.removeLast();
+        }
+        //rest of the step
         age++;
         if(age > life){
             death(sim, true);
@@ -410,4 +425,10 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         //report known status; 
         sim.logger.insertDiscovery(ID, hiv.getStage(), hiv.getDuration());
     }
+    /////network testing methods
+    public LinkedList<RelationshipHistory> getRelationshipHistory(){
+        return history;
+    }
+    
+    
 }
