@@ -39,12 +39,11 @@ public class HIVMicroSim extends SimState{
     public double percentCondomUse = .5; //0-1 inclusive
     public int maleMonogamous = 5;      //0-10
     public int femaleMonogamous = 5;    // 0-10
-    public int maleCommittedness = 5;   //0-10
-    public int femaleCommittedness = 5; // 0-10
+    public int maleCoitalLongevity = 5;   //0-10
+    public int femaleCoitalLongevity = 5; // 0-10
     public int maleLibido = 2;
     public int femaleLibido= 2; 
     public boolean allowExtremes = true;
-    public double commitmentChange = 0.05;
     
     //natural resistance -- replacing genes until further science is available 
     public double resistanceMax = 2;  //maximum resistance
@@ -170,12 +169,6 @@ public class HIVMicroSim extends SimState{
             percentCircum = a;
         }
     }
-    public double getCommitmentChange(){return commitmentChange;}
-    public void setCommitmentChange(double a){
-        if(commitmentChange <=.1 && commitmentChange >=0){
-            commitmentChange = a;
-        }
-    }
     public double getTestingLikelihood(){
         return testingLikelihood;
     }
@@ -289,8 +282,8 @@ public class HIVMicroSim extends SimState{
     public void setAllowExtremes(boolean allow){allowExtremes = allow;}
     public int getMaleMonogamous(){return maleMonogamous;}
     public int getFemaleMonogamous(){return femaleMonogamous;}
-    public int getMaleCommitted(){return maleCommittedness;}
-    public int getFemaleCommitted(){return femaleCommittedness;}
+    public int getMaleCommitted(){return maleCoitalLongevity;}
+    public int getFemaleCommitted(){return femaleCoitalLongevity;}
     public int getMaleLibido(){return maleLibido;}
     public int getFemaleLibido(){return femaleLibido;}
     public void setMaleMonogamous(int a){
@@ -304,13 +297,13 @@ public class HIVMicroSim extends SimState{
         }
     }
     public void setMaleCommitted(int a){
-        if(a >=Personality.commitmentMin && a <= Personality.commitmentMax){
-            maleCommittedness = a;
+        if(a >=Personality.coitalLongevityMin && a <= Personality.coitalLongevityMax){
+            maleCoitalLongevity = a;
         }
     }
     public void setFemaleCommitted(int a){
-        if(a >=Personality.commitmentMin && a <= Personality.commitmentMax){
-            femaleCommittedness = a;
+        if(a >=Personality.coitalLongevityMin && a <= Personality.coitalLongevityMax){
+            femaleCoitalLongevity = a;
         }
     }
     public void setMaleLibido(int a){
@@ -408,7 +401,7 @@ public class HIVMicroSim extends SimState{
                 HIVMicroSim sim = (HIVMicroSim) state;
                 //remove oneshots and process relationships created last round or during
                 //initialization.
-                HandlerRelationship.processRelationships(sim);
+                HandlerInteraction.processRelationships(sim);
                 Agent agent;
                 //this has to be changed to the agents object and a check for age must be added because there 
                 //may be multiple networks in play. In the future this method can handle walking over all the networks
@@ -418,7 +411,7 @@ public class HIVMicroSim extends SimState{
                     if(agent.getAge() < networkEntranceAge || !agent.alive)continue;
                     //set up new networks
                     if(agent.wantsConnection(sim)){
-                        HandlerRelationship.findConnection(agent, sim);
+                        HandlerInteraction.findConnection(agent, sim);
                     }
                 }//end for
             }//end step

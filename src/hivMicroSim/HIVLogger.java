@@ -107,7 +107,7 @@ public class HIVLogger implements sim.engine.Steppable{
         }
     }
     
-    public void insertInfection(int infectMode, int infector, int infected, int commitmentLevel, int attemptsToInfect){
+    public void insertInfection(int infectMode, int infector, int infected, int attemptsToInfect){
         yearInfect++;
         prevalence++;
         if(logLevel < LOG_INFECT) return;
@@ -126,7 +126,7 @@ public class HIVLogger implements sim.engine.Steppable{
                 log = log + "Vaginal Insertive";
                 break;
         }
-        log = log + "\t" + infected + "\t" + commitmentLevel + "\t" + attemptsToInfect;
+        log = log + "\t" + infected + "\t" + "\t" + attemptsToInfect;
         eventQueue.add(log);
     }
     
@@ -152,7 +152,7 @@ public class HIVLogger implements sim.engine.Steppable{
             hivMicroSim.Agent.Male m = (hivMicroSim.Agent.Male)a;
             log2 = log2 + "M\t" + m.getMSW() + "\t" + m.getMSM() + "\t";
         }
-        log2 = log2 + a.getCommitment() + "\t" + a.getMonogamous() + "\t"+ a.getLibido() + "\t" + a.getCondomUse() + "\t" + 
+        log2 = log2 + a.getCoitalLongevity() + "\t" + a.getMonogamous() + "\t"+ a.getLibido() + "\t" + a.getCondomUse() + "\t" + 
                 a.hivImmunity;
         try{
             agentOut.newLine();
@@ -210,7 +210,7 @@ public class HIVLogger implements sim.engine.Steppable{
         yearOut.write("Year\tStarting.Population\tIncidence\tPrevelance\tMortality\tGrowth\tDeath.Rate");
         
         eventOut = new BufferedWriter(new FileWriter(event, false),(8*1024)); // second argument F means will overwrite if exists. 
-        eventOut.write("Tick\tAgent\tAction\tDesc1(StageAgeAgent)\tDesc2(TicksCommitmentLevel)\tDesc3(AtteptsToInfect)");
+        eventOut.write("Tick\tAgent\tAction\tDesc1(StageAgeAgent)\tDesc2(Ticks)\tDesc3(AtteptsToInfect)");
         
         agentOut = new BufferedWriter(new FileWriter(agent, false),(8*1024)); // second argument F means will overwrite if exists. 
         agentOut.write("Entry.Step\tID\tGender\tMSW\tMSM\tCommitment\tMonogamous\tLibido\tCondom.Usage\tImmunity");

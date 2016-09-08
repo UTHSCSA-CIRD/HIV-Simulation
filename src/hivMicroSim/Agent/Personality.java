@@ -8,8 +8,8 @@ public class Personality {
     //Static quantifying variables for extremes:
     public static final int monogamousMin = 0;
     public static final int monogamousMax = 10;
-    public static final int commitmentMin = 0;
-    public static final int commitmentMax = 10;
+    public static final int coitalLongevityMin = 0;
+    public static final int coitalLongevityMax = 10;
     public static final double condomMax = 1.0;
     public static final double condomMin = 0;
     public static final int libidoMin = 0;
@@ -20,7 +20,7 @@ public class Personality {
     
     //current levels
     protected int monogamous;
-    protected int commitment;
+    protected int coitalLongevity;
     protected double condomUse;
     protected double libido;
     protected double testingLikelihood;
@@ -28,7 +28,7 @@ public class Personality {
     
     //base levels
     protected final int baseMonogamous; 
-    protected final int baseCommitment; 
+    protected final int baseCoitalLongevity; 
     protected final double baseCondomUse; 
     protected final double baseLibido;
     protected final double baseTestingLikelihood;
@@ -41,9 +41,9 @@ public class Personality {
         if (monogamous > monogamousMax)monogamous = monogamousMax;
         if (monogamous < monogamousMin)monogamous = monogamousMin;
         
-        commitment += commit;
-        if (commitment > commitmentMax)commitment = commitmentMax;
-        if (commitment < commitmentMin)commitment = commitmentMin;
+        coitalLongevity += commit;
+        if (coitalLongevity > coitalLongevityMax)coitalLongevity = coitalLongevityMax;
+        if (coitalLongevity < coitalLongevityMin)coitalLongevity = coitalLongevityMin;
         
         libido += lib;
         if (libido > libidoMax)libido = libidoMax;
@@ -60,7 +60,7 @@ public class Personality {
     
     public Personality(int mono, int commit, double libido, double condom, double testing){
         baseMonogamous = monogamous = mono;
-        baseCommitment = commitment = commit;
+        baseCoitalLongevity = coitalLongevity = commit;
         baseLibido = this.libido = libido;
         baseCondomUse = condomUse = condom;
         baseTestingLikelihood = testingLikelihood = testing;

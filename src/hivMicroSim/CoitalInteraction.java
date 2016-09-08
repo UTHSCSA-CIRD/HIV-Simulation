@@ -10,17 +10,15 @@ import sim.field.network.Edge;
  *
  * @author ManuelLS
  */
-public class Relationship extends Edge implements java.io.Serializable{
+public class CoitalInteraction extends Edge implements java.io.Serializable{
     private final static long serialVersionUID = 1;
-    public final static int commitmentMax = 10;
-    public final static int commitmentDissolve = 0;
     
     public final static int networkMF = 0;
     public final static int networkM = 1;
     
     //commitmentLevel is a double to allow for minute changes, however it should be represented as an
     //integer value to applications outside this class and should truncate down. e.g. 0.56 = 0, 1.12 = 1
-    private double commitmentLevel;
+    private double coitalLongevity;
     private final int type;
         public static final int MsW = 1;
         public static final int MsM = 2;
@@ -28,14 +26,14 @@ public class Relationship extends Edge implements java.io.Serializable{
     private final Agent a,b;
     public final int network;
     
-    public int getCommitmentLevel(){
-        return (int)commitmentLevel;
+    public double getCoitalLongevity(){
+        return coitalLongevity;
     }
-    public int adjustCommitmentLevel(double a){
-        commitmentLevel += a;
-        if(commitmentLevel > commitmentMax) commitmentLevel = 10;
-        if(commitmentLevel < commitmentDissolve) commitmentLevel = commitmentDissolve;
-        return (int)commitmentLevel;
+    public double adjustCoitalLongevity(double a){
+        coitalLongevity += a;
+        if(coitalLongevity > 1) coitalLongevity = 1;
+        if(coitalLongevity < 0) coitalLongevity = 0;
+        return coitalLongevity;
     }
     public Agent getA(){return a;}
     public Agent getB(){return b;}
@@ -56,9 +54,9 @@ public class Relationship extends Edge implements java.io.Serializable{
         return a;
     }
     
-    public Relationship(Agent A, Agent B, int level, double frequency, int network){
+    public CoitalInteraction(Agent A, Agent B, double level, double frequency, int network){
         super(A,B, level);
-        commitmentLevel = level;
+        coitalLongevity = level;
         a = A;
         b = B;
         coitalFrequency = frequency;

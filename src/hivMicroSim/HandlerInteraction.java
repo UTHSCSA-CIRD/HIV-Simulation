@@ -15,7 +15,7 @@ import sim.util.Bag;
  *
  * @author ManuelLS
  */
-public class HandlerRelationship {
+public class HandlerInteraction {
     
     //TODO: Note to self: Agents no longer remove their own one shots. 
     
@@ -26,9 +26,9 @@ public class HandlerRelationship {
      * @param sim - the HIV sim containing the network and random number generator.
      * @return 0 for no connection, otherwise the number for the default connection level. 
      */
-    public static int findConnection(Agent a, HIVMicroSim sim){
+    public static double findConnection(Agent a, HIVMicroSim sim){
         Bag nodes;
-        int network = Relationship.networkMF;
+        int network = CoitalInteraction.networkMF;
         if(!a.isFemale() && sim.MSMnetwork){
             Male m = (Male)a;
             if(m.getMSM()){
@@ -38,12 +38,12 @@ public class HandlerRelationship {
                         nodes = sim.networkMF.allNodes;
                     }else{
                         nodes = sim.networkM.allNodes;
-                        network = Relationship.networkM;
+                        network = CoitalInteraction.networkM;
                     }
                     
                 }else{
                     nodes = sim.networkM.allNodes;
-                    network = Relationship.networkM;
+                    network = CoitalInteraction.networkM;
                 }
             }else{
                 nodes = sim.networkMF.allNodes;
@@ -69,33 +69,26 @@ public class HandlerRelationship {
         if (other == null) return -1; //if could not find acceptable agent 
         
         //Yay, we have found a connection
-        Relationship edge;
-        double freq;
-        if(a.getCommitment() == Personality.commitmentMin || other.getCommitment() == Personality.commitmentMin){
-            rand = Relationship.commitmentDissolve;
-            freq = 1;
-        }else{
-            rand = sim.getGaussianRange(Relationship.commitmentDissolve, Relationship.commitmentMax, 
-                (a.getCommitment()+other.getCommitment())/2, false, true);
-            if(rand == Relationship.commitmentDissolve)freq = 1; 
-            else freq = (a.getLibido() + other.getLibido())/2;
-        }
-        edge = new Relationship(a, other, rand, freq, network);
+        CoitalInteraction edge;
+        double longevity,freq;
+        freq = (a.getLibido() + other.getLibido())/2;
+        longevity = (a.getCoitalLongevity() + other.getCoitalLongevity())/2;
+        edge = new CoitalInteraction(a, other, longevity, freq, network);
         a.addEdge(edge);
         other.addEdge(edge);
-        if(network == Relationship.networkMF){
+        if(network == CoitalInteraction.networkMF){
             sim.networkMF.addEdge(edge);
         }else{
             sim.networkM.addEdge(edge);
         }
-        return (int)edge.getCommitmentLevel();
+        return freq;
     }
-    
+    //TODO: This algorithm needs to be fixed. Right now a relationship with a commitment of 9 has a 1 in 10 chance of dissolving each week... 
     public static void processRelationships(HIVMicroSim sim){
         Iterator iter = sim.networkMF.edges.iterator();
-        Relationship edge;
+        CoitalInteraction edge;
         while(iter.hasNext()){
-            edge = (Relationship)iter.next();
+            edge = (CoitalInteraction)iter.next();
             //locals are faster than calling.
             Agent a, b;
             a = edge.getA();
@@ -104,19 +97,8 @@ public class HandlerRelationship {
                 if(a.isInfected()) sexualTransmission(sim, a, b, edge);
                 else sexualTransmission(sim, b, a, edge);
             }//end infected
-            if(edge.getCommitmentLevel() != Relationship.commitmentDissolve){
-                if(a.getCommitment() == Personality.commitmentMin || b.getCommitment() == Personality.commitmentMin){
-                    //Dissolve.
-                    edge.adjustCommitmentLevel(-Relationship.commitmentMax);
-                }else{
-                    //average minus the mean.
-                    double change = ((a.getCommitment()+b.getCommitment())/2)/(Personality.commitmentMax - Personality.commitmentMin);
-                    //change -= Math.abs(a.getLibido()-b.getLibido()); //reduce the change by the diff
-                    change = change + ((sim.random.nextDouble()*2)-1);//add the change augment to a random number between -1 and 1
-                    edge.adjustCommitmentLevel(change);
-                }
-            }
-            if(edge.getCommitmentLevel() == Relationship.commitmentDissolve){
+            double rand = sim.random.nextDouble();
+            if(rand * 10 > edge.getCoitalLongevity()){//dissolve
                 iter.remove();
                 edge.getA().removeEdge(edge);
                 edge.getB().removeEdge(edge);
@@ -126,7 +108,7 @@ public class HandlerRelationship {
         if(sim.MSMnetwork){
             iter = sim.networkM.edges.iterator();
             while(iter.hasNext()){
-                edge = (Relationship)iter.next();
+                edge = (CoitalInteraction)iter.next();
                 //locals are faster than calling.
                 Agent a, b;
                 a = edge.getA();
@@ -135,19 +117,8 @@ public class HandlerRelationship {
                     if(a.isInfected()) sexualTransmission(sim, a, b, edge);
                     else sexualTransmission(sim, b, a, edge);
                 }//end infected
-                if(edge.getCommitmentLevel() != Relationship.commitmentDissolve){
-                    if(a.getCommitment() == Personality.commitmentMin || b.getCommitment() == Personality.commitmentMin){
-                        //Dissolve.
-                        edge.adjustCommitmentLevel(-Relationship.commitmentMax);
-                    }else{
-                        //average minus the mean.
-                        double change = ((a.getCommitment()+b.getCommitment())/2)/(Personality.commitmentMax - Personality.commitmentMin);
-                        //change -= Math.abs(a.getLibido()-b.getLibido()); //reduce the change by the diff
-                        change = change + ((sim.random.nextDouble()*2)-1);//add the change augment to a random number between -1 and 1
-                        edge.adjustCommitmentLevel(change);
-                    }
-                }
-                if(edge.getCommitmentLevel() == Relationship.commitmentDissolve){
+                double rand = sim.random.nextDouble();
+                if(rand * 10 > edge.getCoitalLongevity()){
                     iter.remove();
                     edge.getA().removeEdge(edge);
                     edge.getB().removeEdge(edge);
@@ -156,8 +127,8 @@ public class HandlerRelationship {
             }//end loop. Network M
         }//end if Network M is activated
     }
-    public static void sexualTransmission(HIVMicroSim sim, Agent infected, Agent nonInfected, Relationship edge){
-        //This just helps simplify things and keep the infection code outside of the process Relationship code.
+    public static void sexualTransmission(HIVMicroSim sim, Agent infected, Agent nonInfected, CoitalInteraction edge){
+        //This just helps simplify things and keep the infection code outside of the process CoitalInteraction code.
         int PFC = 0; //protection-free coitis
         double ac = infected.getCondomUse();
         double bc = nonInfected.getCondomUse();
@@ -185,13 +156,6 @@ public class HandlerRelationship {
                 return; //currently condom usage is assumed 100% effective, we know it's not, so this will be addressed
             }else{
                 double avgC = (ac+bc)/2;
-                double commitChange = edge.getCommitmentLevel() * sim.commitmentChange;
-                if(avgC-commitChange < 0)
-                    avgC = 0;
-                else
-                    avgC = avgC-commitChange;
-                avgC = 1-avgC;
-                
                 for(int i = 0; i<coitis; i++){
                     roll = sim.random.nextDouble();
                     if(roll > avgC) PFC++;
@@ -202,20 +166,20 @@ public class HandlerRelationship {
         if(infected.isFemale()){
             //currently not handing possible female anal intercourse option... still need some input on that
             if(nonInfected.attemptCoitalInfection(sim, PFC, infected.getInfectivity(), Agent.MODEVI)){
-                sim.logger.insertInfection(Agent.MODEVI, infected.ID, nonInfected.ID, edge.getCommitmentLevel(), nonInfected.getAttemptsToInfect());
+                sim.logger.insertInfection(Agent.MODEVI, infected.ID, nonInfected.ID, nonInfected.getAttemptsToInfect());
             }
             return;
         }
         if(nonInfected.isFemale()){
             if(nonInfected.attemptCoitalInfection(sim, PFC, infected.getInfectivity(), Agent.MODEVR)){
-                sim.logger.insertInfection(Agent.MODEVR, infected.ID, nonInfected.ID, edge.getCommitmentLevel(), nonInfected.getAttemptsToInfect());
+                sim.logger.insertInfection(Agent.MODEVR, infected.ID, nonInfected.ID, nonInfected.getAttemptsToInfect());
             }
             return;
         }
         //currently randomly flipping between insertive and receptive.
         int mode = sim.random.nextBoolean() ? Agent.MODEAI : Agent.MODEAR;
         if(nonInfected.attemptCoitalInfection(sim, PFC, infected.getInfectivity(), mode)){
-            sim.logger.insertInfection(mode, infected.ID, nonInfected.ID, edge.getCommitmentLevel(), nonInfected.getAttemptsToInfect());
+            sim.logger.insertInfection(mode, infected.ID, nonInfected.ID, nonInfected.getAttemptsToInfect());
         }
     }
 }

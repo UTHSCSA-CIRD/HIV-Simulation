@@ -7,7 +7,7 @@ package hivMicroSim.Agent;
 import hivMicroSim.HIV.DiseaseMatrix;
 import hivMicroSim.HIVMicroSim;
 import hivMicroSim.Infection;
-import hivMicroSim.Relationship;
+import hivMicroSim.CoitalInteraction;
 import java.util.ArrayList;
 import sim.portrayal.*;
 import sim.engine.*;
@@ -44,7 +44,7 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     protected double height = 1;
     protected Stoppable stopper;//MASON
     protected int attemptsToInfect = 0;
-    protected final ArrayList<Relationship> network;
+    protected final ArrayList<CoitalInteraction> network;
     
     
     //infection modes
@@ -101,11 +101,11 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
      */
     public abstract boolean acceptsGender(boolean isFemale);
     /**
-     * Returns the current commitment level of the agent.
+     * Returns the current coitalLongevity level of the agent.
      * @return How likely the agent is to remain with another agent in a long term relationship.
      */
-    public int getCommitment(){
-        return pp.commitment;
+    public int getCoitalLongevity(){
+        return pp.coitalLongevity;
     }
     /**
      * Returns the current monogamy rating of the agent. 
@@ -241,7 +241,7 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         if(hiv.getStage() == DiseaseMatrix.StageLatency) return hiv.getWellnessHazardLatency();
         return hiv.getWellnessHazardAIDS();
     }
-    public ArrayList<Relationship> getNetwork(){return network;}
+    public ArrayList<CoitalInteraction> getNetwork(){return network;}
     public double getNetworkLevel(){
         return networkLevel;
     }
@@ -264,14 +264,14 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         int id = a.ID;
         return network.stream().anyMatch((network1) -> (network1.getPartner(this).ID == id));
     }
-    public boolean addEdge(Relationship a){
+    public boolean addEdge(CoitalInteraction a){
         if(network.add(a)){
             networkLevel += a.getCoitalFrequency();
             return true;
         }
         return false;
     }
-    public boolean removeEdge(Relationship a){
+    public boolean removeEdge(CoitalInteraction a){
         if(network.remove(a)){
             networkLevel -=a.getCoitalFrequency();
             return true;
@@ -384,9 +384,9 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         }
         sim.logger.insertDeath(ID, natural, infected, ticks);
         //remove all relationships.
-        for(Relationship r : network){//start with the last element and work down to empty out the list
+        for(CoitalInteraction r : network){//start with the last element and work down to empty out the list
             r.getPartner(this).removeEdge(r);
-            if(r.network == Relationship.networkMF){
+            if(r.network == CoitalInteraction.networkMF){
                 sim.networkMF.removeEdge(r);
             }else{//later this might become a switch statement, but there are only 2 networks. At some point there might
                 //be relationship subclasses that remove themselves to simplify this part.

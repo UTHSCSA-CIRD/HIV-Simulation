@@ -61,8 +61,8 @@ public abstract class Generator{
         //inclusive (include the min and max)
         monogamous = sim.getGaussianRange(Personality.monogamousMin, Personality.monogamousMax,
                 female? sim.femaleMonogamous : sim.maleMonogamous , !sim.allowExtremes, sim.allowExtremes);
-        commitment = sim.getGaussianRange(Personality.commitmentMin, Personality.commitmentMax,
-                female? sim.femaleCommittedness : sim.maleCommittedness , !sim.allowExtremes, sim.allowExtremes);
+        commitment = sim.getGaussianRange(Personality.coitalLongevityMin, Personality.coitalLongevityMax,
+                female? sim.femaleCoitalLongevity : sim.maleCoitalLongevity , !sim.allowExtremes, sim.allowExtremes);
         libido = sim.getGaussianRangeDouble(Personality.libidoMin, Personality.libidoMax,
                 female? sim.femaleLibido : sim.maleLibido , true); // re-rolled no truncated- extremes in this are no longer considered because it's a double.
         condomUse = sim.getGaussianRangeDouble(Personality.condomMin, Personality.condomMax,
@@ -86,7 +86,7 @@ public abstract class Generator{
             if(connector.wantsConnection(sim)){
                 //We currently don't care about the return value, later renditions might allow the agent 
                 //to attempt to find a connection multiple times.
-                HandlerRelationship.findConnection(connector, sim);
+                HandlerInteraction.findConnection(connector, sim);
             }
         }
     }

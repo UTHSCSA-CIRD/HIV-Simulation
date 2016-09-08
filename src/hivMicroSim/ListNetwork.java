@@ -14,21 +14,21 @@ import java.util.ArrayList;
  * @author Laura Manuel
  */
 public class ListNetwork extends Network{
-    public ArrayList<Relationship> edges;
+    public ArrayList<CoitalInteraction> edges;
     
-    public ArrayList<Relationship> getEdges(){
+    public ArrayList<CoitalInteraction> getEdges(){
         return edges;
     }
     
     
     @Override
     public void addEdge(Edge a){
-        edges.add((Relationship)a);
+        edges.add((CoitalInteraction)a);
         super.addEdge(a);
     }
     @Override
     public Edge removeEdge(Edge a){
-        edges.remove((Relationship)a);
+        edges.remove((CoitalInteraction)a);
         return(super.removeEdge(a));
     }
     /**
