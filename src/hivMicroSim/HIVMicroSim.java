@@ -361,6 +361,7 @@ public class HIVMicroSim extends SimState{
     @Override
     public void start(){
         super.start();
+        currentID = 0;
         logger = new HIVLogger();
         try{
             debugLog = new DebugLogger(simDebugLevel, simDebugFile);
