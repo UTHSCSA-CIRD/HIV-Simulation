@@ -25,17 +25,18 @@ public abstract class Generator{
         Agent agent;
         //if this is the initial run of the generation we will use the average age, otherwise we will use the network entrance age as the mean. 
         //Meaning that agents can join the model at an older age, but that in general they are around the network entrance age. 
-        age = sim.getGaussianRange(0, (int)(sim.averageLifeSpan * 1.5), init ? sim.averageAge : sim.networkEntranceAge, true, true);
+        age = sim.nextGaussianRange(0, (int)(sim.averageLifeSpan * 1.5), init ? sim.averageAge : sim.networkEntranceAge, true, true);
         
-        
-        female = sim.random.nextBoolean();
+        //If we want to map only MSM then there is no reason to create females. 
+        if(sim.percentMsM == 1) female = false;
+        else female = sim.random.nextBoolean();
         if(age > sim.averageLifeSpan){
-            life = sim.getGaussianRange(age, (int)(sim.averageLifeSpan * 1.5), age, true, true);
+            life = sim.nextGaussianRange(age, (int)(sim.averageLifeSpan * 1.5), age, true, true);
         }else{
-            life = sim.getGaussianRange(age, (int)(sim.averageLifeSpan * 1.5), sim.averageLifeSpan, true, true);
+            life = sim.nextGaussianRange(age, (int)(sim.averageLifeSpan * 1.5), sim.averageLifeSpan, true, true);
         }
         personality = generatePersonality(sim, female);
-        hivImmunity = sim.getGaussianRangeDouble(0, 2, 1, true);
+        hivImmunity = sim.nextGaussianRangeDouble(0, 2, 1, true);
         if(female){
             agent = new Female(sim.currentID, personality, hivImmunity, age, life);
         }else{
@@ -59,13 +60,13 @@ public abstract class Generator{
         Personality ret;
         //min, max, average, reroll (if outside the bounds of min and max will it truncate or re-roll?
         //inclusive (include the min and max)
-        monogamous = sim.getGaussianRange(Personality.monogamousMin, Personality.monogamousMax,
+        monogamous = sim.nextGaussianRange(Personality.monogamousMin, Personality.monogamousMax,
                 female? sim.femaleMonogamous : sim.maleMonogamous , !sim.allowExtremes, sim.allowExtremes);
-        commitment = sim.getGaussianRange(Personality.coitalLongevityMin, Personality.coitalLongevityMax,
+        commitment = sim.nextGaussianRange(Personality.coitalLongevityMin, Personality.coitalLongevityMax,
                 female? sim.femaleCoitalLongevity : sim.maleCoitalLongevity , !sim.allowExtremes, sim.allowExtremes);
-        libido = sim.getGaussianRangeDouble(Personality.libidoMin, Personality.libidoMax,
+        libido = sim.nextGaussianRangeDouble(Personality.libidoMin, Personality.libidoMax,
                 female? sim.femaleLibido : sim.maleLibido , true); // re-rolled no truncated- extremes in this are no longer considered because it's a double.
-        condomUse = sim.getGaussianRangeDouble(Personality.condomMin, Personality.condomMax,
+        condomUse = sim.nextGaussianRangeDouble(Personality.condomMin, Personality.condomMax,
                 sim.percentCondomUse , !sim.allowExtremes);
         ret = new Personality(monogamous, commitment, libido, condomUse, sim.testingLikelihood);
         return ret;

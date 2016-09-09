@@ -235,12 +235,7 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         if(hiv == null) return -1;
         return(hiv.getDuration());
     }
-    public double getHIVHazard(){
-        if(hiv == null) return 0;
-        if(hiv.getStage() == DiseaseMatrix.StageAcute) return 0;
-        if(hiv.getStage() == DiseaseMatrix.StageLatency) return hiv.getWellnessHazardLatency();
-        return hiv.getWellnessHazardAIDS();
-    }
+    
     public ArrayList<CoitalInteraction> getNetwork(){return network;}
     public double getNetworkLevel(){
         return networkLevel;

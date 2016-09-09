@@ -190,7 +190,7 @@ public class HIVMicroSim extends SimState{
      * numbers. False makes 0 and 10 invalid numbers.
      * @return - return the next random gaussian within the specifications.
      */
-    public int getGaussianRange(int min, int max, int avg, boolean reroll, boolean inclusive){
+    public int nextGaussianRange(int min, int max, int avg, boolean reroll, boolean inclusive){
         if(min == max) return min;
         if(min > max){
             int tmp = max;
@@ -206,9 +206,9 @@ public class HIVMicroSim extends SimState{
         }
         int offset = avg - (int)mean;
         double std = (max-mean)/3; //most (95%) numbers will be within 3 standard devaitions.
-        return getGaussianRange(min, max, avg, reroll, inclusive, mean, std, offset);
+        return nextGaussianRange(min, max, reroll, inclusive, mean, std, offset);
     }
-    public int getGaussianRange(int min, int max, int avg, boolean reroll, boolean inclusive, double mean, double std, int offset){
+    public int nextGaussianRange(int min, int max, boolean reroll, boolean inclusive, double mean, double std, int offset){
         double rand;
         if(reroll){
             if(inclusive){
@@ -246,7 +246,7 @@ public class HIVMicroSim extends SimState{
      * (int is +/- 1. should double be 0.1? 0.0000000000000001? 
      * @return - return the next random gaussian double within the specifications.
      */
-    public double getGaussianRangeDouble(double min, double max, double avg, boolean reroll){
+    public double nextGaussianRangeDouble(double min, double max, double avg, boolean reroll){
         if(min == max) return min;
         if(min > max){
             double tmp = max;
@@ -262,9 +262,9 @@ public class HIVMicroSim extends SimState{
         }
         double offset = (avg - mean);
         double std = (max-mean)/3; //most (95%) numbers will be within 3 standard devaitions.
-        return (getGaussianRangeDouble(min, max, avg, reroll, mean, std, offset));
+        return (nextGaussianRangeDouble(min, max, reroll, mean, std, offset));
     }
-    public double getGaussianRangeDouble(double min, double max, double avg, boolean reroll, double mean, double std, double offset){
+    public double nextGaussianRangeDouble(double min, double max, boolean reroll, double mean, double std, double offset){
         double rand;
         if(reroll){
             do{
@@ -401,7 +401,7 @@ public class HIVMicroSim extends SimState{
                 HIVMicroSim sim = (HIVMicroSim) state;
                 //remove oneshots and process relationships created last round or during
                 //initialization.
-                HandlerInteraction.processRelationships(sim);
+                HandlerInteraction.processCoitalInteractions(sim);
                 Agent agent;
                 //this has to be changed to the agents object and a check for age must be added because there 
                 //may be multiple networks in play. In the future this method can handle walking over all the networks

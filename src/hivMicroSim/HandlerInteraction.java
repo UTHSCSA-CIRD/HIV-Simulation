@@ -84,8 +84,14 @@ public class HandlerInteraction {
         return freq;
     }
     //TODO: This algorithm needs to be fixed. Right now a relationship with a commitment of 9 has a 1 in 10 chance of dissolving each week... 
-    public static void processRelationships(HIVMicroSim sim){
-        Iterator iter = sim.networkMF.edges.iterator();
+    public static void processCoitalInteractions(HIVMicroSim sim){
+        processCoitalNetwork(sim, sim.networkMF);
+        if(sim.MSMnetwork){
+            processCoitalNetwork(sim, sim.networkM);
+        }//end if Network M is activated
+    }
+    private static void processCoitalNetwork(HIVMicroSim sim, ListNetwork network){
+        Iterator iter = network.edges.iterator();
         CoitalInteraction edge;
         while(iter.hasNext()){
             edge = (CoitalInteraction)iter.next();
@@ -97,35 +103,14 @@ public class HandlerInteraction {
                 if(a.isInfected()) sexualTransmission(sim, a, b, edge);
                 else sexualTransmission(sim, b, a, edge);
             }//end infected
-            double rand = sim.random.nextDouble();
-            if(rand * 10 > edge.getCoitalLongevity()){//dissolve
+            double rand = sim.nextGaussianRangeDouble(0,10,true, 0, (10/3), 0);
+            if(rand > edge.getCoitalLongevity()){
                 iter.remove();
                 edge.getA().removeEdge(edge);
                 edge.getB().removeEdge(edge);
-                sim.networkMF.removeEdgeNetworkOnly(edge);
+                network.removeEdgeNetworkOnly(edge);
             }
-        }//end loop. Network MF
-        if(sim.MSMnetwork){
-            iter = sim.networkM.edges.iterator();
-            while(iter.hasNext()){
-                edge = (CoitalInteraction)iter.next();
-                //locals are faster than calling.
-                Agent a, b;
-                a = edge.getA();
-                b = edge.getB();
-                if(a.isInfected() ^ b.isInfected()){ // exclusive OR
-                    if(a.isInfected()) sexualTransmission(sim, a, b, edge);
-                    else sexualTransmission(sim, b, a, edge);
-                }//end infected
-                double rand = sim.random.nextDouble();
-                if(rand * 10 > edge.getCoitalLongevity()){
-                    iter.remove();
-                    edge.getA().removeEdge(edge);
-                    edge.getB().removeEdge(edge);
-                    sim.networkMF.removeEdgeNetworkOnly(edge);
-                }
-            }//end loop. Network M
-        }//end if Network M is activated
+        }
     }
     public static void sexualTransmission(HIVMicroSim sim, Agent infected, Agent nonInfected, CoitalInteraction edge){
         //This just helps simplify things and keep the infection code outside of the process CoitalInteraction code.

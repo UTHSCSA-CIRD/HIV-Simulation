@@ -30,11 +30,11 @@ public class DiseaseMatrix implements java.io.Serializable{
     public static final double normalInfectivity = 1;
     
     public static final double wellnessHazardMaxLatency = 9.615;
-    public static final double wellnessHazardAvgLatency = -0.9615;
+    public static final double wellnessHazardAvgLatency = -0.5;//-0.9615;
     public static final double wellnessHazardMinLatency = -9.615;
     
     public static final double wellnessHazardMaxAIDS = 16.666;
-    public static final double wellnessHazardAvgAIDS = -1.666;
+    public static final double wellnessHazardAvgAIDS = -.8;//-1.666;
     public static final double wellnessHazardMinAIDS = -16.666;
     public static final int[] wellnessLevels = {500,400,300,200,100};
     public static final double[] wellnessHindrance = {.9,.8,.7,.3,.2};
@@ -47,8 +47,6 @@ public class DiseaseMatrix implements java.io.Serializable{
     private int infectionWellness = 700;
     private double hindrance;
     private double infectivity = 1;
-    private double wellnessHazardLatency = -0.9615; //this agent's average wellness decline per tick after acute
-    private double wellnessHazardAIDS = -1.666; //this agent's average wellness decline per tick after acute
     private boolean known = false;
     
     public int getAIDsTick(){return aidsTick;}
@@ -58,12 +56,7 @@ public class DiseaseMatrix implements java.io.Serializable{
     public int getWellness(){
         return infectionWellness;
     }
-    public double getWellnessHazardLatency(){
-        return wellnessHazardLatency;
-    }
-    public double getWellnessHazardAIDS(){
-        return wellnessHazardAIDS;
-    }
+    
     public double getInfectivity(){
         /**
          * This method combines infectivity with the stage to get the current infectivity. 
@@ -126,7 +119,7 @@ public class DiseaseMatrix implements java.io.Serializable{
                 }
             break;
             case StageLatency: //clinical latency
-                rand = sim.getGaussianRangeDouble(wellnessHazardMinLatency, wellnessHazardMaxLatency, wellnessHazardLatency, true, 0, (wellnessHazardMaxLatency/3), wellnessHazardLatency);
+                rand = sim.nextGaussianRangeDouble(wellnessHazardMinLatency, wellnessHazardMaxLatency, true, 0, (wellnessHazardMaxLatency/3), wellnessHazardAvgLatency);
                 infectionWellness +=rand;
                 if(infectionWellness < LATENCYWELLNESSTHRESHOLD){
                     //progress to AIDS
@@ -137,7 +130,7 @@ public class DiseaseMatrix implements java.io.Serializable{
             break;
             case StageAIDS:
                 aidsTick++;
-                rand = sim.getGaussianRangeDouble(wellnessHazardMinAIDS, wellnessHazardMaxAIDS, wellnessHazardAIDS, true, 0, (wellnessHazardAIDS/3), wellnessHazardAIDS);
+                rand = sim.nextGaussianRangeDouble(wellnessHazardMinAIDS, wellnessHazardMaxAIDS, true, 0, (wellnessHazardMaxAIDS/3), wellnessHazardAvgAIDS);
                 infectionWellness +=rand;
                 if(infectionWellness <= WELLNESSDEATHTHRESHOLD){
                     //progress to Death
@@ -160,8 +153,6 @@ public class DiseaseMatrix implements java.io.Serializable{
     public DiseaseMatrix(double infectivity){
         infectionWellness = normalWellness;
         this.infectivity = infectivity;
-        wellnessHazardLatency = wellnessHazardAvgLatency;
-        wellnessHazardAIDS = wellnessHazardAvgAIDS;
         hindrance = 0;
         known = false;
         stage = StageAcute;
