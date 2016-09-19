@@ -44,6 +44,7 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     protected double height = 1;
     protected Stoppable stopper;//MASON
     protected int attemptsToInfect = 0;
+    protected double lack = 0;
     protected final ArrayList<CoitalInteraction> network;
     
     
@@ -55,7 +56,14 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     
     //Testing
     private int lastTest; //records the step of the last test.
-    
+    public void adjustLack (double a){
+        lack += a;
+        if(lack < 0) lack = 0;
+        else if (lack > Personality.libidoMax) lack = Personality.libidoMax;
+    }
+    public double getLack(){
+        return lack;
+    }
     public int getLastTest(){
         return lastTest;
     }
@@ -125,8 +133,8 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
      * Get how long the agent will live.
      * @return The age at which the agent will pass from non-AIDs related death.
      */
-    public int getLifeSpan(){
-        return life;
+    public double getLifeSpan(){
+        return life/HIVMicroSim.ticksPerYear;
     }
     /**
      * How many times a month the agent current wants to have some form of intercourse. 
@@ -221,7 +229,10 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         }
         return false;
     }    
-    public int getAge(){
+    public double getAge(){
+        return age/HIVMicroSim.ticksPerYear;
+    }
+    public int getTickAge(){ //age in ticks.
         return age;
     }
     protected Color getColor(){
@@ -243,14 +254,14 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     public boolean wantsConnection(HIVMicroSim sim){
         if(networkLevel == 0)return true;
         //are their current needs met?
-        if((int)networkLevel >= (int)pp.libido) return false;
+        if(lack == 0) return false;
         //handle those at the extreme of polygamy. 
         if(pp.monogamous == Personality.monogamousMin) return true;
         //extremes of monogamy- they will not be with more than 1 person at the same time.
         if(pp.monogamous == Personality.monogamousMax) return false;
         //failing all else we roll from - monogamousMax to positive monogamousMax. 
         int roll = sim.random.nextInt(Personality.monogamousMax*2)- Personality.monogamousMax;
-        return (roll - (int)networkLevel + (int)pp.libido) > pp.monogamous;
+        return (roll - lack) > pp.monogamous;
     }
     public int getNetworkSize(){
         return network.size();
@@ -330,9 +341,12 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         if(age == sim.networkEntranceAge){
             width = 1.5;
             height = 1.5;
-            if(isFemale()){ 
+            if(isFemale()){ //males handle this in their own step function
                 sim.networkMF.addNode(this);
             }
+        }
+        if(age >= sim.networkEntranceAge){
+            adjustLack(pp.libido);
         }
         if(infected){
             if(!hiv.isKnown() && pp.testingLikelihood > 0){

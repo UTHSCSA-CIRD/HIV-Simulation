@@ -83,7 +83,7 @@ public abstract class Generator{
                 System.err.println("Error. Not an agent!");
                 continue;
             }
-            if(connector.getAge() < sim.networkEntranceAge) continue;
+            if(connector.getTickAge() < sim.networkEntranceAge) continue;
             if(connector.wantsConnection(sim)){
                 //We currently don't care about the return value, later renditions might allow the agent 
                 //to attempt to find a connection multiple times.

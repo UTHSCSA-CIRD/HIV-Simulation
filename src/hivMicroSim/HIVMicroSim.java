@@ -88,6 +88,7 @@ public class HIVMicroSim extends SimState{
     public double perInteractionLikelihood = 0.0001;
     
     //Population statistics
+    public static final int ticksPerYear = 52;
     public int averageAge = 1300;//in months
     public int averageLifeSpan = 3380;
     public HIVLogger logger;
@@ -123,17 +124,19 @@ public class HIVMicroSim extends SimState{
     }
     
     public int getAverageAge(){
-        return averageAge;
+        return (int)averageAge/ticksPerYear;
     }
     public int getAverageLifeSpan(){
-        return averageLifeSpan;
+        return (int)averageLifeSpan/ticksPerYear;
     }
     public void setAverageAge(int a){
+        a *= ticksPerYear;
         if(a > 1 && a < averageLifeSpan){
             averageAge = a;
         }
     }
     public void setAverageLifeSpan(int a){
+        a *= ticksPerYear;
         if(a > 20 && a> averageAge){
             averageLifeSpan = a;
         }
@@ -144,8 +147,9 @@ public class HIVMicroSim extends SimState{
             percentMsMW = a;
         }
     }
-    public int getNetworkEntranceAge(){return networkEntranceAge;}
+    public int getNetworkEntranceAge(){return networkEntranceAge/ticksPerYear;}
     public void setNetworkEntranceAge(int a){
+        a *= ticksPerYear;
         if(a >0){
             networkEntranceAge = a;
         }
@@ -282,8 +286,8 @@ public class HIVMicroSim extends SimState{
     public void setAllowExtremes(boolean allow){allowExtremes = allow;}
     public int getMaleMonogamous(){return maleMonogamous;}
     public int getFemaleMonogamous(){return femaleMonogamous;}
-    public int getMaleCommitted(){return maleCoitalLongevity;}
-    public int getFemaleCommitted(){return femaleCoitalLongevity;}
+    public int getMaleCoitalLongevity(){return maleCoitalLongevity;}
+    public int getFemaleCoitalLongevity(){return femaleCoitalLongevity;}
     public int getMaleLibido(){return maleLibido;}
     public int getFemaleLibido(){return femaleLibido;}
     public void setMaleMonogamous(int a){
@@ -296,12 +300,12 @@ public class HIVMicroSim extends SimState{
             femaleMonogamous = a;
         }
     }
-    public void setMaleCommitted(int a){
+    public void setMaleCoitalLongevity(int a){
         if(a >=Personality.coitalLongevityMin && a <= Personality.coitalLongevityMax){
             maleCoitalLongevity = a;
         }
     }
-    public void setFemaleCommitted(int a){
+    public void setFemaleCoitalLongevity(int a){
         if(a >=Personality.coitalLongevityMin && a <= Personality.coitalLongevityMax){
             femaleCoitalLongevity = a;
         }
@@ -348,7 +352,6 @@ public class HIVMicroSim extends SimState{
         networkMF = new ListNetwork();
         networkM = new ListNetwork();
         logger = new HIVLogger();
-        
     }
     
     @Override
@@ -373,7 +376,7 @@ public class HIVMicroSim extends SimState{
         for(int i = 0; i < numAgents; i++){
             agent = Generator.generateAgent(this, true);
             agents.setObjectLocation(agent,random.nextInt(gridWidth), random.nextInt(gridHeight));
-            if(agent.getAge() >= networkEntranceAge) {
+            if(agent.getTickAge() >= networkEntranceAge) {
                 if(agent.isFemale()){
                     networkMF.addNode(agent);
                 }else{
@@ -394,7 +397,7 @@ public class HIVMicroSim extends SimState{
         //generate initial network.
         Generator.generateInitialNetwork(this);
         //add network stepable- break & create networks
-        Steppable n = new Steppable(){
+        Steppable processInteractions = new Steppable(){
             private static final long serialVersionUID = 1;
             @Override
             public void step(SimState state) {
@@ -408,7 +411,7 @@ public class HIVMicroSim extends SimState{
                 Bag allAgents = agents.allObjects;
                 for(Object o : allAgents){
                     agent = (Agent) o;
-                    if(agent.getAge() < networkEntranceAge || !agent.alive)continue;
+                    if(agent.getTickAge() < networkEntranceAge || !agent.alive)continue;
                     //set up new networks
                     if(agent.wantsConnection(sim)){
                         HandlerInteraction.findConnection(agent, sim);
@@ -416,7 +419,7 @@ public class HIVMicroSim extends SimState{
                 }//end for
             }//end step
         };
-        schedule.scheduleRepeating(Schedule.EPOCH, 2, n);
+        schedule.scheduleRepeating(Schedule.EPOCH, 2, processInteractions);
         
         //create and schedule the infect timer. 
         Infector infectTimer = new Infector(initializationOnTick, numInfect);
@@ -436,7 +439,7 @@ public class HIVMicroSim extends SimState{
                         agent = Generator.generateAgent(sim, false);
                         logger.insertNewAgent(agent);
                         agents.setObjectLocation(agent,random.nextInt(gridWidth), random.nextInt(gridHeight));
-                        if(agent.getAge() >=sim.networkEntranceAge){
+                        if(agent.getTickAge() >=sim.networkEntranceAge){
                             if(agent.isFemale()){
                                 networkMF.addNode(agent);
                             }else{
@@ -458,7 +461,7 @@ public class HIVMicroSim extends SimState{
                 }
             }//end step
         };
-        schedule.scheduleRepeating(Schedule.EPOCH, 2, agentGenerator);
+        schedule.scheduleRepeating(Schedule.EPOCH, 5, agentGenerator);
     }
     public static void main(String[] args){
         doLoop(HIVMicroSim.class, args);
@@ -469,6 +472,5 @@ public class HIVMicroSim extends SimState{
         logger.close();
         debugLog.close();
         super.finish();
-    }
-    
+    } 
 }

@@ -50,7 +50,7 @@ public class Infector implements sim.engine.Steppable{
             do{
                 rand = sim.random.nextInt(b.size());
                 a = (Agent)b.get(rand);
-                if(a.getAge()< sim.networkEntranceAge || a.isInfected()) a = null;//We're not infecting children
+                if(a.getTickAge()< sim.networkEntranceAge || a.isInfected()) a = null;//We're not infecting children
                 //continue to pull new random agents until you find one that is both old enough and not yet infected.
             }while(a == null);
             a.infect(sim);

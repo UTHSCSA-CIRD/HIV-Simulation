@@ -54,7 +54,7 @@ public class HandlerInteraction {
         Agent other;
         int rand;
         int tries = 0;
-        int triesMax = (int)a.getLibido() - a.getNetworkSize();
+        int triesMax = (int)a.getLack();
         if(triesMax == 0) triesMax = 1;
         
         //search up to 10 times for an acceptable agent.
@@ -99,6 +99,8 @@ public class HandlerInteraction {
             Agent a, b;
             a = edge.getA();
             b = edge.getB();
+            a.adjustLack(-edge.getCoitalFrequency());
+            b.adjustLack(-edge.getCoitalFrequency());
             if(a.isInfected() ^ b.isInfected()){ // exclusive OR
                 if(a.isInfected()) sexualTransmission(sim, a, b, edge);
                 else sexualTransmission(sim, b, a, edge);
