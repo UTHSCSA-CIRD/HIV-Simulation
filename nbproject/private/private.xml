@@ -4,7 +4,8 @@
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
             <file>file:/C:/Users/manuells/Documents/NetBeansProjects/Simulation/src/hivMicroSim/HIV/DiseaseMatrix.java</file>
-            <file>file:/C:/Users/manuells/Documents/NetBeansProjects/Simulation/src/hivMicroSim/HIVMicroSim.java</file>
+            <file>file:/C:/Users/manuells/Documents/NetBeansProjects/Simulation/src/hivMicroSim/HandlerInteraction.java</file>
+            <file>file:/C:/Users/manuells/Documents/NetBeansProjects/Simulation/src/hivMicroSim/CoitalInteraction.java</file>
             <file>file:/C:/Users/manuells/Documents/NetBeansProjects/Simulation/src/hivMicroSim/Generator.java</file>
             <file>file:/C:/Users/manuells/Documents/NetBeansProjects/Simulation/src/hivMicroSim/Agent/Agent.java</file>
             <file>file:/C:/Users/manuells/Documents/NetBeansProjects/Simulation/src/hivMicroSim/HIVLogger.java</file>

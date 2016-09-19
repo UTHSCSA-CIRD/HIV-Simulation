@@ -40,9 +40,9 @@ infectPattern$infected[is.na(infectPattern$infected)] = 0
 infectPattern$InfPerYear = infectPattern$infected/(infectPattern$Infection_Duration/52)
 
 
-plot(yearLog$Year, yearLog$incidenceRate, type = "l")
-plot(yearLog$Year, yearLog$percentInfected, type = "l")
-plot(yearLog$Starting.Population, type = "l")
+plot(yearLog$Year, yearLog$incidenceRate, type = "l", main = "Incidicent rate per 1,000 agents")
+plot(yearLog$Year, yearLog$percentInfected, type = "l", main = "Prevalence in Agent Population")
+plot(yearLog$Starting.Population, type = "l", main = "Model Population")
 
 #Multivariable plots
 tmp = yearLog[, c("Year","Starting.Population","Prevelance")];melted = melt(tmp, id = "Year");ggplot(data = melted, aes(x = Year, y = value, color = variable)) + geom_line() 
@@ -58,13 +58,6 @@ summary(nonInfAgents)
 summary(infAgents)
 summary(iAgents)
 
-#all infected vs all agents 
-t.test(infAgents$Commitment, agentLog$Commitment)
-t.test(infAgents$Monogamous, agentLog$Monogamous)
-t.test(infAgents$Libido, agentLog$Libido)
-t.test(infAgents$Condom.Usage, agentLog$Condom.Usage)
-t.test(infAgents$Immunity, agentLog$Immunity)
-
 #all infected vs non infected agents 
 t.test(infAgents$Commitment, nonInfAgents$Commitment)
 t.test(infAgents$Monogamous, nonInfAgents$Monogamous)
@@ -72,15 +65,7 @@ t.test(infAgents$Libido, nonInfAgents$Libido)
 t.test(infAgents$Condom.Usage, nonInfAgents$Condom.Usage)
 t.test(infAgents$Immunity, nonInfAgents$Immunity)
 
-#t.test(infAgents$Selectivity, agentLog$Selectivity)
-#all agents and high infectors
-t.test(iAgents$Commitment, agentLog$Commitment)
-t.test(iAgents$Monogamous, agentLog$Monogamous)
-t.test(iAgents$Libido, agentLog$Libido)
-t.test(iAgents$Condom.Usage, agentLog$Condom.Usage)
-t.test(iAgents$Immunity, agentLog$Immunity)
 
-#t.test(infAgents$Selectivity, agentLog$Selectivity)
 #high infectors And Non Infected
 t.test(iAgents$Commitment, nonInfAgents$Commitment)
 t.test(iAgents$Monogamous, nonInfAgents$Monogamous)
@@ -99,11 +84,11 @@ t.test(iAgents$Immunity, infAgents$Immunity)
 ########Looking at the duration of infection#####
 #build the infection data set
 
-paste("Mean years to AIDS:", (mean(infectPattern$toAIDs, na.rm = TRUE)+2)/52)
-paste("Mean years to AIDS Death:", (mean(infectPattern$toAIDs + infectPattern$toDeath, na.rm = TRUE)+2)/52)
-paste("Mean years to Death from AIDs:", (mean(infectPattern$toDeath, na.rm = TRUE))/52)
-paste("Mean time to discovery: ", (mean(infectPattern$toDiscovery, na.rm = TRUE)/52))
-paste("Mean overall survival: ", (mean(infectPattern$Infection_Duration, na.rm = TRUE)/52))
+if(length(which(!is.na(infectPattern$toAIDs))) != 0){paste("Years to AIDS: Min: ", (min(infectPattern$toAIDs, na.rm = TRUE)+2)/52, " Mean: ", (mean(infectPattern$toAIDs, na.rm = TRUE)+2)/52, "Max: ",(max(infectPattern$toAIDs, na.rm = TRUE)+2)/52 )} else paste("No AIDs")
+if(length(which(!is.na(infectPattern$toDeath))) != 0){ paste("Years to AIDS Death: Min: ", (min(infectPattern$toAIDs + infectPattern$toDeath, na.rm = TRUE)+2)/52, " Mean: ", (mean(infectPattern$toAIDs + infectPattern$toDeath, na.rm = TRUE)+2)/52, " Max: ", (max(infectPattern$toAIDs + infectPattern$toDeath, na.rm = TRUE)+2)/52)}else paste("No AIDs Deaths")
+if(length(which(!is.na(infectPattern$toDeath))) != 0){ paste("Years to Death from AIDs: Min: ", (min(infectPattern$toDeath, na.rm = TRUE))/52, " Mean: " , (mean(infectPattern$toDeath, na.rm = TRUE))/52, " Max: ", (max(infectPattern$toDeath, na.rm = TRUE))/52)} else paste ("No AIDs Deaths")
+if(length(which(!is.na(infectPattern$toDiscovery))) != 0){paste("Years to discovery: Min: ", (min(infectPattern$toDiscovery, na.rm = TRUE))/52, " Mean: ", (mean(infectPattern$toDiscovery, na.rm = TRUE))/52, " Max: ", (max(infectPattern$toDiscovery, na.rm = TRUE))/52)} else {paste("No Discovery")}
+paste("Overall survival (Years): Min: ", (min(infectPattern$Infection_Duration, na.rm = TRUE))/52, " Mean: ", (mean(infectPattern$Infection_Duration, na.rm = TRUE))/52, " Max: ", (max(infectPattern$Infection_Duration, na.rm = TRUE))/52)
 paste("Mean infections per year infected: ", mean(infectPattern$InfPerYear, na.rm = TRUE))
 paste("Expected infections per infected individual: ", mean(infectPattern$InfPerYear, na.rm = TRUE) * (mean(infectPattern$Infection_Duration, na.rm = TRUE)/52))
 #Is knowledge power? Split up pre and post discovery infections 

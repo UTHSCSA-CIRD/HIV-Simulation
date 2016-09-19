@@ -243,14 +243,14 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     public boolean wantsConnection(HIVMicroSim sim){
         if(networkLevel == 0)return true;
         //are their current needs met?
-        if(networkLevel >= pp.libido) return false;
+        if((int)networkLevel >= (int)pp.libido) return false;
         //handle those at the extreme of polygamy. 
         if(pp.monogamous == Personality.monogamousMin) return true;
         //extremes of monogamy- they will not be with more than 1 person at the same time.
         if(pp.monogamous == Personality.monogamousMax) return false;
         //failing all else we roll from - monogamousMax to positive monogamousMax. 
-        int roll = sim.random.nextInt(Personality.monogamousMax*2)-Personality.monogamousMax;
-        return (roll+(pp.monogamous)) < networkLevel - pp.libido;
+        int roll = sim.random.nextInt(Personality.monogamousMax*2)- Personality.monogamousMax;
+        return (roll - (int)networkLevel + (int)pp.libido) > pp.monogamous;
     }
     public int getNetworkSize(){
         return network.size();
@@ -268,7 +268,9 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     }
     public boolean removeEdge(CoitalInteraction a){
         if(network.remove(a)){
-            networkLevel -=a.getCoitalFrequency();
+            if(network.isEmpty()) networkLevel = 0; //because doubles might not revert this completely to 0
+            else networkLevel -=a.getCoitalFrequency();
+            
             return true;
         }
         return false;
@@ -314,10 +316,18 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         HIVMicroSim sim = (HIVMicroSim) state;
         age++;
         if(age > life){
-            death(sim, true);
+            if(alive){
+                death(sim, true);
+            }else{
+                //for agents who died of HIV. They remain active for population growth and to record the effects of 
+                //the disease, but they should be removed when they would normally die. 
+                sim.agents.remove(this);
+                stopper.stop();
+            }
             return;
         }
-        if(age == sim.networkEntranceAge && alive){
+        if(!alive) return;
+        if(age == sim.networkEntranceAge){
             width = 1.5;
             height = 1.5;
             if(isFemale()){ 
@@ -393,10 +403,11 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
             networkLevel = 0;
             network.clear();
         }
-        if(natural) sim.agents.remove(this);
-        
+        if(natural){ 
+            sim.agents.remove(this);
+            stopper.stop();
+        }
         alive = false;
-        stopper.stop();
     }
     public void discoverHIV(HIVMicroSim sim){
         //breaking this out so that it's easier to find and adjust later.
