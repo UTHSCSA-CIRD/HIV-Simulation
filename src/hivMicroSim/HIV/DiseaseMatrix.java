@@ -39,6 +39,10 @@ public class DiseaseMatrix implements java.io.Serializable{
     public static final int[] wellnessLevels = {500,400,300,200,100};
     public static final double[] wellnessHindrance = {.9,.8,.7,.3,.2};
     
+    //treatment
+    private static final double viralSuppressionXFactor = .02;
+    private static final double treatmentXFactor = .1; //treated, but not viralogically suppressed.
+    private static final double percentSuppressed = 80;   
     
     //INSTANCE SPECIFIC FACTORS
     private int stage;
@@ -48,6 +52,8 @@ public class DiseaseMatrix implements java.io.Serializable{
     private double hindrance;
     private double infectivity = 1;
     private boolean known = false;
+    private boolean treated;
+    private boolean viralSuppression;
     
     public int getAIDsTick(){return aidsTick;}
     public DiseaseMatrix() {

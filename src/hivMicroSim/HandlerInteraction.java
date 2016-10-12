@@ -105,7 +105,7 @@ public class HandlerInteraction {
                 if(a.isInfected()) sexualTransmission(sim, a, b, edge);
                 else sexualTransmission(sim, b, a, edge);
             }//end infected
-            double rand = sim.nextGaussianRangeDouble(0,10,true, 0, (10/3), 0);
+            double rand = sim.nextGaussianRangeDouble(0,10,true, 0, (5/2), 0);
             if(rand > edge.getCoitalLongevity()){
                 iter.remove();
                 edge.getA().removeEdge(edge);

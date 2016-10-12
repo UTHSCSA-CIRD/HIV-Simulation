@@ -8,8 +8,10 @@ import sim.engine.SimState;
 import sim.engine.Stoppable;
 import sim.util.Bag;
 import hivMicroSim.Agent.Agent;
+import hivMicroSim.Agent.Male;
 import java.io.IOException;
-import sim.engine.Schedule;
+import java.util.ArrayList;
+import java.util.Iterator;
 /**
  *
  * @author manuells
@@ -23,15 +25,27 @@ public class Infector implements sim.engine.Steppable{
     private final int initiateTick;
     private int infectNumber;
     private Stoppable stopper;
+    private boolean highRisk;
+    
+    //high risk infection attributes
+        //gender and sexual preference
+        private static final int notMSM = 10;
+        private static final int condomUseMult = 10; 
+    //end high risk infection attributes
+    
     
     public void setStopper(Stoppable a){
         stopper = a;
     }
-    public Infector(int initiateOn, int infectNum){
+    public Infector(int initiateOn, int infectNum, boolean highRiskInfection){
         initiateTick = initiateOn;
         infectNumber = infectNum;
+        highRisk = highRiskInfection;
     }
-    
+    /**
+     * Step function that will infect X number of agents after Y number of ticks defined in the HIVMicroSim class. 
+     * @param state 
+     */
     @Override
     public void step(SimState state){
         tick++;
@@ -64,5 +78,28 @@ public class Infector implements sim.engine.Steppable{
             sim.logger = new HIVLogger();
         }
         stopper.stop();
+    }
+    /**
+     * This method exists to target high risk populations. 
+     * Note that the LOWER the weight the greater the risk.
+     * (This is just to simplify programming so that we don't have to "flip" things like Monogamous and condom usage.)
+     * @param sim 
+     */
+    private void infectHighRisk(HIVMicroSim sim){
+        Agent a;
+        int risk;
+        ArrayList<RiskRating> agents = new ArrayList<>();
+        Bag bagged = sim.agents.getAllObjects();
+        for(int i = 0; i < bagged.size(); i++){
+            a = (Agent)bagged.get(i);
+            risk = a.getMonogamous() + a.getCoitalLongevity() + (int)(a.getCondomUse() * condomUseMult);
+            if(!a.isFemale()){
+                Male m = (Male)a;
+                if(!m.getMSM()) risk += notMSM;
+            }else risk += notMSM;
+            agents.add(new RiskRating(i, risk));
+        }
+        ////////////////////////TODO///////////////////////////
+        
     }
 }
