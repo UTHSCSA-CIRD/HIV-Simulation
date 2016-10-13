@@ -154,6 +154,14 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     public boolean isInfected(){
         return infected;
     }
+    public boolean isTreated(){
+        if(hiv == null) return false;
+        return hiv.isTreated();
+    }
+    public boolean isSuppressed(){
+        if(hiv == null) return false;
+        return hiv.isSuppressed();
+    }
     public boolean infect(HIVMicroSim sim){
         if(infected){ // already infected
             return false;
@@ -238,7 +246,7 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     protected Color getColor(){
         return col;
     }
-    public int getWellness(){
+    public double getWellness(){
         if(hiv == null) return 1000;
         return(hiv.getWellness());
     }
@@ -348,43 +356,89 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         if(age >= sim.networkEntranceAge){
             adjustLack(pp.libido);
         }
+        double roll;
         if(infected){
-            if(!hiv.isKnown() && pp.testingLikelihood > 0){
-                double test = sim.random.nextDouble();
-                if(test < pp.testingLikelihood){
-                    lastTest = (int)sim.schedule.getSteps();
-                    if(hiv.getDuration() > sim.testTicks){//is it within the detectable range? 
-                        test = sim.random.nextDouble();
-                        if(test < sim.testAccuracy)hiv.discover(); //that's a bad day. 
-                        discoverHIV(sim);
+            if(hiv.isKnown()){
+                roll = sim.random.nextDouble();
+                if(hiv.isTreated()){
+                    //we are currently treating
+                    if(hiv.isSuppressed()){
+                        //suppressed, roll to see if we maintain suppression
+                        if(roll < sim.viralMaintenanceLikelihood) hiv.toggleSuppression();
+                    }else{
+                        //not suppressed... roll to see if we suppress
+                        if(roll < sim.viralSuppressionLikelihood) hiv.toggleSuppression();
+                    }
+                }else{
+                 //we are not yet treating, test to see if we treat
+                    if(sim.treatAIDS && hiv.getStage() == DiseaseMatrix.StageAIDS) hiv.treat();
+                    if(roll < sim.treatmentLikelihood) hiv.treat();
+                }
+            }else{
+                //it's not known, are we testing? 
+                if(pp.testingLikelihood > 0){
+                    //we are testing
+                    double test = sim.random.nextDouble();
+                    if(test < pp.testingLikelihood){
+                        lastTest = (int)sim.schedule.getSteps();
+                        if(hiv.getDuration() > sim.testTicks){//is it within the detectable range? 
+                            test = sim.random.nextDouble();
+                            if(test < sim.testAccuracy)hiv.discover(); //that's a bad day. 
+                            discoverHIV(sim);
+                        }
                     }
                 }
             }
             int change = hiv.progress(sim);
-            if(change < 0){
-                //something has changed (hindrance or stage)
-                int stage = hiv.getStage();
-                
-                switch(stage){
-                    case 1:
+            int stage = hiv.getStage();
+            switch(stage){
+                case 1:
+                    if(hiv.isKnown()){
+                        col = new Color(153,0,0);
+                    }else{
                         col = Color.red;
-                        break;
-                    case 2:
-                        col = Color.GREEN;
-                        sim.logger.insertProgression(ID, stage, 2);
-                        break;
-                    case 3: 
-                        col = Color.orange;
-                        sim.logger.insertProgression(ID, stage, hiv.getDuration()-2);
-                        break;
-                    case 4: 
-                        col = Color.black;
-                        death(sim,false);
-                        if(networkLevel != 0){// DEBUG
-                            System.err.println("Fail.... ");
+                    }
+                    break;
+                case 2:
+                    if(hiv.isKnown()){
+                        if(hiv.isTreated()){
+                            if(hiv.isSuppressed()){
+                                col = new Color(0,255,127);
+                            }else{
+                                col = new Color(127,255,0);
+                            }
+                        }else{
+                            col = new Color(50,205,50);
                         }
-                        break;
-                }
+                    }else{
+                        col = new Color(34,139,34);
+                    }
+                    if(change < 0) sim.logger.insertProgression(ID, stage, 2);
+                    break;
+                case 3: 
+                    if(hiv.isKnown()){
+                        if(hiv.isTreated()){
+                            if(hiv.isSuppressed()){
+                                col = new Color(255,255,0);
+                            }else{
+                                col = new Color(255,215,0);
+                            }
+                        }else{
+                            col = new Color(255,165,0);
+                        }
+                    }else{
+                        col = new Color(184,134,11);
+                    }
+                    if(change < 0) sim.logger.insertProgression(ID, stage, hiv.getDuration()-2);
+                    break;
+                case 4: 
+                    //should only get to this once... 
+                    col = Color.black;
+                    death(sim,false);
+                    if(networkLevel != 0){// DEBUG
+                        System.err.println("Fail.... ");
+                    }
+                    break;
             }
             if(change%2 == 1){
                 hindranceChange();

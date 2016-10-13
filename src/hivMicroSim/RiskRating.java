@@ -5,17 +5,19 @@
  */
 package hivMicroSim;
 
+import hivMicroSim.Agent.Agent;
+
 /**
  *  This class exists as a comparable utilized by the "high risk" method of the Infector class. 
  * It allows a sorting algorithm to quickly sort the weighted list of indexed agents. 
  * @author Laura Manuel
  */
 public class RiskRating implements Comparable<RiskRating>{
-    public final int index;
+    public final Agent agent;
     public final int weight;
     
-    public RiskRating(int index, int weight){
-        this.index = index;
+    public RiskRating(Agent agent, int weight){
+        this.agent = agent;
         this.weight = weight;
     }
     

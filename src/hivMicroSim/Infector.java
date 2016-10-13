@@ -11,6 +11,7 @@ import hivMicroSim.Agent.Agent;
 import hivMicroSim.Agent.Male;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 /**
  *
@@ -57,17 +58,21 @@ public class Infector implements sim.engine.Steppable{
         int rand;
         Agent a;
         if(infectNumber > (b.size()*.5)){
-            System.err.println("Warning, number to infect is greater than half the population, setting to 1%");
+            System.err.println("Warning, number to infect is greater than half the population, setting to 10%");
             infectNumber = (int)Math.ceil(.1* b.size());
         }
-        for(int i = 0; i<infectNumber; i++){
-            do{
-                rand = sim.random.nextInt(b.size());
-                a = (Agent)b.get(rand);
-                if(a.getTickAge()< sim.networkEntranceAge || a.isInfected()) a = null;//We're not infecting children
-                //continue to pull new random agents until you find one that is both old enough and not yet infected.
-            }while(a == null);
-            a.infect(sim);
+        if(highRisk){
+            infectHighRisk(sim, infectNumber);
+        }else{
+            for(int i = 0; i<infectNumber; i++){
+                do{
+                    rand = sim.random.nextInt(b.size());
+                    a = (Agent)b.get(rand);
+                    if(a.getTickAge()< sim.networkEntranceAge || a.isInfected()) a = null;//We're not infecting children
+                    //continue to pull new random agents until you find one that is both old enough and not yet infected.
+                }while(a == null);
+                a.infect(sim);
+            }
         }
         try{
             sim.logger = new HIVLogger(sim.logLevel, "eventLog.txt", "yearLog.txt","agentLog.txt", sim.agents.size(), infectNumber);
@@ -85,9 +90,9 @@ public class Infector implements sim.engine.Steppable{
      * (This is just to simplify programming so that we don't have to "flip" things like Monogamous and condom usage.)
      * @param sim 
      */
-    private void infectHighRisk(HIVMicroSim sim){
+    private void infectHighRisk(HIVMicroSim sim, int infectNumber){
         Agent a;
-        int risk;
+        int risk, roll;
         ArrayList<RiskRating> agents = new ArrayList<>();
         Bag bagged = sim.agents.getAllObjects();
         for(int i = 0; i < bagged.size(); i++){
@@ -97,9 +102,15 @@ public class Infector implements sim.engine.Steppable{
                 Male m = (Male)a;
                 if(!m.getMSM()) risk += notMSM;
             }else risk += notMSM;
-            agents.add(new RiskRating(i, risk));
+            if(a.getTickAge()>= sim.networkEntranceAge)agents.add(new RiskRating(a, risk));
         }
-        ////////////////////////TODO///////////////////////////
+        //we sort the agents
+        Collections.sort(agents);
+        for(int i = 0; i < infectNumber; i++){
+            roll = sim.nextGaussianRange(0, agents.size()-1, 0, false, true); //select an agent, riskier agents close to 0 are more likely to be chosen
+            agents.get(roll).agent.infect(sim); //get the rolled agent and infect them.
+            agents.remove(roll); // remove them from the list so that they can't be selected again. 
+        }
         
     }
 }

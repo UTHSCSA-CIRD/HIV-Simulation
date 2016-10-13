@@ -63,6 +63,12 @@ public class HIVMicroSim extends SimState{
     public double testTicks = 4; //number of ticks afer which the agent may test positive. 
     public double knownHIVcondom = .25; //increases the likelihood of using condoms by 25%
     
+    //Treatment
+    public double treatmentLikelihood = .00481;
+    public boolean treatAIDS = true;
+    public double viralSuppressionLikelihood = .26; // rolling below this starts viral suppression
+    public double viralMaintenanceLikelihood = .15; //rolling below this loses viral suppression
+    
    
     /* Likeliness factors
     http://www.cdc.gov/hiv/risk/estimates/riskbehaviors.html
@@ -97,6 +103,7 @@ public class HIVMicroSim extends SimState{
     private final String simDebugFile = "simDebug.txt";
     private final int simDebugLevel = DebugLogger.LOG_ALL;
     public int initializationOnTick = 52; // the tick on which we will initiate infection. 
+    public boolean initializeHighRiskPop = true;
     
     public int getStartInfected(){
         return numInfect;
@@ -122,6 +129,8 @@ public class HIVMicroSim extends SimState{
             initializationOnTick = a;
         }
     }
+    public boolean isInitializeHighRiskPop(){return initializeHighRiskPop;}
+    public void setInitializeHighRiskPop(boolean a){initializeHighRiskPop = a;}
     
     public int getAverageAge(){
         return (int)averageAge/ticksPerYear;
@@ -178,6 +187,27 @@ public class HIVMicroSim extends SimState{
     }
     public void setTestingLikelihood(double a){
         if(a >= Personality.testingMin && a <= Personality.testingMax) testingLikelihood = a;
+    }
+//    public double treatmentLikelihood = .00481;
+//    public boolean treatAIDS = true;
+//    public double viralSuppressionLikelihood = .26; // rolling below this starts viral suppression
+//    public double viralMaintenanceLikelihood = .15; //rolling below this loses viral suppression
+    public double getTreatmentLikelihood() {return treatmentLikelihood;}
+    public boolean isTreatAIDS(){return treatAIDS;}
+    public double getViralSuppressionLikelihood(){return viralSuppressionLikelihood;}
+    public double getViralMaintenanceLikelihood(){ return viralMaintenanceLikelihood;}
+    
+    public void setTreatmentLikelihood(double a){
+        if(a >= 0 && a <= 1) treatmentLikelihood = a; 
+    }
+    public void setTreatAIDS(boolean a){
+        treatAIDS = a;
+    }
+    public void setViralSuppressionLikelihood(double a){
+        if(a >= 0 && a <= 1) viralSuppressionLikelihood = a;
+    }
+    public void setViralMaintenanceLikelihood(double a){
+        if(a >= 0 && a <= 1) viralMaintenanceLikelihood = a;
     }
     
     /**
@@ -422,7 +452,7 @@ public class HIVMicroSim extends SimState{
         schedule.scheduleRepeating(Schedule.EPOCH, 2, processInteractions);
         
         //create and schedule the infect timer. 
-        Infector infectTimer = new Infector(initializationOnTick, numInfect);
+        Infector infectTimer = new Infector(initializationOnTick, numInfect, initializeHighRiskPop);
         infectTimer.setStopper(schedule.scheduleRepeating(Schedule.EPOCH, 4, infectTimer));
         
         Steppable agentGenerator = new Steppable(){

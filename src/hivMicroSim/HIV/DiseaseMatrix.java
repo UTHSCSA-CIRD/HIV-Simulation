@@ -31,10 +31,14 @@ public class DiseaseMatrix implements java.io.Serializable{
     
     public static final double wellnessHazardMaxLatency = 9.615;
     public static final double wellnessHazardAvgLatency = -0.5;//-0.9615;
+    public static final double wellnessTreatmentLatency = 0;
+    public static final double wellnessSuppressionLatency = 1;
     public static final double wellnessHazardMinLatency = -9.615;
     
     public static final double wellnessHazardMaxAIDS = 16.666;
     public static final double wellnessHazardAvgAIDS = -.8;//-1.666;
+    public static final double wellnessTreatmentAIDS = 0;
+    public static final double wellnessSuppressionAIDS = .5;
     public static final double wellnessHazardMinAIDS = -16.666;
     public static final int[] wellnessLevels = {500,400,300,200,100};
     public static final double[] wellnessHindrance = {.9,.8,.7,.3,.2};
@@ -42,32 +46,51 @@ public class DiseaseMatrix implements java.io.Serializable{
     //treatment
     private static final double viralSuppressionXFactor = .02;
     private static final double treatmentXFactor = .1; //treated, but not viralogically suppressed.
-    private static final double percentSuppressed = 80;   
+    
     
     //INSTANCE SPECIFIC FACTORS
     private int stage;
     private int duration;
     private int aidsTick = -1; //the number of ticks since the agent converted to aids
-    private int infectionWellness = 700;
+    private double infectionWellness = 700;
     private double hindrance;
     private double infectivity = 1;
     private boolean known = false;
     private boolean treated;
     private boolean viralSuppression;
+    /*
+    * Treatment: 
+    An agent cannot receive treatment unless they know about their infection. 
+    An agent has a chance indicated by HIVMicroSim to start treatment if they know about their infection.
+    If indicated by HIVMicroSim, an agent who knows about their infection will start therapy once they reach AIDs
+    An agent has a chance indicated by HIVMicroSim to become virologically suppressed while on treamtent
+    A virologically suppressed agent has a chance indicated by HIVMicroSim to no longer be virologically suppressed.
+    Virological suppression and maintenance rates vary by population and condition, thus these will be adjustable in the model. 
+    */
     
     public int getAIDsTick(){return aidsTick;}
     public DiseaseMatrix() {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
-    public int getWellness(){
+    public double getWellness(){
         return infectionWellness;
     }
-    
+    public void adjustWellness(double a){
+        infectionWellness += a;
+        if(infectionWellness >= normalWellness) infectionWellness = normalWellness;
+    }
     public double getInfectivity(){
         /**
-         * This method combines infectivity with the stage to get the current infectivity. 
+         * This method combines infectivity with the stage and treatment status to get the current infectivity. 
          */
         double degree = infectivity;
+        if(treated){
+            if(viralSuppression){
+                degree *= viralSuppressionXFactor;
+            }else{
+                degree *= treatmentXFactor;
+            }
+        }
         if(stage == StageAcute){
             degree *= ACUTEXFACTOR;
         }else{
@@ -125,8 +148,16 @@ public class DiseaseMatrix implements java.io.Serializable{
                 }
             break;
             case StageLatency: //clinical latency
-                rand = sim.nextGaussianRangeDouble(wellnessHazardMinLatency, wellnessHazardMaxLatency, true, 0, (wellnessHazardMaxLatency/3), wellnessHazardAvgLatency);
-                infectionWellness +=rand;
+                if(treated){
+                    if(viralSuppression){
+                        rand = sim.nextGaussianRangeDouble(wellnessHazardMinLatency, wellnessHazardMaxLatency, true, 0, (wellnessHazardMaxLatency/3), wellnessSuppressionLatency);
+                    }else{
+                        rand = sim.nextGaussianRangeDouble(wellnessHazardMinLatency, wellnessHazardMaxLatency, true, 0, (wellnessHazardMaxLatency/3), wellnessTreatmentLatency);
+                    }
+                }else{
+                    rand = sim.nextGaussianRangeDouble(wellnessHazardMinLatency, wellnessHazardMaxLatency, true, 0, (wellnessHazardMaxLatency/3), wellnessHazardAvgLatency);
+                }
+                adjustWellness(rand);
                 if(infectionWellness < LATENCYWELLNESSTHRESHOLD){
                     //progress to AIDS
                     stage = StageAIDS;
@@ -136,8 +167,16 @@ public class DiseaseMatrix implements java.io.Serializable{
             break;
             case StageAIDS:
                 aidsTick++;
-                rand = sim.nextGaussianRangeDouble(wellnessHazardMinAIDS, wellnessHazardMaxAIDS, true, 0, (wellnessHazardMaxAIDS/3), wellnessHazardAvgAIDS);
-                infectionWellness +=rand;
+                if(treated){
+                    if(viralSuppression){
+                        rand = sim.nextGaussianRangeDouble(wellnessHazardMinAIDS, wellnessHazardMaxAIDS, true, 0, (wellnessHazardMaxAIDS/3), wellnessSuppressionAIDS);
+                    }else{
+                        rand = sim.nextGaussianRangeDouble(wellnessHazardMinAIDS, wellnessHazardMaxAIDS, true, 0, (wellnessHazardMaxAIDS/3), wellnessTreatmentAIDS);
+                    }
+                }else{
+                    rand = sim.nextGaussianRangeDouble(wellnessHazardMinAIDS, wellnessHazardMaxAIDS, true, 0, (wellnessHazardMaxAIDS/3), wellnessHazardAvgAIDS);
+                }
+                adjustWellness(rand);
                 if(infectionWellness <= WELLNESSDEATHTHRESHOLD){
                     //progress to Death
                     stage = StageDeath;
@@ -155,6 +194,18 @@ public class DiseaseMatrix implements java.io.Serializable{
     }
     public boolean isKnown(){
         return known;
+    }
+    public void treat(){
+        treated = true;
+    }
+    public boolean isTreated(){
+        return treated;
+    }
+    public void toggleSuppression(){
+        viralSuppression = !viralSuppression;
+    }
+    public boolean isSuppressed(){
+        return viralSuppression;
     }
     public DiseaseMatrix(double infectivity){
         infectionWellness = normalWellness;
