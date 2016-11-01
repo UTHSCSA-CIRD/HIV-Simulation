@@ -364,7 +364,7 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
                     //we are currently treating
                     if(hiv.isSuppressed()){
                         //suppressed, roll to see if we maintain suppression
-                        if(roll < sim.viralMaintenanceLikelihood) hiv.toggleSuppression();
+                        if(roll < sim.viralFailureLikelihood) hiv.toggleSuppression();
                     }else{
                         //not suppressed... roll to see if we suppress
                         if(roll < sim.viralSuppressionLikelihood) hiv.toggleSuppression();

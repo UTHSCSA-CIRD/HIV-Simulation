@@ -67,7 +67,7 @@ public class HIVMicroSim extends SimState{
     public double treatmentLikelihood = .00481;
     public boolean treatAIDS = true;
     public double viralSuppressionLikelihood = .26; // rolling below this starts viral suppression
-    public double viralMaintenanceLikelihood = .15; //rolling below this loses viral suppression
+    public double viralFailureLikelihood = .15; //rolling below this loses viral suppression
     
    
     /* Likeliness factors
@@ -191,11 +191,11 @@ public class HIVMicroSim extends SimState{
 //    public double treatmentLikelihood = .00481;
 //    public boolean treatAIDS = true;
 //    public double viralSuppressionLikelihood = .26; // rolling below this starts viral suppression
-//    public double viralMaintenanceLikelihood = .15; //rolling below this loses viral suppression
+//    public double viralFailureLikelihood = .15; //rolling below this loses viral suppression
     public double getTreatmentLikelihood() {return treatmentLikelihood;}
     public boolean isTreatAIDS(){return treatAIDS;}
     public double getViralSuppressionLikelihood(){return viralSuppressionLikelihood;}
-    public double getViralMaintenanceLikelihood(){ return viralMaintenanceLikelihood;}
+    public double getVirologicFailureLikelihood(){ return viralFailureLikelihood;}
     
     public void setTreatmentLikelihood(double a){
         if(a >= 0 && a <= 1) treatmentLikelihood = a; 
@@ -206,8 +206,8 @@ public class HIVMicroSim extends SimState{
     public void setViralSuppressionLikelihood(double a){
         if(a >= 0 && a <= 1) viralSuppressionLikelihood = a;
     }
-    public void setViralMaintenanceLikelihood(double a){
-        if(a >= 0 && a <= 1) viralMaintenanceLikelihood = a;
+    public void setVirologicFailureLikelihood(double a){
+        if(a >= 0 && a <= 1) viralFailureLikelihood = a;
     }
     
     /**
@@ -503,4 +503,4 @@ public class HIVMicroSim extends SimState{
         debugLog.close();
         super.finish();
     } 
-}
+} 

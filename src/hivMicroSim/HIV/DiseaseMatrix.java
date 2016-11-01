@@ -30,13 +30,13 @@ public class DiseaseMatrix implements java.io.Serializable{
     public static final double normalInfectivity = 1;
     
     public static final double wellnessHazardMaxLatency = 9.615;
-    public static final double wellnessHazardAvgLatency = -0.5;//-0.9615;
+    public static final double wellnessHazardAvgLatency = -0.9615;//-0.9615; // .5
     public static final double wellnessTreatmentLatency = 0;
     public static final double wellnessSuppressionLatency = 1;
     public static final double wellnessHazardMinLatency = -9.615;
     
     public static final double wellnessHazardMaxAIDS = 16.666;
-    public static final double wellnessHazardAvgAIDS = -.8;//-1.666;
+    public static final double wellnessHazardAvgAIDS = -1.66;//-1.666; //.8
     public static final double wellnessTreatmentAIDS = 0;
     public static final double wellnessSuppressionAIDS = .5;
     public static final double wellnessHazardMinAIDS = -16.666;
