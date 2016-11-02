@@ -39,6 +39,7 @@ infectPattern$Infection_Duration = as.numeric(infectPattern$Infection_Duration)
 infectPattern$infected[is.na(infectPattern$infected)] = 0
 infectPattern$InfPerYear = infectPattern$infected/(infectPattern$Infection_Duration/52)
 
+#Going to add MSM MSWO and W to the year log.
 
 plot(yearLog$Year, yearLog$incidenceRate, type = "l", main = "Incidicent rate per 1,000 agents")
 plot(yearLog$Year, yearLog$percentInfected, type = "l", main = "Prevalence in Agent Population")
@@ -84,12 +85,12 @@ t.test(iAgents$Immunity, infAgents$Immunity)
 ########Looking at the duration of infection#####
 #build the infection data set
 
-if(length(which(!is.na(infectPattern$toAIDs))) != 0){paste("Years to AIDS: Min: ", (min(infectPattern$toAIDs, na.rm = TRUE)+2)/52, " Mean: ", (mean(infectPattern$toAIDs, na.rm = TRUE)+2)/52, "Max: ",(max(infectPattern$toAIDs, na.rm = TRUE)+2)/52 )} else paste("No AIDs")
-if(length(which(!is.na(infectPattern$toDeath))) != 0){ paste("Years to AIDS Death: Min: ", (min(infectPattern$toAIDs + infectPattern$toDeath, na.rm = TRUE)+2)/52, " Mean: ", (mean(infectPattern$toAIDs + infectPattern$toDeath, na.rm = TRUE)+2)/52, " Max: ", (max(infectPattern$toAIDs + infectPattern$toDeath, na.rm = TRUE)+2)/52)}else paste("No AIDs Deaths")
-if(length(which(!is.na(infectPattern$toDeath))) != 0){ paste("Years to Death from AIDs: Min: ", (min(infectPattern$toDeath, na.rm = TRUE))/52, " Mean: " , (mean(infectPattern$toDeath, na.rm = TRUE))/52, " Max: ", (max(infectPattern$toDeath, na.rm = TRUE))/52)} else paste ("No AIDs Deaths")
-if(length(which(!is.na(infectPattern$toDiscovery))) != 0){paste("Years to discovery: Min: ", (min(infectPattern$toDiscovery, na.rm = TRUE))/52, " Mean: ", (mean(infectPattern$toDiscovery, na.rm = TRUE))/52, " Max: ", (max(infectPattern$toDiscovery, na.rm = TRUE))/52)} else {paste("No Discovery")}
-paste("Overall survival (Years): Min: ", (min(infectPattern$Infection_Duration, na.rm = TRUE))/52, " Mean: ", (mean(infectPattern$Infection_Duration, na.rm = TRUE))/52, " Max: ", (max(infectPattern$Infection_Duration, na.rm = TRUE))/52)
-paste("Mean infections per year infected: ", mean(infectPattern$InfPerYear, na.rm = TRUE))
-paste("Expected infections per infected individual: ", mean(infectPattern$InfPerYear, na.rm = TRUE) * (mean(infectPattern$Infection_Duration, na.rm = TRUE)/52))
+if(length(which(!is.na(infectPattern$toAIDs))) != 0){ paste("Years to AIDS");round((quantile(infectPattern$toAIDs, na.rm = TRUE) + 2)/52, 2)}else paste("No AIDs")
+if(length(which(!is.na(infectPattern$toDeath))) != 0){ paste("Years to AIDS Death"); round((quantile(infectPattern$toAIDs + infectPattern$toDeath, na.rm = TRUE)+2)/52,2)}else paste("No AIDs Deaths")
+if(length(which(!is.na(infectPattern$toDeath))) != 0){ paste("Years to Death from AIDs"); round(quantile(infectPattern$toDeath, na.rm = TRUE)/52,2)} else paste ("No AIDs Deaths")
+if(length(which(!is.na(infectPattern$toDiscovery))) != 0){paste("Years to discovery"); round(quantile(infectPattern$toDiscovery, na.rm = TRUE)/52,2)}else {paste("No Discovery")}
+paste("Overall survival (Years)"); round(quantile(infectPattern$Infection_Duration, na.rm = TRUE)/52,2)
+paste("Mean infections per year infected: ", round(mean(infectPattern$InfPerYear, na.rm = TRUE), 2))
+paste("Expected infections per infected individual: ",  round(mean(infectPattern$InfPerYear, na.rm = TRUE) * (mean(infectPattern$Infection_Duration, na.rm = TRUE)/52),2))
 #Is knowledge power? Split up pre and post discovery infections 
 

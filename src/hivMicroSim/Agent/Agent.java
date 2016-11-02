@@ -173,6 +173,18 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         hiv = new DiseaseMatrix(DiseaseMatrix.normalInfectivity);
         return true;
     }
+    public boolean infect(HIVMicroSim sim, double wellness){
+        if(infected){ // already infected
+            return false;
+        }
+///////////////////Enhancment necessary- basic formula////////////////////
+        
+        infected = true;
+        col = Color.red;
+        hiv = new DiseaseMatrix(DiseaseMatrix.normalInfectivity, wellness);
+        hindranceChange();
+        return true;
+    }
     public boolean attemptInfection(HIVMicroSim sim, double degree){
         attemptsToInfect++;
         degree *= sim.perInteractionLikelihood * hivImmunity;

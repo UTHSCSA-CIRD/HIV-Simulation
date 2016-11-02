@@ -71,7 +71,11 @@ public class Infector implements sim.engine.Steppable{
                     if(a.getTickAge()< sim.networkEntranceAge || a.isInfected()) a = null;//We're not infecting children
                     //continue to pull new random agents until you find one that is both old enough and not yet infected.
                 }while(a == null);
-                a.infect(sim);
+                if(sim.stratifyInitInfected){
+                    a.infect(sim, (int)(sim.random.nextDouble()*1000));
+                }else{
+                    a.infect(sim);
+                }
             }
         }
         try{
@@ -108,7 +112,11 @@ public class Infector implements sim.engine.Steppable{
         Collections.sort(agents);
         for(int i = 0; i < infectNumber; i++){
             roll = sim.nextGaussianRange(0, agents.size()-1, 0, false, true); //select an agent, riskier agents close to 0 are more likely to be chosen
-            agents.get(roll).agent.infect(sim); //get the rolled agent and infect them.
+            if(sim.stratifyInitInfected){
+                agents.get(roll).agent.infect(sim, (int)(sim.random.nextDouble()*1000));
+            }else{
+                agents.get(roll).agent.infect(sim);
+            }
             agents.remove(roll); // remove them from the list so that they can't be selected again. 
         }
         

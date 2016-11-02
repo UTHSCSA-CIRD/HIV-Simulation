@@ -45,7 +45,7 @@ public class DiseaseMatrix implements java.io.Serializable{
     
     //treatment
     private static final double viralSuppressionXFactor = .02;
-    private static final double treatmentXFactor = .1; //treated, but not viralogically suppressed.
+    //private static final double treatmentXFactor = .1; //treated, but not viralogically suppressed.
     
     
     //INSTANCE SPECIFIC FACTORS
@@ -87,8 +87,7 @@ public class DiseaseMatrix implements java.io.Serializable{
         if(treated){
             if(viralSuppression){
                 degree *= viralSuppressionXFactor;
-            }else{
-                degree *= treatmentXFactor;
+                return degree; // should not add AIDS X factor etc to virologically suppressed agents
             }
         }
         if(stage == StageAcute){
@@ -103,7 +102,7 @@ public class DiseaseMatrix implements java.io.Serializable{
     public double getHindrance(){
         return hindrance;
     }
-    public boolean updateHindrance(){
+    public final boolean updateHindrance(){
         /**
          * Updates the hindrance value of the disease.
          * @return Returns true if the hindrance changed or false if the hindrance did not change. 
@@ -214,5 +213,30 @@ public class DiseaseMatrix implements java.io.Serializable{
         known = false;
         stage = StageAcute;
         duration = 0;
+    }
+    public DiseaseMatrix(double infectivity, double wellness){
+        if(wellness > normalWellness){
+            infectionWellness = normalWellness;
+            duration = 0;
+            stage = StageAcute;
+            hindrance = 0;
+        }else{
+            infectionWellness = wellness;
+            if(wellness < LATENCYWELLNESSTHRESHOLD){
+                stage = StageAIDS;
+            }else{
+                stage = StageLatency;
+            }
+            updateHindrance();
+            /*
+            The differnce between max wellness and current wellness times
+            the average decline per tick for AIDS and Latency. Note: this could be 
+            improved by taking the latency and aids wellness sections separately.
+             */
+            duration = (int)(750-wellness)/(750/(13*52));
+        }
+        this.infectivity = infectivity;
+        known = false;
+         // hinderance will be set 
     }
 }

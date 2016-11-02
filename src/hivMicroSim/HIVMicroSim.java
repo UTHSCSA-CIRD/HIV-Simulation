@@ -51,7 +51,7 @@ public class HIVMicroSim extends SimState{
     public double resistanceAvg = 1;  //average resistance.
     
     //population percentages 
-    public double percentMsMW = .1;   //0-1 (combined with MsM cannot exceed 1)
+    public double percentMsMW = .02;   //0-1 (combined with MsM cannot exceed 1)
     public double percentMsM = .02;   // 0-1(combined with MsMW cannot exceed 1)
     public double percentCircum = .5; //percent circumcised
     
@@ -67,7 +67,7 @@ public class HIVMicroSim extends SimState{
     public double treatmentLikelihood = .00481;
     public boolean treatAIDS = true;
     public double viralSuppressionLikelihood = .26; // rolling below this starts viral suppression
-    public double viralFailureLikelihood = .15; //rolling below this loses viral suppression
+    public double viralFailureLikelihood = .05; //rolling below this loses viral suppression
     
    
     /* Likeliness factors
@@ -104,6 +104,7 @@ public class HIVMicroSim extends SimState{
     private final int simDebugLevel = DebugLogger.LOG_ALL;
     public int initializationOnTick = 52; // the tick on which we will initiate infection. 
     public boolean initializeHighRiskPop = true;
+    public boolean stratifyInitInfected = true;
     
     public int getStartInfected(){
         return numInfect;
@@ -129,6 +130,8 @@ public class HIVMicroSim extends SimState{
             initializationOnTick = a;
         }
     }
+    public boolean isStratifiedInitInfected(){return stratifyInitInfected;}
+    public void setStratifiedInitInfected(boolean a){stratifyInitInfected = a;}
     public boolean isInitializeHighRiskPop(){return initializeHighRiskPop;}
     public void setInitializeHighRiskPop(boolean a){initializeHighRiskPop = a;}
     
