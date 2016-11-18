@@ -16,6 +16,14 @@ import java.io.IOException;
  *
  * @author ManuelLS
  */
+
+/* Example code from MASON to be deleted once integrated into the model:
+    public double getRandomActionProbability() { return randomActionProbability; }
+    public void setRandomActionProbability(double val) {if (val >= 0 && val <= 1.0) randomActionProbability = val; }
+    public Object domRandomActionProbability() { return new Interval(0.0, 1.0); }
+*/
+
+
 public class HIVMicroSim extends SimState{
     public SparseGrid2D agents;
     public ListNetwork networkMF; // male female sexual network
@@ -27,6 +35,7 @@ public class HIVMicroSim extends SimState{
     public double agentGrowth = 0; 
     //Population growth per month
     public double populationGrowth = .0005;
+    public boolean removeTheDead = false;
     
     public int newAgents = 0;
     public int numInfect = 2; //initial number of infected agents. 
@@ -59,7 +68,8 @@ public class HIVMicroSim extends SimState{
     public double testingLikelihood = .00481; //The likelihood of the average agent to get tested in any given tick. 
                                         //Assuming 50% of the population gets tested every 2 years
                                             //1/24/2
-    public double testAccuracy = .98; //The likelihood of testing positive when positive
+    public double testAccuracy = 1; //The likelihood of testing positive when positive
+        //Currently disabled by setting it to 1 (all tests are 
     public double testTicks = 4; //number of ticks afer which the agent may test positive. 
     public double knownHIVcondom = .25; //increases the likelihood of using condoms by 25%
     
@@ -95,7 +105,7 @@ public class HIVMicroSim extends SimState{
     
     //Population statistics
     public static final int ticksPerYear = 52;
-    public int averageAge = 1300;//in months
+    public int averageAge = 1300; //in months
     public int averageLifeSpan = 3380;
     public HIVLogger logger;
     public int logLevel = HIVLogger.LOG_DEATH_NATURAL; 
@@ -122,6 +132,8 @@ public class HIVMicroSim extends SimState{
             populationGrowth = a;
         }
     }
+    public boolean isRemoveTheDead(){return removeTheDead;}
+    public void setRemoveTheDead(boolean a) {removeTheDead = a;}
     public int getInitializationTick(){
         return initializationOnTick;
     }
@@ -402,6 +414,12 @@ public class HIVMicroSim extends SimState{
         agents = new SparseGrid2D(gridWidth, gridHeight);
         networkMF = new ListNetwork(false);
         networkM = new ListNetwork(false);
+        /* Order
+            1 Agent Processes Self
+            2 Relationships Processed
+                2.1 Relationships Dissolved
+                2.2 New Relationships Created 
+        */
         
         //generate starter agents, add them to the network and object location.
         Stoppable stopper;

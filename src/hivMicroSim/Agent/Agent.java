@@ -350,8 +350,9 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
             if(alive){
                 death(sim, true);
             }else{
-                //for agents who died of HIV. They remain active for population growth and to record the effects of 
-                //the disease, but they should be removed when they would normally die. 
+                //for agents who died of HIV when RemoveTheDead is false. They 
+                //remain active for population growth and to record the effects of 
+                //the disease, but they should be removed when they would normally die.
                 sim.agents.remove(this);
                 stopper.stop();
             }
@@ -366,7 +367,7 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
             }
         }
         if(age >= sim.networkEntranceAge){
-            adjustLack(pp.libido);
+            adjustLack(pp.libido-networkLevel);
         }
         double roll;
         if(infected){
@@ -483,7 +484,7 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
             networkLevel = 0;
             network.clear();
         }
-        if(natural){ 
+        if(natural || sim.removeTheDead){ 
             sim.agents.remove(this);
             stopper.stop();
         }

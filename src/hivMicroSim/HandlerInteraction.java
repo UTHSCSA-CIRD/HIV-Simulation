@@ -99,8 +99,6 @@ public class HandlerInteraction {
             Agent a, b;
             a = edge.getA();
             b = edge.getB();
-            a.adjustLack(-edge.getCoitalFrequency());
-            b.adjustLack(-edge.getCoitalFrequency());
             if(a.isInfected() ^ b.isInfected()){ // exclusive OR
                 if(a.isInfected()) sexualTransmission(sim, a, b, edge);
                 else sexualTransmission(sim, b, a, edge);

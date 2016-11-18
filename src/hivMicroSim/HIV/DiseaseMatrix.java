@@ -23,7 +23,7 @@ public class DiseaseMatrix implements java.io.Serializable{
     public static final int ACUTEXFACTOR = 15;
     private static final int ACUTETICKS = 7;
     private static final int LATENCYWELLNESSTHRESHOLD = 200; // the threshold over which 
-    public static final int AIDSXFACTOR = 20;
+    public static final int AIDSXFACTOR = 20; 
     private static final int WELLNESSDEATHTHRESHOLD = 0;
     
     public static final int normalWellness = 700;
