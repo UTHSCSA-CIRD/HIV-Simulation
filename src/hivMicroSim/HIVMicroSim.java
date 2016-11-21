@@ -12,6 +12,7 @@ import sim.engine.*;
 import sim.field.grid.SparseGrid2D;
 import sim.util.Bag;
 import java.io.IOException;
+import sim.util.Interval;
 /**
  *
  * @author ManuelLS
@@ -46,12 +47,19 @@ public class HIVMicroSim extends SimState{
     
     //global agent descriptors- gaussian distribution between 1 and 10 with these as the means
     public double percentCondomUse = .5; //0-1 inclusive
+    public Object domPercentCondomUse() { return new Interval(0.0, 1.0); }
     public int maleMonogamous = 5;      //0-10
-    public int femaleMonogamous = 5;    // 0-10
-    public int maleCoitalLongevity = 5;   //0-10
-    public int femaleCoitalLongevity = 5; // 0-10
+    public Object domMaleMonogamous() { return new Interval(0, 10); }
+    public int femaleMonogamous = 5;    
+    public Object domFemaleMonogamous() { return new Interval(0, 10); }
+    public int maleCoitalLongevity = 5;   
+    public Object domMaleCoitalLongevity() { return new Interval(0, 10); }
+    public int femaleCoitalLongevity = 5; 
+    public Object domFemaleCoitalLongevity() { return new Interval(0, 10); }
     public int maleLibido = 2;
+    public Object domMaleLibido() { return new Interval(0, 7); }
     public int femaleLibido= 2; 
+    public Object domFemaleLibido() { return new Interval(0, 7); }
     public boolean allowExtremes = true;
     
     //natural resistance -- replacing genes until further science is available 
@@ -63,6 +71,7 @@ public class HIVMicroSim extends SimState{
     public double percentMsMW = .02;   //0-1 (combined with MsM cannot exceed 1)
     public double percentMsM = .02;   // 0-1(combined with MsMW cannot exceed 1)
     public double percentCircum = .5; //percent circumcised
+    public Object domPercentCircum() { return new Interval(0.0, 1.0); }
     
     //testing likelihoods and range between tests
     public double testingLikelihood = .00481; //The likelihood of the average agent to get tested in any given tick. 
@@ -71,7 +80,16 @@ public class HIVMicroSim extends SimState{
     public double testAccuracy = 1; //The likelihood of testing positive when positive
         //Currently disabled by setting it to 1 (all tests are 
     public double testTicks = 4; //number of ticks afer which the agent may test positive. 
-    public double knownHIVcondom = .25; //increases the likelihood of using condoms by 25%
+   //Behavioral changes due to known status.
+    public boolean knownHIVStratify = false;
+    public double knownHIVCondom = .25; //increases the likelihood of using condoms
+    public Object domKnownHIVCondom() { return new Interval(-1.0, 1.0); }
+    public double knownHIVLibido = 0; 
+    public Object domKnownHIVLibido() { return new Interval(-7.0, 7.0); }
+    public int knownHIVMonogamous = 0; 
+    public Object domKnownHIVMonogamous() { return new Interval(-10, 10); }
+    public int knownHIVCoitalLongevity = 0; 
+    public Object domKnownHIVCoitalLongevity() { return new Interval(-10, 10); }
     
     //Treatment
     public double treatmentLikelihood = .00481;
@@ -223,6 +241,34 @@ public class HIVMicroSim extends SimState{
     }
     public void setVirologicFailureLikelihood(double a){
         if(a >= 0 && a <= 1) viralFailureLikelihood = a;
+    }
+    
+    //Beans for known HIV status behavioral changes
+    public boolean isKnownHIVStratify() {return knownHIVStratify;}
+    public void setKnownHIVStratify(boolean a) {knownHIVStratify = a;}
+    public double getKnownHIVCondom(){return knownHIVCondom;}
+    public void setKnownHIVCondom(double a) { 
+        if(a < 1 && a > -1){
+            knownHIVCondom = a;
+        }
+    }
+    public double getKnownHIVLibido(){return knownHIVLibido;} 
+    public void setKnownHIVLibido(double a){ 
+        if(a <7 && a > -7){
+             knownHIVLibido = a;
+        }
+    }
+    public int getKnownHIVMonogamous() {return knownHIVMonogamous;} 
+    public void setKnownHIVMonogamous(int a) { 
+        if(a>-10 &&a<10){
+            knownHIVMonogamous = a;
+        }
+    }
+    public int getKnownHIVCoitalLongevity(){return knownHIVCoitalLongevity; }
+    public void setKnownHIVCoitalLongevity(int a) {
+        if(a>-10 && a<10){
+            knownHIVCoitalLongevity = a;
+        } 
     }
     
     /**

@@ -491,9 +491,25 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         alive = false;
     }
     public void discoverHIV(HIVMicroSim sim){
-        //breaking this out so that it's easier to find and adjust later.
-        //change personality. 
-        pp.changePersonality(0, 0, 0, sim.knownHIVcondom, 0);
+        //breaking this out so that it's easier to find and adjust later. -Thank you self
+        int mono, longevity;
+        double libido,condom;
+        mono = sim.knownHIVMonogamous;
+        longevity = sim.knownHIVCoitalLongevity;
+        libido = sim.knownHIVLibido;
+        condom = sim.knownHIVCondom;
+        //determine if the values are stratified
+        if(sim.knownHIVStratify){
+               //min, max, mean, reroll, inclusive
+            mono = sim.nextGaussianRange(-10, 10, mono, true, true);
+            longevity = sim.nextGaussianRange(-10, 10, longevity, false, true);
+              //min, max, mean, reroll
+            libido = sim.nextGaussianRangeDouble(-7, 7, libido, true);
+            condom = sim.nextGaussianRangeDouble(-1, 1, condom, true);
+        }
+        //change personality. int mono, int commit, double lib, double condom, 
+              //double testing (not currently using this, but it's there for the future)
+        pp.changePersonality(mono, longevity, libido, condom, 0);
         //report known status; 
         sim.logger.insertDiscovery(ID, hiv.getStage(), hiv.getDuration());
     }
