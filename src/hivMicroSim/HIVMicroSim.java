@@ -30,16 +30,16 @@ public class HIVMicroSim extends SimState{
     public ListNetwork networkMF; // male female sexual network
     public ListNetwork networkM; // male to male sexual network
     public boolean MSMnetwork = true;
-    public int numAgents = 100;
+    public int numAgents = 1000;
     //records the current growth of new agents. Is a double because growth is by month and new
     //agents might only appear ever x months.
-    public double agentGrowth = 0; 
+    public double agentGrowth = 0; //internal variable
     //Population growth per month
     public double populationGrowth = .0005;
     public boolean removeTheDead = false;
     
     public int newAgents = 0;
-    public int numInfect = 2; //initial number of infected agents. 
+    public int numInfect = 10; //initial number of infected agents. 
     public int currentID = 0;
     public int gridWidth = 100;
     public int gridHeight = 100;
@@ -94,8 +94,7 @@ public class HIVMicroSim extends SimState{
     //Treatment
     public double treatmentLikelihood = .00481;
     public boolean treatAIDS = true;
-    public double viralSuppressionLikelihood = .26; // rolling below this starts viral suppression
-    public double viralFailureLikelihood = .05; //rolling below this loses viral suppression
+    public double lossToFollowup = .00481; 
     
    
     /* Likeliness factors
@@ -123,7 +122,7 @@ public class HIVMicroSim extends SimState{
     
     //Population statistics
     public static final int ticksPerYear = 52;
-    public int averageAge = 1300; //in months
+    public int averageAge = 1300; //in ticks
     public int averageLifeSpan = 3380;
     public HIVLogger logger;
     public int logLevel = HIVLogger.LOG_DEATH_NATURAL; 
@@ -227,8 +226,7 @@ public class HIVMicroSim extends SimState{
 //    public double viralFailureLikelihood = .15; //rolling below this loses viral suppression
     public double getTreatmentLikelihood() {return treatmentLikelihood;}
     public boolean isTreatAIDS(){return treatAIDS;}
-    public double getViralSuppressionLikelihood(){return viralSuppressionLikelihood;}
-    public double getVirologicFailureLikelihood(){ return viralFailureLikelihood;}
+    public double getLossToFollowup(){return lossToFollowup;}
     
     public void setTreatmentLikelihood(double a){
         if(a >= 0 && a <= 1) treatmentLikelihood = a; 
@@ -236,11 +234,8 @@ public class HIVMicroSim extends SimState{
     public void setTreatAIDS(boolean a){
         treatAIDS = a;
     }
-    public void setViralSuppressionLikelihood(double a){
-        if(a >= 0 && a <= 1) viralSuppressionLikelihood = a;
-    }
-    public void setVirologicFailureLikelihood(double a){
-        if(a >= 0 && a <= 1) viralFailureLikelihood = a;
+    public void setLossToFollowup(double a){
+        if(a >= 0 && a <= 1) lossToFollowup = a;
     }
     
     //Beans for known HIV status behavioral changes

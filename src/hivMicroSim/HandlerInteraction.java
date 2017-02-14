@@ -103,7 +103,12 @@ public class HandlerInteraction {
                 if(a.isInfected()) sexualTransmission(sim, a, b, edge);
                 else sexualTransmission(sim, b, a, edge);
             }//end infected
-            double rand = sim.nextGaussianRangeDouble(0,10,true, 0, (5/2), 0);
+            //R:> round(1-(pnorm(c(1,2,3,4,5,6,7,8,9), sd = 2)^52), digits = 4)
+            // [1] 1.0000 0.9999 0.9726 0.6978 0.2767 0.0678 0.0120 0.0016 0.0002
+            //int min, int max, boolean reroll, double mean, double std, int offset){
+            double rand = sim.nextGaussianRangeDouble(Personality.coitalLongevityMin,
+                    Personality.coitalLongevityMax,true, 0,
+                    (Personality.coitalLongevityMax-Personality.coitalLongevityMin)/5, 0);
             if(rand > edge.getCoitalLongevity()){
                 iter.remove();
                 edge.getA().removeEdge(edge);

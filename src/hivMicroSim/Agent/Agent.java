@@ -274,14 +274,23 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     public boolean wantsConnection(HIVMicroSim sim){
         if(networkLevel == 0)return true;
         //are their current needs met?
-        if(lack == 0) return false;
+        if(networkLevel >= pp.libido) return false;
         //handle those at the extreme of polygamy. 
         if(pp.monogamous == Personality.monogamousMin) return true;
         //extremes of monogamy- they will not be with more than 1 person at the same time.
         if(pp.monogamous == Personality.monogamousMax) return false;
-        //failing all else we roll from - monogamousMax to positive monogamousMax. 
-        int roll = sim.random.nextInt(Personality.monogamousMax*2)- Personality.monogamousMax;
-        return (roll - lack) > pp.monogamous;
+        //failing all else we roll their monogamy score on the same scale as commitment with non-monogamy being increasingly
+        //unlikely the higher your score. Note that, like longevity the sheer number of tests make a random number from
+        //0 to 10 a bad idea because in 1 year (52 ticks) a rank 10 will have been rolled approximately 5 times. 
+        //public int nextGaussianRange(int min, int max, boolean reroll, boolean inclusive, double mean, double std, int offset){
+        //Ran some calculations in R. at 2.5 the chances of a level 5 agent engaging after 1 year was around 70%
+        //utilizing 2 ((10-0)/5) you get the probabilities below. 
+        //R:> round(1-(pnorm(c(1,2,3,4,5,6,7,8,9), sd = 2)^52), digits = 4)
+            // [1] 1.0000 0.9999 0.9726 0.6978 0.2767 0.0678 0.0120 0.0016 0.0002
+        int roll = sim.nextGaussianRange(Personality.monogamousMin,
+                Personality.monogamousMax,false, true ,0, 
+                ((Personality.monogamousMax-Personality.monogamousMin)/5), 0);
+        return roll > pp.monogamous;
     }
     public int getNetworkSize(){
         return network.size();
@@ -374,14 +383,9 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
             if(hiv.isKnown()){
                 roll = sim.random.nextDouble();
                 if(hiv.isTreated()){
-                    //we are currently treating
-                    if(hiv.isSuppressed()){
+                    if(roll < sim.lossToFollowup) hiv.setTreatment(false);
                         //suppressed, roll to see if we maintain suppression
-                        if(roll < sim.viralFailureLikelihood) hiv.toggleSuppression();
-                    }else{
-                        //not suppressed... roll to see if we suppress
-                        if(roll < sim.viralSuppressionLikelihood) hiv.toggleSuppression();
-                    }
+                     
                 }else{
                  //we are not yet treating, test to see if we treat
                     if(sim.treatAIDS && hiv.getStage() == DiseaseMatrix.StageAIDS) hiv.treat();
@@ -500,12 +504,22 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         condom = sim.knownHIVCondom;
         //determine if the values are stratified
         if(sim.knownHIVStratify){
-               //min, max, mean, reroll, inclusive
-            mono = sim.nextGaussianRange(-10, 10, mono, true, true);
-            longevity = sim.nextGaussianRange(-10, 10, longevity, false, true);
-              //min, max, mean, reroll
-            libido = sim.nextGaussianRangeDouble(-7, 7, libido, true);
-            condom = sim.nextGaussianRangeDouble(-1, 1, condom, true);
+            //need to set the std because making it (Max -(-Max))/6 makes the stratification too large. Should be within
+            //the allowable range. i.e. (Max - min)/6
+               //int min, int max, boolean reroll, boolean inclusive, double mean, double std, int offset
+            mono = sim.nextGaussianRange(-Personality.monogamousMax, 
+                    Personality.monogamousMax, true, true, mono,
+                    (Personality.monogamousMax-Personality.monogamousMin)/6,0);
+            longevity = sim.nextGaussianRange(-Personality.coitalLongevityMax, 
+                    Personality.coitalLongevityMax, true, true, longevity,
+                    (Personality.coitalLongevityMax-Personality.coitalLongevityMin)/6, 0);
+              //double min, double max, boolean reroll, double mean, double std, double offset
+            libido = sim.nextGaussianRangeDouble(-Personality.libidoMax, 
+                    Personality.libidoMax, true, libido,
+                    (Personality.libidoMax-Personality.libidoMin)/6, 0 );
+            condom = sim.nextGaussianRangeDouble(-Personality.condomMax, 
+                    Personality.condomMax, true, condom,
+                    (Personality.condomMax-Personality.condomMin)/6, 0);
         }
         //change personality. int mono, int commit, double lib, double condom, 
               //double testing (not currently using this, but it's there for the future)

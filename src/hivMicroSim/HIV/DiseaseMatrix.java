@@ -31,13 +31,11 @@ public class DiseaseMatrix implements java.io.Serializable{
     
     public static final double wellnessHazardMaxLatency = 9.615;
     public static final double wellnessHazardAvgLatency = -0.9615;//-0.9615; // .5
-    public static final double wellnessTreatmentLatency = 0;
     public static final double wellnessSuppressionLatency = 1;
     public static final double wellnessHazardMinLatency = -9.615;
     
     public static final double wellnessHazardMaxAIDS = 16.666;
     public static final double wellnessHazardAvgAIDS = -1.66;//-1.666; //.8
-    public static final double wellnessTreatmentAIDS = 0;
     public static final double wellnessSuppressionAIDS = .5;
     public static final double wellnessHazardMinAIDS = -16.666;
     public static final int[] wellnessLevels = {500,400,300,200,100};
@@ -63,9 +61,9 @@ public class DiseaseMatrix implements java.io.Serializable{
     An agent cannot receive treatment unless they know about their infection. 
     An agent has a chance indicated by HIVMicroSim to start treatment if they know about their infection.
     If indicated by HIVMicroSim, an agent who knows about their infection will start therapy once they reach AIDs
-    An agent has a chance indicated by HIVMicroSim to become virologically suppressed while on treamtent
-    A virologically suppressed agent has a chance indicated by HIVMicroSim to no longer be virologically suppressed.
-    Virological suppression and maintenance rates vary by population and condition, thus these will be adjustable in the model. 
+    An agent has a chance indicated by HIVMicroSim be "lost to followup" and stop treatment.
+    A lost to followup agent can start treatment again  based off of "treatment likelihood", or entry into the AIDS status
+        AIDS patients lost to followup do not automatically restart treatment. 
     */
     
     public int getAIDsTick(){return aidsTick;}
@@ -85,10 +83,8 @@ public class DiseaseMatrix implements java.io.Serializable{
          */
         double degree = infectivity;
         if(treated){
-            if(viralSuppression){
-                degree *= viralSuppressionXFactor;
-                return degree; // should not add AIDS X factor etc to virologically suppressed agents
-            }
+            degree *= viralSuppressionXFactor;
+            return degree; // should not add AIDS X factor etc to virologically suppressed agents
         }
         if(stage == StageAcute){
             degree *= ACUTEXFACTOR;
@@ -148,11 +144,7 @@ public class DiseaseMatrix implements java.io.Serializable{
             break;
             case StageLatency: //clinical latency
                 if(treated){
-                    if(viralSuppression){
-                        rand = sim.nextGaussianRangeDouble(wellnessHazardMinLatency, wellnessHazardMaxLatency, true, 0, (wellnessHazardMaxLatency/3), wellnessSuppressionLatency);
-                    }else{
-                        rand = sim.nextGaussianRangeDouble(wellnessHazardMinLatency, wellnessHazardMaxLatency, true, 0, (wellnessHazardMaxLatency/3), wellnessTreatmentLatency);
-                    }
+                    rand = sim.nextGaussianRangeDouble(wellnessHazardMinLatency, wellnessHazardMaxLatency, true, 0, (wellnessHazardMaxLatency/3), wellnessSuppressionLatency);
                 }else{
                     rand = sim.nextGaussianRangeDouble(wellnessHazardMinLatency, wellnessHazardMaxLatency, true, 0, (wellnessHazardMaxLatency/3), wellnessHazardAvgLatency);
                 }
@@ -167,11 +159,7 @@ public class DiseaseMatrix implements java.io.Serializable{
             case StageAIDS:
                 aidsTick++;
                 if(treated){
-                    if(viralSuppression){
-                        rand = sim.nextGaussianRangeDouble(wellnessHazardMinAIDS, wellnessHazardMaxAIDS, true, 0, (wellnessHazardMaxAIDS/3), wellnessSuppressionAIDS);
-                    }else{
-                        rand = sim.nextGaussianRangeDouble(wellnessHazardMinAIDS, wellnessHazardMaxAIDS, true, 0, (wellnessHazardMaxAIDS/3), wellnessTreatmentAIDS);
-                    }
+                    rand = sim.nextGaussianRangeDouble(wellnessHazardMinAIDS, wellnessHazardMaxAIDS, true, 0, (wellnessHazardMaxAIDS/3), wellnessSuppressionAIDS);
                 }else{
                     rand = sim.nextGaussianRangeDouble(wellnessHazardMinAIDS, wellnessHazardMaxAIDS, true, 0, (wellnessHazardMaxAIDS/3), wellnessHazardAvgAIDS);
                 }
@@ -200,8 +188,8 @@ public class DiseaseMatrix implements java.io.Serializable{
     public boolean isTreated(){
         return treated;
     }
-    public void toggleSuppression(){
-        viralSuppression = !viralSuppression;
+    public void setTreatment(boolean a){
+        treated = a;
     }
     public boolean isSuppressed(){
         return viralSuppression;
@@ -224,6 +212,9 @@ public class DiseaseMatrix implements java.io.Serializable{
             infectionWellness = wellness;
             if(wellness < LATENCYWELLNESSTHRESHOLD){
                 stage = StageAIDS;
+                //we had some agents spawning their infection pretty much dead.(wellness < 1) 
+                //Adding this to give them a little time in the model
+                if (wellness < 10) wellness = 10; 
             }else{
                 stage = StageLatency;
             }
