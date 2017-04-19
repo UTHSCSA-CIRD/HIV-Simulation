@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package hivMicroSim.HIV;
+package hivMicroSim.Disease;
 import hivMicroSim.HIVMicroSim;
 
 /**

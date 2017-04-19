@@ -4,14 +4,13 @@
  * and open the template in the editor.
  */
 package hivMicroSim.Agent;
-import hivMicroSim.HIV.DiseaseMatrix;
+import hivMicroSim.Disease.DiseaseMatrix;
 import hivMicroSim.HIVMicroSim;
 import hivMicroSim.Infection;
 import hivMicroSim.CoitalInteraction;
 import java.util.ArrayList;
 import sim.portrayal.*;
 import sim.engine.*;
-
 import java.awt.*;
 import sim.portrayal.simple.OvalPortrayal2D;
 /**
@@ -24,7 +23,7 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     public final int ID;
     protected double networkLevel;
     public boolean alive = true;
-    Personality pp;
+    public Personality pp;
     
     //Genetic factors
     public final double hivImmunity;
@@ -108,6 +107,7 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
      * @return Whether or not this agent accepts the other agent's gender.
      */
     public abstract boolean acceptsGender(boolean isFemale);
+    //** NOTE THAT THE FOLLOWING PERSONALITY GET METHODS ARE FOR THE MASON GUI INTERFACE
     /**
      * Returns the current coitalLongevity level of the agent.
      * @return How likely the agent is to remain with another agent in a long term relationship.
@@ -130,19 +130,20 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         return pp.condomUse;
     }
     /**
-     * Get how long the agent will live.
-     * @return The age at which the agent will pass from non-AIDs related death.
-     */
-    public double getLifeSpan(){
-        return life/HIVMicroSim.ticksPerYear;
-    }
-    /**
      * How many times a month the agent current wants to have some form of intercourse. 
      * @return The libido of the agent.
      */
     public double getLibido(){
         return pp.libido;
     }
+    /**
+     * Get how long the agent will live.
+     * @return The age at which the agent will pass from non-AIDs related death.
+     */
+    public double getLifeSpan(){
+        return life/HIVMicroSim.ticksPerYear;
+    }
+    
     public int getAttemptsToInfect(){return attemptsToInfect;}
     public double getHIVImmunity() {return hivImmunity;}
     public double getHindrance(){ 
@@ -158,10 +159,12 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         if(hiv == null) return false;
         return hiv.isTreated();
     }
+    /*Removed
     public boolean isSuppressed(){
         if(hiv == null) return false;
         return hiv.isSuppressed();
     }
+    */
     public boolean infect(HIVMicroSim sim){
         if(infected){ // already infected
             return false;
@@ -271,27 +274,7 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     public double getNetworkLevel(){
         return networkLevel;
     }
-    public boolean wantsConnection(HIVMicroSim sim){
-        if(networkLevel == 0)return true;
-        //are their current needs met?
-        if(networkLevel >= pp.libido) return false;
-        //handle those at the extreme of polygamy. 
-        if(pp.monogamous == Personality.monogamousMin) return true;
-        //extremes of monogamy- they will not be with more than 1 person at the same time.
-        if(pp.monogamous == Personality.monogamousMax) return false;
-        //failing all else we roll their monogamy score on the same scale as commitment with non-monogamy being increasingly
-        //unlikely the higher your score. Note that, like longevity the sheer number of tests make a random number from
-        //0 to 10 a bad idea because in 1 year (52 ticks) a rank 10 will have been rolled approximately 5 times. 
-        //public int nextGaussianRange(int min, int max, boolean reroll, boolean inclusive, double mean, double std, int offset){
-        //Ran some calculations in R. at 2.5 the chances of a level 5 agent engaging after 1 year was around 70%
-        //utilizing 2 ((10-0)/5) you get the probabilities below. 
-        //R:> round(1-(pnorm(c(1,2,3,4,5,6,7,8,9), sd = 2)^52), digits = 4)
-            // [1] 1.0000 0.9999 0.9726 0.6978 0.2767 0.0678 0.0120 0.0016 0.0002
-        int roll = sim.nextGaussianRange(Personality.monogamousMin,
-                Personality.monogamousMax,false, true ,0, 
-                ((Personality.monogamousMax-Personality.monogamousMin)/5), 0);
-        return roll > pp.monogamous;
-    }
+    
     public int getNetworkSize(){
         return network.size();
     }
@@ -526,5 +509,26 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         pp.changePersonality(mono, longevity, libido, condom, 0);
         //report known status; 
         sim.logger.insertDiscovery(ID, hiv.getStage(), hiv.getDuration());
+    }
+    public boolean wantsConnection(HIVMicroSim sim){
+        if(networkLevel == 0)return true;
+        //are their current needs met?
+        if(networkLevel >= pp.libido) return false;
+        //handle those at the extreme of polygamy. 
+        if(pp.monogamous == Personality.monogamousMin) return true;
+        //extremes of monogamy- they will not be with more than 1 person at the same time.
+        if(pp.monogamous == Personality.monogamousMax) return false;
+        //failing all else we roll their monogamy score on the same scale as commitment with non-monogamy being increasingly
+        //unlikely the higher your score. Note that, like longevity the sheer number of tests make a random number from
+        //0 to 10 a bad idea because in 1 year (52 ticks) a rank 10 will have been rolled approximately 5 times. 
+        //public int nextGaussianRange(int min, int max, boolean reroll, boolean inclusive, double mean, double std, int offset){
+        //Ran some calculations in R. at 2.5 the chances of a level 5 agent engaging after 1 year was around 70%
+        //utilizing 2 ((10-0)/5) you get the probabilities below. 
+        //R:> round(1-(pnorm(c(1,2,3,4,5,6,7,8,9), sd = 2)^52), digits = 4)
+            // [1] 1.0000 0.9999 0.9726 0.6978 0.2767 0.0678 0.0120 0.0016 0.0002
+        int roll = sim.nextGaussianRange(Personality.monogamousMin,
+                Personality.monogamousMax,false, true ,0, 
+                ((Personality.monogamousMax-Personality.monogamousMin)/5), 0);
+        return roll > pp.monogamous;
     }
 }

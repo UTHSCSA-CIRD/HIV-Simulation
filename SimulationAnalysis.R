@@ -2,6 +2,7 @@ library(ggplot2)
 library(reshape2)
 library(car)#recode
 library(sqldf)
+
 agentLog = read.table("agentLog.txt", header = TRUE, sep = "\t")
 eventLog = read.table("eventLog.txt", header = TRUE, sep = "\t")
 yearLog = read.table("yearLog.txt", header = TRUE, sep = "\t")
@@ -47,7 +48,7 @@ plot(yearLog$Starting.Population, type = "l", main = "Model Population")
 
 #Multivariable plots
 tmp = yearLog[, c("Year","Starting.Population","Prevelance")];melted = melt(tmp, id = "Year");ggplot(data = melted, aes(x = Year, y = value, color = variable)) + geom_line() 
-tmp = yearLog[, c("Year","percentInfected","incidenceRate")];tmp$mortalityRate = (yearLog$Mortality/yearLog$Starting.Population * 1000);melted = melt(tmp, id = "Year");ggplot(data = melted, aes(x = Year, y = value, color = variable)) + geom_line()
+tmp = yearLog[, c("Year","percentInfected","incidenceRate")];tmp$mortalityRate = (yearLog$Mortality/yearLog$Starting.Population * 1000);melted = melt(tmp, id = "Year");ggplot(data = melted, aes(x = Year, y = value, color = variable)) + geom_line() + ggtitle("Prevalence, Incidence, and Mortality\n Even Libido")
 
 #Rnot and t-test- Compare population profiles for non-infected, infected, and high Rnot
 

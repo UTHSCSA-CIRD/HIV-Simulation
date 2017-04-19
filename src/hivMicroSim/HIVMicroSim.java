@@ -460,6 +460,7 @@ public class HIVMicroSim extends SimState{
             2 Relationships Processed
                 2.1 Relationships Dissolved
                 2.2 New Relationships Created 
+            3 
         */
         
         //generate starter agents, add them to the network and object location.
