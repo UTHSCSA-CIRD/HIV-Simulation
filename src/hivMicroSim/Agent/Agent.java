@@ -24,6 +24,7 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     protected double networkLevel;
     public boolean alive = true;
     public Personality pp;
+    public final Gene gene;
     
     //Genetic factors
     public final double hivImmunity;
@@ -80,10 +81,12 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
      * @param resistance The agent's resistance/susceptibility to HIV infection. 1 means no resistance or susceptibility.
      * @param age The agent's starting age.
      * @param life The agent's age at death.
+     * @param gene The agent's genetic information.
      */
-    public Agent(int id, Personality personality, double resistance, int age, int life){
+    public Agent(int id, Personality personality, Gene gene, double resistance, int age, int life){
         ID = id;
         pp = personality;
+        this.gene = gene;
         hivImmunity = resistance;
         
         infections = new ArrayList<>();
@@ -173,7 +176,7 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         
         infected = true;
         col = Color.red;
-        hiv = new DiseaseMatrix(DiseaseMatrix.normalInfectivity);
+        hiv = new DiseaseMatrix(DiseaseMatrix.normalInfectivity, this);
         return true;
     }
     public boolean infect(HIVMicroSim sim, double wellness){
@@ -184,13 +187,13 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         
         infected = true;
         col = Color.red;
-        hiv = new DiseaseMatrix(DiseaseMatrix.normalInfectivity, wellness);
+        hiv = new DiseaseMatrix(DiseaseMatrix.normalInfectivity, wellness, this);
         hindranceChange();
         return true;
     }
     public boolean attemptInfection(HIVMicroSim sim, double degree){
         attemptsToInfect++;
-        degree *= sim.perInteractionLikelihood * hivImmunity;
+        degree *= sim.perInteractionLikelihood * hivImmunity * gene.getHIVInfectionRisk();
         double roll = sim.random.nextDouble(); // next double between 0 and 1 (noninclusive)
         if(roll<degree){
             infect(sim);

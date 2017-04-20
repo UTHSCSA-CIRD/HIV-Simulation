@@ -4,6 +4,7 @@
  * and open the template in the editor.
  */
 package hivMicroSim.Disease;
+import hivMicroSim.Agent.Agent;
 import hivMicroSim.HIVMicroSim;
 
 /**
@@ -56,6 +57,7 @@ public class DiseaseMatrix implements java.io.Serializable{
     private boolean known = false;
     private boolean treated;
     private boolean viralSuppression;
+    private Agent myAgent;
     /*
     * Treatment: 
     An agent cannot receive treatment unless they know about their infection. 
@@ -146,7 +148,7 @@ public class DiseaseMatrix implements java.io.Serializable{
                 if(treated){
                     rand = sim.nextGaussianRangeDouble(wellnessHazardMinLatency, wellnessHazardMaxLatency, true, 0, (wellnessHazardMaxLatency/3), wellnessSuppressionLatency);
                 }else{
-                    rand = sim.nextGaussianRangeDouble(wellnessHazardMinLatency, wellnessHazardMaxLatency, true, 0, (wellnessHazardMaxLatency/3), wellnessHazardAvgLatency);
+                    rand = sim.nextGaussianRangeDouble(wellnessHazardMinLatency, wellnessHazardMaxLatency, true, 0, (wellnessHazardMaxLatency/3), myAgent.gene.getHIVProgressionFactor() * wellnessHazardAvgLatency);
                 }
                 adjustWellness(rand);
                 if(infectionWellness < LATENCYWELLNESSTHRESHOLD){
@@ -161,7 +163,7 @@ public class DiseaseMatrix implements java.io.Serializable{
                 if(treated){
                     rand = sim.nextGaussianRangeDouble(wellnessHazardMinAIDS, wellnessHazardMaxAIDS, true, 0, (wellnessHazardMaxAIDS/3), wellnessSuppressionAIDS);
                 }else{
-                    rand = sim.nextGaussianRangeDouble(wellnessHazardMinAIDS, wellnessHazardMaxAIDS, true, 0, (wellnessHazardMaxAIDS/3), wellnessHazardAvgAIDS);
+                    rand = sim.nextGaussianRangeDouble(wellnessHazardMinAIDS, wellnessHazardMaxAIDS, true, 0, (wellnessHazardMaxAIDS/3), myAgent.gene.getHIVProgressionFactor() * wellnessHazardAvgAIDS);
                 }
                 adjustWellness(rand);
                 if(infectionWellness <= WELLNESSDEATHTHRESHOLD){
@@ -194,15 +196,16 @@ public class DiseaseMatrix implements java.io.Serializable{
     public boolean isSuppressed(){
         return viralSuppression;
     }
-    public DiseaseMatrix(double infectivity){
+    public DiseaseMatrix(double infectivity, Agent infected){
         infectionWellness = normalWellness;
         this.infectivity = infectivity;
         hindrance = 0;
         known = false;
         stage = StageAcute;
         duration = 0;
+        myAgent = infected;
     }
-    public DiseaseMatrix(double infectivity, double wellness){
+    public DiseaseMatrix(double infectivity, double wellness, Agent infected){
         if(wellness > normalWellness){
             infectionWellness = normalWellness;
             duration = 0;
@@ -229,5 +232,7 @@ public class DiseaseMatrix implements java.io.Serializable{
         this.infectivity = infectivity;
         known = false;
          // hinderance will be set 
+        
+        myAgent = infected;
     }
 }
