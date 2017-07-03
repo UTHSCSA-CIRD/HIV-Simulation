@@ -24,14 +24,13 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     protected double networkLevel;
     public boolean alive = true;
     public Personality pp;
-    public final Gene gene;
     
     //Genetic factors
     public final double hivImmunity;
     
     //General Status
     protected boolean infected;
-    protected DiseaseMatrix hiv = null;
+    public DiseaseMatrix hiv = null;
     protected final ArrayList<Infection> infections;
     protected int age; // measured in months/ ticks. 
     protected int life; // how long this person should live without HIV/AIDS. This should probably
@@ -83,10 +82,9 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
      * @param life The agent's age at death.
      * @param gene The agent's genetic information.
      */
-    public Agent(int id, Personality personality, Gene gene, double resistance, int age, int life){
+    public Agent(int id, Personality personality, double resistance, int age, int life){
         ID = id;
         pp = personality;
-        this.gene = gene;
         hivImmunity = resistance;
         
         infections = new ArrayList<>();
@@ -193,7 +191,7 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     }
     public boolean attemptInfection(HIVMicroSim sim, double degree){
         attemptsToInfect++;
-        degree *= sim.perInteractionLikelihood * hivImmunity * gene.getHIVInfectionRisk();
+        degree *= sim.perInteractionLikelihood * hivImmunity;
         double roll = sim.random.nextDouble(); // next double between 0 and 1 (noninclusive)
         if(roll<degree){
             infect(sim);

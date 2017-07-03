@@ -148,7 +148,7 @@ public class DiseaseMatrix implements java.io.Serializable{
                 if(treated){
                     rand = sim.nextGaussianRangeDouble(wellnessHazardMinLatency, wellnessHazardMaxLatency, true, 0, (wellnessHazardMaxLatency/3), wellnessSuppressionLatency);
                 }else{
-                    rand = sim.nextGaussianRangeDouble(wellnessHazardMinLatency, wellnessHazardMaxLatency, true, 0, (wellnessHazardMaxLatency/3), myAgent.gene.getHIVProgressionFactor() * wellnessHazardAvgLatency);
+                    rand = sim.nextGaussianRangeDouble(wellnessHazardMinLatency, wellnessHazardMaxLatency, true, 0, (wellnessHazardMaxLatency/3), wellnessHazardAvgLatency);
                 }
                 adjustWellness(rand);
                 if(infectionWellness < LATENCYWELLNESSTHRESHOLD){
@@ -163,7 +163,7 @@ public class DiseaseMatrix implements java.io.Serializable{
                 if(treated){
                     rand = sim.nextGaussianRangeDouble(wellnessHazardMinAIDS, wellnessHazardMaxAIDS, true, 0, (wellnessHazardMaxAIDS/3), wellnessSuppressionAIDS);
                 }else{
-                    rand = sim.nextGaussianRangeDouble(wellnessHazardMinAIDS, wellnessHazardMaxAIDS, true, 0, (wellnessHazardMaxAIDS/3), myAgent.gene.getHIVProgressionFactor() * wellnessHazardAvgAIDS);
+                    rand = sim.nextGaussianRangeDouble(wellnessHazardMinAIDS, wellnessHazardMaxAIDS, true, 0, (wellnessHazardMaxAIDS/3), wellnessHazardAvgAIDS);
                 }
                 adjustWellness(rand);
                 if(infectionWellness <= WELLNESSDEATHTHRESHOLD){

@@ -107,11 +107,11 @@ public class HIVLogger implements sim.engine.Steppable{
         }
     }
     
-    public void insertInfection(int infectMode, int infector, int infected, int attemptsToInfect){
+    public void insertInfection(int infectMode, Agent infector, int infected, int attemptsToInfect){
         yearInfect++;
         prevalence++;
         if(logLevel < LOG_INFECT) return;
-        String log = turn + "\t" + infector +"\t" ;
+        String log = turn + "\t" + infector.ID +"\t" ;
         switch(infectMode){
             case Agent.MODEAI:
                 log = log + "Anal Insertive";
@@ -126,18 +126,41 @@ public class HIVLogger implements sim.engine.Steppable{
                 log = log + "Vaginal Insertive";
                 break;
         }
-        log = log + "\t" + infected + "\t" + "\t" + attemptsToInfect;
+        log = log + "\t" + infected + "\t" + "\t" + attemptsToInfect + "\t" + infector.hiv.getStage() + "\t" + infector.isKnown() + "\t" + infector.isTreated();
         eventQueue.add(log);
     }
     
     public void insertProgression(int agent, int stage, int ticks){
         if(logLevel < LOG_PROGRESSION) return;
-        String log = turn + "\t" + agent + "\tProgression\t" + stage + "\t" + ticks + "\t";
+        String log = turn + "\t" + agent + "\tProgression\t\t" + ticks + "\t\t"+stage + "\t\t";
         eventQueue.add(log);
     }
+    //eventOut.write("Tick\tAgent\tAction\tDesc1_AgeAgent\tDesc2_Ticks\tDesc3_AtteptsToInfect\tDesc4_Stage\tDesc5_KnownStatus\tDesc6_TreatmentStatus");
     public void insertDiscovery(int agent, int stage, int ticks){
         if(logLevel < LOG_DISCOVERY) return;
-        String log = turn + "\t" + agent + "\tDiscovery\t" + stage + "\t" + ticks + "\t";
+        String log = turn + "\t" + agent + "\tDiscovery\t" + "\t" + ticks + "\t\t" + stage + "\t\t";
+        eventQueue.add(log);
+    }
+    public void insertDeath(int agent, boolean natural, boolean infected, int ticks){//ticks is only used in the event of AIDS death
+        yearDeath++;
+        livingAgents--;
+        if(infected) {
+            prevalence--;
+            if(!natural){
+                yearMortality++;
+            }
+        }
+        if((logLevel < LOG_DEATH_NATURAL && natural) || (logLevel< LOG_DEATH && !natural)) return;
+        String log = turn + "\t"+ agent + "\t";
+        if(natural){
+            if(infected){
+                log = log + "Infected ";
+            }
+            log = log + "Non-AIDS Death\t" ;
+        }else{
+            log = log + "AIDS Death\t" + ticks;
+        }
+        log = log + "\t\t\t\t\t";
         eventQueue.add(log);
     }
     private void logNewAgent(Agent a){
@@ -161,37 +184,17 @@ public class HIVLogger implements sim.engine.Steppable{
             System.err.println("Could not print to agent: " + e.getLocalizedMessage() + "\n" + log2);
         }
         if(logLevel < LOG_ENTRY) return;
-        String log = turn +"\t" + a.ID + "\tEntered\t" + a.getAge(); 
+        String log = turn +"\t" + a.ID + "\tEntered\t" + a.getAge() + "\t\t\t\t\t"; 
         eventQueue.add(log);
     }
+    
     public void insertNewAgent(Agent a){
         livingAgents++;
         yearGrowth++;
         logNewAgent(a);
     }
     
-    public void insertDeath(int agent, boolean natural, boolean infected, int ticks){//ticks is only used in the event of AIDS death
-        yearDeath++;
-        livingAgents--;
-        if(infected) {
-            prevalence--;
-            if(!natural){
-                yearMortality++;
-            }
-        }
-        if((logLevel < LOG_DEATH_NATURAL && natural) || (logLevel< LOG_DEATH && !natural)) return;
-        String log = turn + "\t"+ agent + "\t";
-        if(natural){
-            if(infected){
-                log = log + "Infected ";
-            }
-            log = log + "Non-AIDS Death\t" ;
-        }else{
-            log = log + "AIDS Death\t" + ticks;
-        }
-        log = log + "\t\t";
-        eventQueue.add(log);
-    }
+    
     
     public void firstSet(sim.util.Bag agents){
         //log the initial bag.
@@ -210,7 +213,7 @@ public class HIVLogger implements sim.engine.Steppable{
         yearOut.write("Year\tStarting.Population\tIncidence\tPrevelance\tMortality\tGrowth\tDeath.Rate");
         
         eventOut = new BufferedWriter(new FileWriter(event, false),(8*1024)); // second argument F means will overwrite if exists. 
-        eventOut.write("Tick\tAgent\tAction\tDesc1(StageAgeAgent)\tDesc2(Ticks)\tDesc3(AtteptsToInfect)");
+        eventOut.write("Tick\tAgent\tAction\tDesc1_AgeAgent\tDesc2_Ticks\tDesc3_AtteptsToInfect\tDesc4_Stage\tDesc5_KnownStatus\tDesc6_TreatmentStatus");
         
         agentOut = new BufferedWriter(new FileWriter(agent, false),(8*1024)); // second argument F means will overwrite if exists. 
         agentOut.write("Entry.Step\tID\tGender\tMSW\tMSM\tCommitment\tMonogamous\tLibido\tCondom.Usage\tImmunity");

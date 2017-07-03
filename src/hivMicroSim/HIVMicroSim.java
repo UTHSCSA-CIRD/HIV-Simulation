@@ -115,8 +115,6 @@ public class HIVMicroSim extends SimState{
     public double likelinessFactorVI = 4;
     public double likelinessFactorAR = 138;
     public double likelinessFactorAI = 11;
-    public double pregnancyChance = .005;
-    public int pregnancyMaxAge = 42;
     //preventative methods
     public double likelinessFactorCircumcision = .49;
     //interaction type (mother to child vs everything else.)
