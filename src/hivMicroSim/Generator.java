@@ -22,7 +22,6 @@ public abstract class Generator{
         double hivImmunity;
         int age;
         Personality personality;
-        Gene gene;
         Agent agent;
         //if this is the initial run of the generation we will use the average age, otherwise we will use the network entrance age as the mean. 
         //Meaning that agents can join the model at an older age, but that in general they are around the network entrance age. 
@@ -37,10 +36,9 @@ public abstract class Generator{
             life = sim.nextGaussianRange(age, (int)(sim.averageLifeSpan * 1.5), sim.averageLifeSpan, true, true);
         }
         personality = generatePersonality(sim, female);
-        gene = generateGene(sim);
         hivImmunity = sim.nextGaussianRangeDouble(0, 2, 1, true);
         if(female){
-            agent = new Female(sim.currentID, personality,gene, hivImmunity, age, life);
+            agent = new Female(sim.currentID, personality, hivImmunity, age, life);
         }else{
             boolean circ;
             circ = sim.random.nextDouble() < sim.percentCircum;
@@ -48,58 +46,13 @@ public abstract class Generator{
             boolean msm = false, msw = false;
             if(rand < (sim.percentMsMW+sim.percentMsM)) msm = true;
             if(rand > sim.percentMsM) msw = true;
-            agent = new Male(sim.currentID, personality,gene, hivImmunity, age, life, circ, msm, msw);
+            agent = new Male(sim.currentID, personality, hivImmunity, age, life, circ, msm, msw);
         }
         sim.currentID++;
         return agent;
-    }
-    public static Gene generateGene(HIVMicroSim sim){
-        return(new Gene(Gene.rollCCR5(sim.random.nextDouble()),Gene.rollCCR5(sim.random.nextDouble())));
     }
     
-    public static Agent generateAgent(HIVMicroSim sim, Agent a, Agent b){
-        /**
-         * Generates a new agent.
-         * @param sim The simulation this is a part of. This is needed for the random.
-         * @param born Whether or not this is a newly born agent.
-         */
-        boolean female;
-        int life;
-        double hivImmunity;
-        int age;
-        Personality personality;
-        Gene gene;
-        Agent agent;
-        //if this is the initial run of the generation we will use the average age, otherwise we will use the network entrance age as the mean. 
-        //Meaning that agents can join the model at an older age, but that in general they are around the network entrance age. 
-        age = 0;
-        
-        //Live births do not happen in MSM only networks
-        female = sim.random.nextBoolean();
-        if(age > sim.averageLifeSpan){
-            life = sim.nextGaussianRange(age, (int)(sim.averageLifeSpan * 1.5), age, true, true);
-        }else{
-            life = sim.nextGaussianRange(age, (int)(sim.averageLifeSpan * 1.5), sim.averageLifeSpan, true, true);
-        }
-        personality = generatePersonality(sim, female);
-        gene = new Gene(
-               sim.random.nextBoolean()? a.gene.ccr5a:b.gene.ccr5a,
-               sim.random.nextBoolean()? a.gene.ccr5b:b.gene.ccr5b);
-        hivImmunity = sim.nextGaussianRangeDouble(0, 2, 1, true);
-        if(female){
-            agent = new Female(sim.currentID, personality,gene, hivImmunity, age, life);
-        }else{
-            boolean circ;
-            circ = sim.random.nextDouble() < sim.percentCircum;
-            double rand = sim.random.nextDouble();
-            boolean msm = false, msw = false;
-            if(rand < (sim.percentMsMW+sim.percentMsM)) msm = true;
-            if(rand > sim.percentMsM) msw = true;
-            agent = new Male(sim.currentID, personality,gene, hivImmunity, age, life, circ, msm, msw);
-        }
-        sim.currentID++;
-        return agent;
-    }
+   
     
     public static Personality generatePersonality(HIVMicroSim sim, boolean female){
         double condomUse;

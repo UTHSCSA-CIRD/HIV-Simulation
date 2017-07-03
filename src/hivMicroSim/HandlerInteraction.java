@@ -116,20 +116,20 @@ public class HandlerInteraction {
         if(infected.isFemale()){
             //currently not handing possible female anal intercourse option... still need some input on that
             if(nonInfected.attemptCoitalInfection(sim, PFC, infected.getInfectivity(), Agent.MODEVI)){
-                sim.logger.insertInfection(Agent.MODEVI, infected.ID, nonInfected.ID, nonInfected.getAttemptsToInfect());
+                sim.logger.insertInfection(Agent.MODEVI, infected, nonInfected.ID, nonInfected.getAttemptsToInfect());
             }
             return;
         }
         if(nonInfected.isFemale()){
             if(nonInfected.attemptCoitalInfection(sim, PFC, infected.getInfectivity(), Agent.MODEVR)){
-                sim.logger.insertInfection(Agent.MODEVR, infected.ID, nonInfected.ID, nonInfected.getAttemptsToInfect());
+                sim.logger.insertInfection(Agent.MODEVR, infected, nonInfected.ID, nonInfected.getAttemptsToInfect());
             }
             return;
         }
         //currently randomly flipping between insertive and receptive.
         int mode = sim.random.nextBoolean() ? Agent.MODEAI : Agent.MODEAR;
         if(nonInfected.attemptCoitalInfection(sim, PFC, infected.getInfectivity(), mode)){
-            sim.logger.insertInfection(mode, infected.ID, nonInfected.ID, nonInfected.getAttemptsToInfect());
+            sim.logger.insertInfection(mode, infected, nonInfected.ID, nonInfected.getAttemptsToInfect());
         }
     }
     public static void sexualInteraction(HIVMicroSim sim, CoitalInteraction edge){
@@ -178,16 +178,6 @@ public class HandlerInteraction {
                 f = (hivMicroSim.Agent.Female)a;
             }else{
                 f = (hivMicroSim.Agent.Female)b;
-            }
-            if(!f.isPregnant() && f.getAge() < sim.pregnancyMaxAge){
-                for(int i = 0; i<PFC; i++){
-                    double debug = sim.random.nextDouble();
-                    if(/*sim.random.nextDouble()*/ debug < sim.pregnancyChance){
-                        Agent child = Generator.generateAgent(sim, a, b);
-                        hivMicroSim.Agent.Pregnancy p = new hivMicroSim.Agent.Pregnancy(child);
-                        f.setPregnancy(p);
-                    }
-                }
             }
         }
         if(a.isInfected() ^ b.isInfected()){ // exclusive OR
