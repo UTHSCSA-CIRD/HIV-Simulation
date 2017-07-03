@@ -35,7 +35,7 @@ public class HIVMicroSim extends SimState{
     //agents might only appear ever x months.
     public double agentGrowth = 0; //internal variable
     //Population growth per month
-    public double populationGrowth = .0005;
+    public double populationGrowth = .00005;
     public boolean removeTheDead = false;
     
     public int newAgents = 0;
@@ -65,7 +65,7 @@ public class HIVMicroSim extends SimState{
     //natural resistance -- replacing genes until further science is available 
     public double resistanceMax = 2;  //maximum resistance
     public double resistanceMin = 0;  //minimum resistance
-    public double resistanceAvg = 1;  //average resistance.
+    public double resistanceAvg = 1;  //average resistance
     
     //population percentages 
     public double percentMsMW = .02;   //0-1 (combined with MsM cannot exceed 1)
@@ -115,6 +115,8 @@ public class HIVMicroSim extends SimState{
     public double likelinessFactorVI = 4;
     public double likelinessFactorAR = 138;
     public double likelinessFactorAI = 11;
+    public double pregnancyChance = .005;
+    public int pregnancyMaxAge = 42;
     //preventative methods
     public double likelinessFactorCircumcision = .49;
     //interaction type (mother to child vs everything else.)

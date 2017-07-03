@@ -23,8 +23,8 @@ public class Male extends Agent implements Steppable{
         return !isFemale && MSM;
     }
     
-    public Male(int id, Personality personality, double resistance, int age, int life, boolean circumsized, boolean MSM, boolean MSW){
-        super(id, personality, resistance, age, life);
+    public Male(int id, Personality personality, Gene gene, double resistance, int age, int life, boolean circumsized, boolean MSM, boolean MSW){
+        super(id, personality, gene, resistance, age, life);
         this.MSM = MSM;
         this.MSW = MSW; 
     }

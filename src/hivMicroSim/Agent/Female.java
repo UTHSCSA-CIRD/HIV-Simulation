@@ -9,9 +9,19 @@ import java.awt.*;
  */
 public class Female extends Agent implements Steppable{
     private static final long serialVersionUID = 1;
+    private Pregnancy pregnancy;
     
-    public Female(int id, Personality personality, double resistance, int age, int life){
-        super(id, personality, resistance, age, life);
+    public boolean isPregnant(){
+        return pregnancy != null;
+    }
+    public boolean setPregnancy(Pregnancy p){
+        if(isPregnant()) return false;
+        pregnancy = p;
+        return true;
+    }
+    
+    public Female(int id, Personality personality, Gene gene, double resistance, int age, int life){
+        super(id, personality,gene, resistance, age, life);
     }
     
     @Override
@@ -21,6 +31,16 @@ public class Female extends Agent implements Steppable{
     public void step(SimState state){
         //No female specific step at the moment. 
         super.step(state);
+        if (super.alive && pregnancy != null){
+            if(pregnancy.step()){
+                hivMicroSim.HIVMicroSim sim = (hivMicroSim.HIVMicroSim) state;
+                sim.logger.insertNewAgent(pregnancy.child);
+                sim.agents.setObjectLocation(pregnancy.child,sim.random.nextInt(sim.gridWidth), sim.random.nextInt(sim.gridHeight));
+                Stoppable stop = sim.schedule.scheduleRepeating(sim.schedule.getSteps(), 1, pregnancy.child);
+                pregnancy.child.setStoppable(stop);
+                pregnancy = null;
+            }
+        }
     }
     @Override
     public boolean acceptsGender(boolean isFemale){

@@ -96,13 +96,8 @@ public class HandlerInteraction {
         while(iter.hasNext()){
             edge = (CoitalInteraction)iter.next();
             //locals are faster than calling.
-            Agent a, b;
-            a = edge.getA();
-            b = edge.getB();
-            if(a.isInfected() ^ b.isInfected()){ // exclusive OR
-                if(a.isInfected()) sexualTransmission(sim, a, b, edge);
-                else sexualTransmission(sim, b, a, edge);
-            }//end infected
+            sexualInteraction(sim, edge);           
+            
             //R:> round(1-(pnorm(c(1,2,3,4,5,6,7,8,9), sd = 2)^52), digits = 4)
             // [1] 1.0000 0.9999 0.9726 0.6978 0.2767 0.0678 0.0120 0.0016 0.0002
             //int min, int max, boolean reroll, double mean, double std, int offset){
@@ -117,18 +112,41 @@ public class HandlerInteraction {
             }
         }
     }
-    public static void sexualTransmission(HIVMicroSim sim, Agent infected, Agent nonInfected, CoitalInteraction edge){
+    public static void sexualTransmission(HIVMicroSim sim, Agent infected, Agent nonInfected, int PFC){
+        if(infected.isFemale()){
+            //currently not handing possible female anal intercourse option... still need some input on that
+            if(nonInfected.attemptCoitalInfection(sim, PFC, infected.getInfectivity(), Agent.MODEVI)){
+                sim.logger.insertInfection(Agent.MODEVI, infected.ID, nonInfected.ID, nonInfected.getAttemptsToInfect());
+            }
+            return;
+        }
+        if(nonInfected.isFemale()){
+            if(nonInfected.attemptCoitalInfection(sim, PFC, infected.getInfectivity(), Agent.MODEVR)){
+                sim.logger.insertInfection(Agent.MODEVR, infected.ID, nonInfected.ID, nonInfected.getAttemptsToInfect());
+            }
+            return;
+        }
+        //currently randomly flipping between insertive and receptive.
+        int mode = sim.random.nextBoolean() ? Agent.MODEAI : Agent.MODEAR;
+        if(nonInfected.attemptCoitalInfection(sim, PFC, infected.getInfectivity(), mode)){
+            sim.logger.insertInfection(mode, infected.ID, nonInfected.ID, nonInfected.getAttemptsToInfect());
+        }
+    }
+    public static void sexualInteraction(HIVMicroSim sim, CoitalInteraction edge){
         //This just helps simplify things and keep the infection code outside of the process CoitalInteraction code.
         int PFC = 0; //protection-free coitis
-        double ac = infected.getCondomUse();
-        double bc = nonInfected.getCondomUse();
+        Agent a = edge.getA();
+        Agent b = edge.getB();
+        //no need for processing if they aren't heterozygous for at least one of these.
+        if(!(a.isFemale()^b.isFemale()) && !(a.isInfected() ^ b.isInfected()))return;
+        double ac = a.getCondomUse();
+        double bc = b.getCondomUse();
         //calculate the number of acts this tick. This is because with coitalFrequency being a double we will likely need to
         //roll. 
         double roll;
         int coitis = (int)edge.getCoitalFrequency(); // note that coitis could be 0
         roll = sim.random.nextDouble();
         if(roll < edge.getCoitalFrequency()-coitis) coitis++;
-        
         
         if(ac == Personality.condomMin || bc == Personality.condomMin){
             if(ac == Personality.condomMax || bc == Personality.condomMax){
@@ -153,23 +171,29 @@ public class HandlerInteraction {
                 if(PFC <1) return;
             }
         }
-        if(infected.isFemale()){
-            //currently not handing possible female anal intercourse option... still need some input on that
-            if(nonInfected.attemptCoitalInfection(sim, PFC, infected.getInfectivity(), Agent.MODEVI)){
-                sim.logger.insertInfection(Agent.MODEVI, infected.ID, nonInfected.ID, nonInfected.getAttemptsToInfect());
+        if (PFC == 0) return;
+        if(a.isFemale() ^ b.isFemale()){
+            hivMicroSim.Agent.Female f;
+            if(a.isFemale()){
+                f = (hivMicroSim.Agent.Female)a;
+            }else{
+                f = (hivMicroSim.Agent.Female)b;
             }
-            return;
-        }
-        if(nonInfected.isFemale()){
-            if(nonInfected.attemptCoitalInfection(sim, PFC, infected.getInfectivity(), Agent.MODEVR)){
-                sim.logger.insertInfection(Agent.MODEVR, infected.ID, nonInfected.ID, nonInfected.getAttemptsToInfect());
+            if(!f.isPregnant() && f.getAge() < sim.pregnancyMaxAge){
+                for(int i = 0; i<PFC; i++){
+                    double debug = sim.random.nextDouble();
+                    if(/*sim.random.nextDouble()*/ debug < sim.pregnancyChance){
+                        Agent child = Generator.generateAgent(sim, a, b);
+                        hivMicroSim.Agent.Pregnancy p = new hivMicroSim.Agent.Pregnancy(child);
+                        f.setPregnancy(p);
+                    }
+                }
             }
-            return;
         }
-        //currently randomly flipping between insertive and receptive.
-        int mode = sim.random.nextBoolean() ? Agent.MODEAI : Agent.MODEAR;
-        if(nonInfected.attemptCoitalInfection(sim, PFC, infected.getInfectivity(), mode)){
-            sim.logger.insertInfection(mode, infected.ID, nonInfected.ID, nonInfected.getAttemptsToInfect());
-        }
+        if(a.isInfected() ^ b.isInfected()){ // exclusive OR
+            if(a.isInfected()) sexualTransmission(sim, a, b, PFC);
+            else sexualTransmission(sim, b, a, PFC);
+        }//end infected
+        
     }
 }

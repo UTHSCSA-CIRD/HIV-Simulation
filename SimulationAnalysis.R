@@ -6,12 +6,14 @@ library(sqldf)
 agentLog = read.table("agentLog.txt", header = TRUE, sep = "\t")
 eventLog = read.table("eventLog.txt", header = TRUE, sep = "\t")
 yearLog = read.table("yearLog.txt", header = TRUE, sep = "\t")
+yearLog$percentInfected = yearLog$Prevelance/yearLog$Starting.Population * 100
+yearLog$incidenceRate = yearLog$Incidence/yearLog$Starting.Population * 1000
+
 vaginalInfect = eventLog[grep("Vaginal", eventLog$Action),]
 analInfect = eventLog[grep("Anal", eventLog$Action),]
 infect = rbind(vaginalInfect, analInfect)
 rNot = table(infect$Agent)
-yearLog$percentInfected = yearLog$Prevelance/yearLog$Starting.Population * 100
-yearLog$incidenceRate = yearLog$Incidence/yearLog$Starting.Population * 1000
+
 highR0 = as.data.frame(rNot[rNot>2])
 iAgents = agentLog[agentLog$ID%in%highR0$Var1,]
 #changing this to grep for 'sexual' to avoid mother to child infections.
