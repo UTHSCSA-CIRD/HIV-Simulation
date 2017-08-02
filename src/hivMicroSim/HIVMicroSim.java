@@ -35,8 +35,8 @@ public class HIVMicroSim extends SimState{
     //agents might only appear ever x months.
     public double agentGrowth = 0; //internal variable
     //Population growth per month
-    public double populationGrowth = .00005;
-    public boolean removeTheDead = false;
+    public double populationGrowth = .0005;
+    public boolean removeTheDead = true;
     
     public int newAgents = 0;
     public int numInfect = 10; //initial number of infected agents. 
@@ -46,7 +46,7 @@ public class HIVMicroSim extends SimState{
     public int networkEntranceAge = 936;//18 years
     
     //global agent descriptors- gaussian distribution between 1 and 10 with these as the means
-    public double percentCondomUse = .5; //0-1 inclusive
+    public double percentCondomUse = .8; //0-1 inclusive
     public Object domPercentCondomUse() { return new Interval(0.0, 1.0); }
     public int maleMonogamous = 5;      //0-10
     public Object domMaleMonogamous() { return new Interval(0, 10); }
@@ -73,13 +73,14 @@ public class HIVMicroSim extends SimState{
     public double percentCircum = .5; //percent circumcised
     public Object domPercentCircum() { return new Interval(0.0, 1.0); }
     
-    //testing likelihoods and range between tests
+    //TESTING
     public double testingLikelihood = .00481; //The likelihood of the average agent to get tested in any given tick. 
                                         //Assuming 50% of the population gets tested every 2 years
                                             //1/24/2
     public double testAccuracy = 1; //The likelihood of testing positive when positive
         //Currently disabled by setting it to 1 (all tests are 
     public double testTicks = 4; //number of ticks afer which the agent may test positive. 
+    
    //Behavioral changes due to known status.
     public boolean knownHIVStratify = false;
     public double knownHIVCondom = .25; //increases the likelihood of using condoms
@@ -94,7 +95,7 @@ public class HIVMicroSim extends SimState{
     //Treatment
     public double treatmentLikelihood = .00481;
     public boolean treatAIDS = true;
-    public double lossToFollowup = .00481; 
+    public double lossToFollowup = .00481;
     
    
     /* Likeliness factors
@@ -117,6 +118,7 @@ public class HIVMicroSim extends SimState{
     public double likelinessFactorAI = 11;
     //preventative methods
     public double likelinessFactorCircumcision = .49;
+    public double likelinessFactorCondom = .86;
     //interaction type (mother to child vs everything else.)
     public double perInteractionLikelihood = 0.0001;
     

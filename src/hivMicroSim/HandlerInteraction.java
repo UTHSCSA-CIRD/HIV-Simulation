@@ -138,52 +138,56 @@ public class HandlerInteraction {
         Agent a = edge.getA();
         Agent b = edge.getB();
         //no need for processing if they aren't heterozygous for at least one of these.
-        if(!(a.isFemale()^b.isFemale()) && !(a.isInfected() ^ b.isInfected()))return;
+        if(!(a.isInfected() ^ b.isInfected()))return;
         double ac = a.getCondomUse();
         double bc = b.getCondomUse();
         //calculate the number of acts this tick. This is because with coitalFrequency being a double we will likely need to
         //roll. 
         double roll;
-        int coitis = (int)edge.getCoitalFrequency(); // note that coitis could be 0
+        int coitis = (int)edge.getCoitalFrequency(); // note that coitis will be 0 if:  0 < coitalfrequency < 1 
         roll = sim.random.nextDouble();
-        if(roll < edge.getCoitalFrequency()-coitis) coitis++;
+        if(roll < edge.getCoitalFrequency()-coitis) coitis++; //so we roll coitalfreq - coitis  to capture the decimal value
+        if (coitis == 0) return;
         
         if(ac == Personality.condomMin || bc == Personality.condomMin){
             if(ac == Personality.condomMax || bc == Personality.condomMax){
                 if(sim.random.nextBoolean())
                     PFC = coitis;
-                else
-                    //TODO: Version 2- condom not 100%
-                    return; //currently condom usage is assumed 100% effective, we know it's not, so this will be addressed
+                else{
+                    int tmp = 0;
+                    while (tmp < coitis){ //condom effectiveness 
+                        roll = sim.random.nextDouble();
+                        if(roll > sim.likelinessFactorCondom) PFC++;
+                        tmp++;
+                    }
+                }
             }else{
                 PFC = coitis;
             }
         }else{
             if(ac == Personality.condomMax || bc == Personality.condomMax){
-                //TODO: Version 2- condom not 100%
-                return; //currently condom usage is assumed 100% effective, we know it's not, so this will be addressed
+                int tmp = 0;
+                    while (tmp < coitis){ //condom effectiveness 
+                        roll = sim.random.nextDouble();
+                        if(roll > sim.likelinessFactorCondom) PFC++;
+                        tmp++;
+                    }
             }else{
                 double avgC = (ac+bc)/2;
                 for(int i = 0; i<coitis; i++){
                     roll = sim.random.nextDouble();
                     if(roll > avgC) PFC++;
+                    else {
+                        roll = sim.random.nextDouble();
+                        if(roll > sim.likelinessFactorCondom) PFC++;
+                    }
                 }
-                if(PFC <1) return;
+                
             }
         }
-        if (PFC == 0) return;
-        if(a.isFemale() ^ b.isFemale()){
-            hivMicroSim.Agent.Female f;
-            if(a.isFemale()){
-                f = (hivMicroSim.Agent.Female)a;
-            }else{
-                f = (hivMicroSim.Agent.Female)b;
-            }
-        }
-        if(a.isInfected() ^ b.isInfected()){ // exclusive OR
-            if(a.isInfected()) sexualTransmission(sim, a, b, PFC);
-            else sexualTransmission(sim, b, a, PFC);
-        }//end infected
         
+        if(PFC <1) return;
+        if(a.isInfected()) sexualTransmission(sim, a, b, PFC);
+        else sexualTransmission(sim, b, a, PFC);
     }
 }
