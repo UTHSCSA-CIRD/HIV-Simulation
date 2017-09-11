@@ -73,12 +73,12 @@ public class Male extends Agent implements Steppable{
         network.clear();
     }
     @Override
-    public boolean attemptCoitalInfection(HIVMicroSim sim, int frequency, double degree, int mode){
+    public boolean attemptCoitalInfection(HIVMicroSim sim, int frequency, double degree, int mode, int clusterID){
         //add circumcision factor later additional factors may be added for homosexual coitus. 
-        if(circumcised && (mode == Agent.MODEAI || mode == Agent.MODEVI)){
-            degree *= sim.likelinessFactorCircumcision;
+        if(circumcised &&  mode == Agent.MODEVI){
+            degree *= sim.likelinessFactorCircumcisionVI; //current CDC page indicates only for vaginal insertive.
         }
-        return(super.attemptCoitalInfection(sim, frequency, degree, mode));
+        return(super.attemptCoitalInfection(sim, frequency, degree, mode, clusterID));
     }
     
     @Override

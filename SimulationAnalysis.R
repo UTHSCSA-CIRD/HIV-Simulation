@@ -7,13 +7,14 @@ library(sqldf)
 library(igraph)
 
 ##
-
-
 agentLog = read.table("agentLog.txt", header = TRUE, sep = "\t")
 eventLog = read.table("eventLog.txt", header = TRUE, sep = "\t")
 yearLog = read.table("yearLog.txt", header = TRUE, sep = "\t")
 yearLog$percentInfected = yearLog$Prevelance/yearLog$Starting.Population * 100
-yearLog$incidenceRate = yearLog$Incidence/yearLog$Starting.Population * 1000
+yearLog$incidenceRate = yearLog$Incidence_Total/yearLog$Starting.Population * 1000
+yearLog$incidenceRate_MSM = yearLog$Incidence_MSM/yearLog$Starting.Population * 1000
+yearLog$incidenceRate_MSWO = yearLog$Incidence_MSWO/yearLog$Starting.Population * 1000
+yearLog$incidenceRate_Female = yearLog$Incidence_Female/yearLog$Starting.Population * 1000
 
 vaginalInfect = eventLog[grep("Vaginal", eventLog$Action),]
 analInfect = eventLog[grep("Anal", eventLog$Action),]
@@ -53,7 +54,11 @@ infectPattern$InfPerYear = infectPattern$infected/(infectPattern$Infection_Durat
 ## Networks code 
 
 #create links (d)
-links = infect[,c(2,4, 3,7, 8, 9)]
+infect$Desc7_ClusterGroup = as.factor(infect$Desc7_ClusterGroup)
+links = infect[,c(2,4, 3,7, 8, 9, 10)]
+
+
+
  # Convert the text or numeric field 2 to numeric
 links[,2] = as.numeric(links[,2])
 links$Action = factor(links$Action, levels = c('Anal Insertive', 'Anal Receptive', 'Vaginal Insertive','Vaginal Receptive'))
@@ -62,36 +67,58 @@ stageCol = c('red','green','gold')
 links$Desc5_KnownStatus = factor(links$Desc5_KnownStatus, levels = c('false', 'true'))
 links$Desc6_TreatmentStatus = factor(links$Desc6_TreatmentStatus, levels = c('false', 'true'))
 
+paste("Cluster Size: Min:", min(table(links$Desc7_ClusterGroup)), "Mean:", mean(table(links$Desc7_ClusterGroup)),
+      "Max:", max(table(links$Desc7_ClusterGroup)))
+quantile(table(links$Desc7_ClusterGroup))
+hist(table(links$Desc7_ClusterGroup))
+ggplot(links, aes(Desc7_ClusterGroup, fill = Action)) + geom_bar(position="stack")
+ggplot(links, aes(Desc7_ClusterGroup, fill = Desc5_KnownStatus)) + geom_bar(position="stack")
+ggplot(links, aes(Desc7_ClusterGroup, fill = Desc6_TreatmentStatus)) + geom_bar(position="stack")
+
 # Create/identify nodes Dataframe: infAgents
 nodes = sqldf("select ID, case 
                     when Gender ='M' and MSM = 'true' and MSW = 'true' then 'MSMW' 
                     when Gender ='M' and MSM = 'true' and MSW = 'false' then 'MSMO'
                     when Gender ='M' and MSM = 'false' and MSW = 'true' then 'MSWO'
                     else 'F' end Type,
-                  Gender, MSW, MSM from agentLog where id in (select Agent from links) or id in (select Desc1_AgeAgent from links)")
+                  Gender, MSW, MSM
+              from agentLog 
+              where id in (select Agent from links) or id in (select Desc1_AgeAgent from links)")# 
 
 nodes$Type = factor(nodes$Type, levels = c('F', 'MSMO', 'MSMW','MSWO'))
 typeCol = c('pink', 'skyblue', 'green', 'orange')
+##Use this to narrow down to specific clusters for display.
+###Create subnetworks of 
+plotCluster <- function(links, nodes){
+  tab = table(links$Desc7_ClusterGroup)
+  repeat{
+    print("Available clusters and their size:")
+    print(tab)
+    clusterID <- readline(prompt ="Which cluster should we plot? ")
+    if(as.integer(clusterID) %in% links$Desc7_ClusterGroup){
+      break
+    }
+    print("ERROR: Not a valid choice. Enter the integer clusterID.")
+    Sys.sleep(2) #pause so the user can read the error... 
+  }
+  #plotting selected 
+  plotLink <- links[links$Desc7_ClusterGroup == clusterID, ]
+  plotNodes <- nodes[nodes$ID %in% plotLink$Agent | nodes$ID %in% plotLink$Desc1_AgeAgent,]
+  net <- graph_from_data_frame(d=plotLink, vertices = plotNodes, directed = T)
+  plot(net, vertex.color = typeCol[plotNodes$Type], edge.arrow.size = .5, edge.color = stageCol[plotLink$Desc4_Stage], vertex.label = NA,
+       vertex.size = 5, margin = c(0,0,0,0), main = paste("Cluster", clusterID, "Network Graph"))
+  legend(x = 1, y = -1, legend = c("Females", "MSMO", "MSMW", "MSWO"),pch=21, pt.bg= typeCol, pt.cex = 2, cex=.8,bty="n", ncol = 1)
+}
 
-#network
-net <- graph_from_data_frame(d=links, vertices = nodes, directed = T)
+#TODO: Add MSM MSWO and W to the year log.
 
-#prettiness attempts 
-plot(net, vertex.color = typeCol[nodes$Type], edge.arrow.size = .5, edge.color = stageCol[links$Desc4_Stage],
-       vertex.size = 15+3*degree(net, mode='out'))
-##Note for the future: l = layout_with_fr(net) to save the layout for--- TIME EVOLUTION!!! *.*
-##
-
-
-#Going to add MSM MSWO and W to the year log.
-
-plot(yearLog$Year, yearLog$incidenceRate, type = "l", main = "Incidicent rate per 1,000 agents")
-plot(yearLog$Year, yearLog$percentInfected, type = "l", main = "Prevalence in Agent Population")
+plot(yearLog$Year, yearLog$percentInfected, type = "l", main = "Prevalence in Agent Population",
+     ylab = "Percent Infected", xlab = "Model Year")
 plot(yearLog$Starting.Population, type = "l", main = "Model Population")
 
 #Multivariable plots
 tmp = yearLog[, c("Year","Starting.Population","Prevelance")];melted = melt(tmp, id = "Year");ggplot(data = melted, aes(x = Year, y = value, color = variable)) + geom_line() 
-tmp = yearLog[, c("Year","percentInfected","incidenceRate")];tmp$mortalityRate = (yearLog$Mortality/yearLog$Starting.Population * 1000);melted = melt(tmp, id = "Year");ggplot(data = melted, aes(x = Year, y = value, color = variable)) + geom_line() + ggtitle("Prevalence, Incidence, and Mortality\n Even Libido")
+tmp = yearLog[, c("Year","percentInfected","incidenceRate")];tmp$mortalityRate = (yearLog$Mortality/yearLog$Starting.Population * 1000);melted = melt(tmp, id = "Year");ggplot(data = melted, aes(x = Year, y = value, color = variable)) + geom_line() + ggtitle("Prevalence, Incidence, and Mortality")
 
 #Rnot and t-test- Compare population profiles for non-infected, infected, and high Rnot
 
@@ -129,7 +156,7 @@ t.test(iAgents$Immunity, infAgents$Immunity)
 ########Looking at the duration of infection#####
 #build the infection data set
 
-if(length(which(!is.na(infectPattern$toAIDs))) != 0){ paste("Years to AIDS");round((quantile(infectPattern$toAIDs, na.rm = TRUE) + 2)/52, 2)}else paste("No AIDs")
+if(length(which(!is.na(infectPattern$toAIDs))) != 0){ print("Years to AIDS");round((quantile(infectPattern$toAIDs, na.rm = TRUE) + 2)/52, 2)}else print("No AIDs")
 if(length(which(!is.na(infectPattern$toDeath))) != 0){ paste("Years to AIDS Death"); round((quantile(infectPattern$toAIDs + infectPattern$toDeath, na.rm = TRUE)+2)/52,2)}else paste("No AIDs Deaths")
 if(length(which(!is.na(infectPattern$toDeath))) != 0){ paste("Years to Death from AIDs"); round(quantile(infectPattern$toDeath, na.rm = TRUE)/52,2)} else paste ("No AIDs Deaths")
 if(length(which(!is.na(infectPattern$toDiscovery))) != 0){paste("Years to discovery"); round(quantile(infectPattern$toDiscovery, na.rm = TRUE)/52,2)}else {paste("No Discovery")}

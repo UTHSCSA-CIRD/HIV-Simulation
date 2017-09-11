@@ -10,6 +10,7 @@ import java.io.IOException;
 import sim.engine.SimState;
 import java.util.ArrayDeque;
 import hivMicroSim.Agent.Agent;
+import hivMicroSim.Agent.Male;
 
 
 /**
@@ -54,6 +55,9 @@ public class HIVLogger implements sim.engine.Steppable{
     private int yearDeath = 0; //the total number of agents that died of any cause
     private int yearMortality = 0; // the number of agents that died of AIDs
     private int yearInfect = 0;  //The number of agents infected that year.
+    private int yearInfectMSM = 0;
+    private int yearInfectMSWO = 0;
+    private int yearInfectFemale = 0;
     private int prevalence = 0; //The number of agents living with the disease that year.
     private int yearLiving = 0; //the number of agents alive at the start of the year for rate calculations;
     private int livingAgents = 0;
@@ -78,7 +82,8 @@ public class HIVLogger implements sim.engine.Steppable{
         turn++;
         tick++;
         if(tick > ticksPerYear){
-            String log = year + "\t"+ yearLiving + "\t" + yearInfect + "\t" + prevalence + "\t" 
+            //\tIncidence_Total\tIncidence_MSM\tIncidence_MSWO\tIncidence_Female\t
+            String log = year + "\t"+ yearLiving + "\t" + yearInfect + "\t" +yearInfectMSM + "\t" + yearInfectMSWO+ "\t" +yearInfectFemale + "\t" + prevalence + "\t" 
                     + yearMortality + "\t" + yearGrowth + "\t" + yearDeath;
             try{
                 yearOut.newLine();
@@ -87,7 +92,7 @@ public class HIVLogger implements sim.engine.Steppable{
                 System.err.println("Could not write yearly report for year: " + year + " "+e.getLocalizedMessage()+"\n" + log);
             }
             yearLiving = livingAgents;//the number of agents at the start of the year
-            yearGrowth = yearDeath=yearMortality=yearInfect=0; //reset the yearly values
+            yearGrowth = yearDeath=yearMortality=yearInfectMSM=yearInfectMSWO=yearInfectFemale=yearInfect=0; //reset the yearly values
             year++;
             tick = 1;
         }
@@ -106,9 +111,22 @@ public class HIVLogger implements sim.engine.Steppable{
             System.err.println("Could not close log file! " + e.getLocalizedMessage());
         }
     }
-    
-    public void insertInfection(int infectMode, Agent infector, int infected, int attemptsToInfect){
+    public void insertInitialInfection(int infected){
+        //yearInfect++; These should not be counted as "incident" infections.
+        prevalence++;
+        if(logLevel < LOG_INFECT) return;
+        String log = turn + "\t-1\t" + "Initial Infection";
+        log = log + "\t" + infected + "\t" + "\t0\t-1\t\t";
+        eventQueue.add(log);
+    }
+    public void insertInfection(int infectMode, Agent infector, Agent infected, int attemptsToInfect){
         yearInfect++;
+        if(infected.isFemale())yearInfectFemale++;
+        else {
+            Male i = (Male) infected;
+            if(i.getMSM())yearInfectMSM++;
+            else yearInfectMSWO++;
+        }
         prevalence++;
         if(logLevel < LOG_INFECT) return;
         String log = turn + "\t" + infector.ID +"\t" ;
@@ -126,19 +144,20 @@ public class HIVLogger implements sim.engine.Steppable{
                 log = log + "Vaginal Insertive";
                 break;
         }
-        log = log + "\t" + infected + "\t" + "\t" + attemptsToInfect + "\t" + infector.hiv.getStage() + "\t" + infector.isKnown() + "\t" + infector.isTreated();
+        log = log + "\t" + infected.ID + "\t" + "\t" + attemptsToInfect + "\t" + infector.hiv.getStage() + "\t" + infector.isKnown() + "\t" + infector.isTreated() 
+                + "\t" + infector.hiv.getClusterID();
         eventQueue.add(log);
     }
     
     public void insertProgression(int agent, int stage, int ticks){
         if(logLevel < LOG_PROGRESSION) return;
-        String log = turn + "\t" + agent + "\tProgression\t\t" + ticks + "\t\t"+stage + "\t\t";
+        String log = turn + "\t" + agent + "\tProgression\t\t" + ticks + "\t\t"+stage + "\t\t\t";
         eventQueue.add(log);
     }
     //eventOut.write("Tick\tAgent\tAction\tDesc1_AgeAgent\tDesc2_Ticks\tDesc3_AtteptsToInfect\tDesc4_Stage\tDesc5_KnownStatus\tDesc6_TreatmentStatus");
     public void insertDiscovery(int agent, int stage, int ticks){
         if(logLevel < LOG_DISCOVERY) return;
-        String log = turn + "\t" + agent + "\tDiscovery\t" + "\t" + ticks + "\t\t" + stage + "\t\t";
+        String log = turn + "\t" + agent + "\tDiscovery\t" + "\t" + ticks + "\t\t" + stage + "\t\t\t";
         eventQueue.add(log);
     }
     public void insertDeath(int agent, boolean natural, boolean infected, int ticks){//ticks is only used in the event of AIDS death
@@ -160,7 +179,7 @@ public class HIVLogger implements sim.engine.Steppable{
         }else{
             log = log + "AIDS Death\t" + ticks;
         }
-        log = log + "\t\t\t\t\t";
+        log = log + "\t\t\t\t\t\t";
         eventQueue.add(log);
     }
     private void logNewAgent(Agent a){
@@ -184,7 +203,7 @@ public class HIVLogger implements sim.engine.Steppable{
             System.err.println("Could not print to agent: " + e.getLocalizedMessage() + "\n" + log2);
         }
         if(logLevel < LOG_ENTRY) return;
-        String log = turn +"\t" + a.ID + "\tEntered\t" + a.getAge() + "\t\t\t\t\t"; 
+        String log = turn +"\t" + a.ID + "\tEntered\t" + a.getAge() + "\t\t\t\t\t\t"; 
         eventQueue.add(log);
     }
     
@@ -210,10 +229,10 @@ public class HIVLogger implements sim.engine.Steppable{
         livingAgents = yearLiving = numAgents;
         
         yearOut = new BufferedWriter(new FileWriter(year, false),(8*1024)); // second argument F means will overwrite if exists. 
-        yearOut.write("Year\tStarting.Population\tIncidence\tPrevelance\tMortality\tGrowth\tDeath.Rate");
+        yearOut.write("Year\tStarting.Population\tIncidence_Total\tIncidence_MSM\tIncidence_MSWO\tIncidence_Female\tPrevelance\tMortality\tGrowth\tDeath.Rate");
         
         eventOut = new BufferedWriter(new FileWriter(event, false),(8*1024)); // second argument F means will overwrite if exists. 
-        eventOut.write("Tick\tAgent\tAction\tDesc1_AgeAgent\tDesc2_Ticks\tDesc3_AtteptsToInfect\tDesc4_Stage\tDesc5_KnownStatus\tDesc6_TreatmentStatus");
+        eventOut.write("Tick\tAgent\tAction\tDesc1_AgeAgent\tDesc2_Ticks\tDesc3_AtteptsToInfect\tDesc4_Stage\tDesc5_KnownStatus\tDesc6_TreatmentStatus\tDesc7_ClusterGroup");
         
         agentOut = new BufferedWriter(new FileWriter(agent, false),(8*1024)); // second argument F means will overwrite if exists. 
         agentOut.write("Entry.Step\tID\tGender\tMSW\tMSM\tCommitment\tMonogamous\tLibido\tCondom.Usage\tImmunity");

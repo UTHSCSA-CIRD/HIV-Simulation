@@ -48,6 +48,8 @@ public abstract class Generator{
             if(rand > sim.percentMsM) msw = true;
             agent = new Male(sim.currentID, personality, hivImmunity, age, life, circ, msm, msw);
         }
+        //currently personality is generated prior to the agent. 
+        agent.pp.setSelf(agent);
         sim.currentID++;
         return agent;
     }
