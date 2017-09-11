@@ -112,6 +112,12 @@ plotCluster <- function(links, nodes){
 
 #TODO: Add MSM MSWO and W to the year log.
 
+plot(yearLog$Year, yearLog$incidenceRate, type = "l", main = "Incidence",
+     xlab = "Model Year", ylab = "Incidence per 1,000 Agents")
+ lines(yearLog$incidenceRate_MSM, col = "blue")
+ lines(yearLog$incidenceRate_MSWO, col = "orange")
+ lines(yearLog$incidenceRate_Female, col = "pink")
+ legend(x = 0, y = 0, legend = c('Overall', "MSM", "MSWO", "Females"), col = c("black", "blue", "orange", "pink"), lwd = 2)
 plot(yearLog$Year, yearLog$percentInfected, type = "l", main = "Prevalence in Agent Population",
      ylab = "Percent Infected", xlab = "Model Year")
 plot(yearLog$Starting.Population, type = "l", main = "Model Population")
