@@ -41,30 +41,31 @@ public class HIVMicroSim extends SimState{
     public int newAgents = 0;
     public int numInfect = 10; //initial number of infected agents. 
     public int currentID = 0;
+    public int currentClusterID = 0;
     public int gridWidth = 100;
     public int gridHeight = 100;
     public int networkEntranceAge = 936;//18 years
     
     //global agent descriptors- gaussian distribution between 1 and 10 with these as the means
     public double percentCondomUse = .8; //0-1 inclusive
-    public Object domPercentCondomUse() { return new Interval(0.0, 1.0); }
+    public Object domPercentCondomUse() { return new Interval(Personality.condomMin, Personality.condomMax); }
     public int maleMonogamous = 5;      //0-10
-    public Object domMaleMonogamous() { return new Interval(0, 10); }
+    public Object domMaleMonogamous() { return new Interval(Personality.monogamousMin, Personality.monogamousMax); }
     public int femaleMonogamous = 5;    
-    public Object domFemaleMonogamous() { return new Interval(0, 10); }
+    public Object domFemaleMonogamous() { return new Interval(Personality.monogamousMin, Personality.monogamousMax); }
     public int maleCoitalLongevity = 5;   
-    public Object domMaleCoitalLongevity() { return new Interval(0, 10); }
+    public Object domMaleCoitalLongevity() { return new Interval(Personality.coitalLongevityMin, Personality.coitalLongevityMax); }
     public int femaleCoitalLongevity = 5; 
-    public Object domFemaleCoitalLongevity() { return new Interval(0, 10); }
+    public Object domFemaleCoitalLongevity() { return new Interval(Personality.coitalLongevityMin, Personality.coitalLongevityMax); }
     public int maleLibido = 2;
-    public Object domMaleLibido() { return new Interval(0, 7); }
+    public Object domMaleLibido() { return new Interval(Personality.libidoMin, Personality.libidoMax); }
     public int femaleLibido= 2; 
-    public Object domFemaleLibido() { return new Interval(0, 7); }
+    public Object domFemaleLibido() { return new Interval(Personality.libidoMin, Personality.libidoMax); }
     public boolean allowExtremes = true;
     
     //natural resistance -- replacing genes until further science is available 
-    public double resistanceMax = 2;  //maximum resistance
-    public double resistanceMin = 0;  //minimum resistance
+    public double resistanceMax = 6;  //maximum susceptibility
+    public double resistanceMin = 0;  //max resistance
     public double resistanceAvg = 1;  //average resistance
     
     //population percentages 
@@ -84,17 +85,20 @@ public class HIVMicroSim extends SimState{
    //Behavioral changes due to known status.
     public boolean knownHIVStratify = false;
     public double knownHIVCondom = .25; //increases the likelihood of using condoms
-    public Object domKnownHIVCondom() { return new Interval(-1.0, 1.0); }
+    public Object domKnownHIVCondom() { return new Interval(-Personality.condomMax, Personality.condomMax); }
     public double knownHIVLibido = 0; 
-    public Object domKnownHIVLibido() { return new Interval(-7.0, 7.0); }
+    public Object domKnownHIVLibido() { return new Interval(-Personality.libidoMax, Personality.libidoMax); }
     public int knownHIVMonogamous = 0; 
-    public Object domKnownHIVMonogamous() { return new Interval(-10, 10); }
+    public Object domKnownHIVMonogamous() { return new Interval(-Personality.monogamousMax, Personality.monogamousMax); }
     public int knownHIVCoitalLongevity = 0; 
-    public Object domKnownHIVCoitalLongevity() { return new Interval(-10, 10); }
+    public Object domKnownHIVCoitalLongevity() { return new Interval(-Personality.coitalLongevityMax, Personality.coitalLongevityMax); }
+    public double knownHIVSeroSort = .2; // Percentage of those who know they have HIV that serosort
+    public Object domKnownHIVSeroSort() { return new Interval(Personality.knownSeroSortMin, Personality.knownSeroSortMax); }
+    
     
     //Treatment
     public double treatmentLikelihood = .00481;
-    public boolean treatAIDS = true;
+    public boolean treatAIDS = false;
     public double lossToFollowup = .00481;
     
    
@@ -117,8 +121,10 @@ public class HIVMicroSim extends SimState{
     public double likelinessFactorAR = 138;
     public double likelinessFactorAI = 11;
     //preventative methods
-    public double likelinessFactorCircumcision = .49;
-    public double likelinessFactorCondom = .86;
+    public double likelinessFactorCircumcisionVI = .5;
+    public double likelinessFactorCondomVIVR = .80;
+    public double likelinessFactorCondomAI = .63;
+    public double likelinessFactorCondomAR = .72;
     //interaction type (mother to child vs everything else.)
     public double perInteractionLikelihood = 0.0001;
     
@@ -134,6 +140,17 @@ public class HIVMicroSim extends SimState{
     public int initializationOnTick = 52; // the tick on which we will initiate infection. 
     public boolean initializeHighRiskPop = true;
     public boolean stratifyInitInfected = true;
+    public boolean ageSorting = true;
+    public boolean personalitySorting = true;
+    
+    public boolean getAgeSorting(){return ageSorting;}
+    public void setAgeSorting(boolean a){
+        ageSorting = a;
+    }
+    public boolean getPersonalitySorting(){return personalitySorting;}
+    public void setPersonalitySorting(boolean a){
+        personalitySorting = a;
+    }
     
     public int getStartInfected(){
         return numInfect;
@@ -245,27 +262,32 @@ public class HIVMicroSim extends SimState{
     public void setKnownHIVStratify(boolean a) {knownHIVStratify = a;}
     public double getKnownHIVCondom(){return knownHIVCondom;}
     public void setKnownHIVCondom(double a) { 
-        if(a < 1 && a > -1){
+        if(a < Personality.condomMax && a > -Personality.condomMax){
             knownHIVCondom = a;
         }
     }
     public double getKnownHIVLibido(){return knownHIVLibido;} 
     public void setKnownHIVLibido(double a){ 
-        if(a <7 && a > -7){
+        if(a <Personality.libidoMax && a > -Personality.libidoMax){
              knownHIVLibido = a;
         }
     }
     public int getKnownHIVMonogamous() {return knownHIVMonogamous;} 
     public void setKnownHIVMonogamous(int a) { 
-        if(a>-10 &&a<10){
+        if(a>-Personality.monogamousMax &&a<Personality.monogamousMax){
             knownHIVMonogamous = a;
         }
     }
     public int getKnownHIVCoitalLongevity(){return knownHIVCoitalLongevity; }
     public void setKnownHIVCoitalLongevity(int a) {
-        if(a>-10 && a<10){
+        if(a>-Personality.coitalLongevityMax && a<Personality.coitalLongevityMax){
             knownHIVCoitalLongevity = a;
         } 
+    }
+    public double getKnownHIVSeroSort(){return knownHIVSeroSort;}
+    public void setKnownHIVSeroSort(double a){
+        if(a <Personality.knownSeroSortMin|| a >Personality.knownSeroSortMax) return;
+        knownHIVSeroSort = a;
     }
     
     /**

@@ -62,8 +62,8 @@ public class HandlerInteraction {
         do{
             rand = sim.random.nextInt(nodes.size());
             other = (Agent)nodes.get(rand);
-            if(a.ID == other.ID || !a.acceptsGender(other.isFemale()) || a.hasAsPartner(other)
-                    || !other.wantsConnection(sim) || !other.acceptsGender(a.isFemale())) other = null;
+            if(a.ID == other.ID || a.hasAsPartner(other) || !a.wantsConnection(sim, other)
+                  || !other.wantsConnection(sim) || !other.wantsConnection(sim, a) ) other = null;
             tries ++;
         }while(other == null && tries <= triesMax);
         if (other == null) return -1; //if could not find acceptable agent 
@@ -112,24 +112,60 @@ public class HandlerInteraction {
             }
         }
     }
-    public static void sexualTransmission(HIVMicroSim sim, Agent infected, Agent nonInfected, int PFC){
-        if(infected.isFemale()){
-            //currently not handing possible female anal intercourse option... still need some input on that
-            if(nonInfected.attemptCoitalInfection(sim, PFC, infected.getInfectivity(), Agent.MODEVI)){
-                sim.logger.insertInfection(Agent.MODEVI, infected, nonInfected.ID, nonInfected.getAttemptsToInfect());
-            }
-            return;
+    public static void sexualTransmission(HIVMicroSim sim, Agent infected, Agent nonInfected, double interactions){
+        
+        double ac = infected.getCondomUse();
+        double bc = nonInfected.getCondomUse();
+        //calculate the number of acts this tick. This is because with coitalFrequency being a double we will likely need to
+        //roll. 
+        double roll;
+        int coitis = (int)interactions; // note that coitis will be 0 if:  0 < coitalfrequency < 1 
+        roll = sim.random.nextDouble();
+        if(roll < interactions-coitis) coitis++; //so we roll coitalfreq - coitis  to capture the decimal value
+        if (coitis == 0) return;
+        //calculate mode
+        int mode;
+        if(infected.isFemale()){ //note for now females only participate in vaginal intercourse
+            mode = Agent.MODEVI;
+        }else{if(nonInfected.isFemale()){
+            mode = Agent.MODEVR;
+        }else{
+            mode = sim.random.nextBoolean() ? Agent.MODEAI : Agent.MODEAR;
+        }}
+        
+        int PFC = 0; //protection free coitis
+        int CC = 0; //condom coitis
+        
+        if((ac == Personality.condomMin || bc == Personality.condomMin) && ! (ac==Personality.condomMax || bc==Personality.condomMax)){
+            PFC = coitis;
         }
-        if(nonInfected.isFemale()){
-            if(nonInfected.attemptCoitalInfection(sim, PFC, infected.getInfectivity(), Agent.MODEVR)){
-                sim.logger.insertInfection(Agent.MODEVR, infected, nonInfected.ID, nonInfected.getAttemptsToInfect());
+        else{if(!(ac == Personality.condomMin || bc == Personality.condomMin) && (ac==Personality.condomMax || bc==Personality.condomMax)){
+            CC = coitis;
+        }else{
+            double avgC = (ac+bc)/2;
+                for(int i = 0; i<coitis; i++){
+                    roll = sim.random.nextDouble();
+                    if(roll < avgC) PFC++;
+                    else {
+                        CC++;
+                    }
+                }
+        }}
+        //condoms can be as poor as 63% depending on the effectivness. 
+        if(CC>0){
+            double effectiveness;
+            if(mode == Agent.MODEAI) effectiveness = sim.likelinessFactorCondomAI;
+            else if(mode == Agent.MODEAR) effectiveness = sim.likelinessFactorCondomAR;
+            else effectiveness = sim.likelinessFactorCondomVIVR;
+            double tmp;
+            for(int i =0; i<CC;i++){
+                tmp = sim.random.nextDouble();
+                if(tmp > effectiveness) PFC++;
             }
-            return;
         }
-        //currently randomly flipping between insertive and receptive.
-        int mode = sim.random.nextBoolean() ? Agent.MODEAI : Agent.MODEAR;
-        if(nonInfected.attemptCoitalInfection(sim, PFC, infected.getInfectivity(), mode)){
-            sim.logger.insertInfection(mode, infected, nonInfected.ID, nonInfected.getAttemptsToInfect());
+        if(PFC <1) return;
+        if(nonInfected.attemptCoitalInfection(sim, PFC, infected.getInfectivity(), mode, infected.hiv.getClusterID())){
+                sim.logger.insertInfection(mode, infected, nonInfected, nonInfected.getAttemptsToInfect());
         }
     }
     public static void sexualInteraction(HIVMicroSim sim, CoitalInteraction edge){
@@ -139,55 +175,7 @@ public class HandlerInteraction {
         Agent b = edge.getB();
         //no need for processing if they aren't heterozygous for at least one of these.
         if(!(a.isInfected() ^ b.isInfected()))return;
-        double ac = a.getCondomUse();
-        double bc = b.getCondomUse();
-        //calculate the number of acts this tick. This is because with coitalFrequency being a double we will likely need to
-        //roll. 
-        double roll;
-        int coitis = (int)edge.getCoitalFrequency(); // note that coitis will be 0 if:  0 < coitalfrequency < 1 
-        roll = sim.random.nextDouble();
-        if(roll < edge.getCoitalFrequency()-coitis) coitis++; //so we roll coitalfreq - coitis  to capture the decimal value
-        if (coitis == 0) return;
-        
-        if(ac == Personality.condomMin || bc == Personality.condomMin){
-            if(ac == Personality.condomMax || bc == Personality.condomMax){
-                if(sim.random.nextBoolean())
-                    PFC = coitis;
-                else{
-                    int tmp = 0;
-                    while (tmp < coitis){ //condom effectiveness 
-                        roll = sim.random.nextDouble();
-                        if(roll > sim.likelinessFactorCondom) PFC++;
-                        tmp++;
-                    }
-                }
-            }else{
-                PFC = coitis;
-            }
-        }else{
-            if(ac == Personality.condomMax || bc == Personality.condomMax){
-                int tmp = 0;
-                    while (tmp < coitis){ //condom effectiveness 
-                        roll = sim.random.nextDouble();
-                        if(roll > sim.likelinessFactorCondom) PFC++;
-                        tmp++;
-                    }
-            }else{
-                double avgC = (ac+bc)/2;
-                for(int i = 0; i<coitis; i++){
-                    roll = sim.random.nextDouble();
-                    if(roll > avgC) PFC++;
-                    else {
-                        roll = sim.random.nextDouble();
-                        if(roll > sim.likelinessFactorCondom) PFC++;
-                    }
-                }
-                
-            }
-        }
-        
-        if(PFC <1) return;
-        if(a.isInfected()) sexualTransmission(sim, a, b, PFC);
-        else sexualTransmission(sim, b, a, PFC);
+        if(a.isInfected()) sexualTransmission(sim, a, b, edge.getCoitalFrequency());
+        else sexualTransmission(sim, b, a, edge.getCoitalFrequency());
     }
 }

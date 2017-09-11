@@ -15,13 +15,17 @@ import hivMicroSim.HIVMicroSim;
  */
 public class DiseaseMatrix implements java.io.Serializable{
     private static final long serialVersionUID = 1;
+    //Contributing Factors
+    //https://www.cdc.gov/hiv/risk/estimates/riskfactors.html
+    public static final double ulcerativeSTInegative = 2.65; // in the negative person - genital herpes (due to HSV-1 or HSV-2), syphilis, and chancroid.
+    public static final double ulcerativeSTIpositive = 2.58; // in the negative person - genital herpes (due to HSV-1 or HSV-2), syphilis, and chancroid.
     
     //Stage info
     public static final int StageAcute = 1;
     public static final int StageLatency = 2;
     public static final int StageAIDS = 3;
     public static final int StageDeath = 4; //for error checking or debugging.
-    public static final int ACUTEXFACTOR = 15;
+    public static final double ACUTEXFACTOR = 7.25;
     private static final int ACUTETICKS = 7;
     private static final int LATENCYWELLNESSTHRESHOLD = 200; // the threshold over which 
     public static final int AIDSXFACTOR = 20; 
@@ -57,7 +61,8 @@ public class DiseaseMatrix implements java.io.Serializable{
     private boolean known = false;
     private boolean treated;
     private boolean viralSuppression;
-    private Agent myAgent;
+    private final Agent myAgent;
+    private final int clusterID;
     /*
     * Treatment: 
     An agent cannot receive treatment unless they know about their infection. 
@@ -127,6 +132,7 @@ public class DiseaseMatrix implements java.io.Serializable{
     public int getDuration(){
         return duration;
     }
+    public int getClusterID(){ return clusterID;}
     
     public int progress(HIVMicroSim sim){
         //an algorithm to calculate the progression of the disease in the individual
@@ -196,7 +202,7 @@ public class DiseaseMatrix implements java.io.Serializable{
     public boolean isSuppressed(){
         return viralSuppression;
     }
-    public DiseaseMatrix(double infectivity, Agent infected){
+    public DiseaseMatrix(double infectivity, Agent infected, int clusterID){
         infectionWellness = normalWellness;
         this.infectivity = infectivity;
         hindrance = 0;
@@ -204,8 +210,9 @@ public class DiseaseMatrix implements java.io.Serializable{
         stage = StageAcute;
         duration = 0;
         myAgent = infected;
+        this.clusterID = clusterID;
     }
-    public DiseaseMatrix(double infectivity, double wellness, Agent infected){
+    public DiseaseMatrix(double infectivity, double wellness, Agent infected, int clusterID){
         if(wellness > normalWellness){
             infectionWellness = normalWellness;
             duration = 0;
@@ -234,5 +241,6 @@ public class DiseaseMatrix implements java.io.Serializable{
          // hinderance will be set 
         
         myAgent = infected;
+        this.clusterID = clusterID;
     }
 }

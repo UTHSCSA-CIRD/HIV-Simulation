@@ -166,7 +166,7 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         return hiv.isSuppressed();
     }
     */
-    public boolean infect(HIVMicroSim sim){
+    public boolean infect(HIVMicroSim sim, int clusterID){
         if(infected){ // already infected
             return false;
         }
@@ -174,10 +174,10 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         
         infected = true;
         col = Color.red;
-        hiv = new DiseaseMatrix(DiseaseMatrix.normalInfectivity, this);
+        hiv = new DiseaseMatrix(DiseaseMatrix.normalInfectivity, this, clusterID);
         return true;
     }
-    public boolean infect(HIVMicroSim sim, double wellness){
+    public boolean infect(HIVMicroSim sim, double wellness, int clusterID){
         if(infected){ // already infected
             return false;
         }
@@ -185,22 +185,22 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         
         infected = true;
         col = Color.red;
-        hiv = new DiseaseMatrix(DiseaseMatrix.normalInfectivity, wellness, this);
+        hiv = new DiseaseMatrix(DiseaseMatrix.normalInfectivity, wellness, this, clusterID);
         hindranceChange();
         return true;
     }
-    public boolean attemptInfection(HIVMicroSim sim, double degree){
+    public boolean attemptInfection(HIVMicroSim sim, double degree, int clusterID){
         attemptsToInfect++;
         degree *= sim.perInteractionLikelihood * hivImmunity;
         double roll = sim.random.nextDouble(); // next double between 0 and 1 (noninclusive)
         if(roll<degree){
-            infect(sim);
+            infect(sim, clusterID);
             return true;
         }
         return false; //as degree increases the chance of having a double below that increases. 
         
     }
-    public boolean attemptCoitalInfection(HIVMicroSim sim, int frequency, double degree, int mode){
+    public boolean attemptCoitalInfection(HIVMicroSim sim, int frequency, double degree, int mode, int clusterID){
         switch(mode){
             case Agent.MODEAI:
                 degree *= sim.likelinessFactorAI;
@@ -216,7 +216,7 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
                 break;
         }
         for(int i = 0; i< frequency; i++){
-            if(attemptInfection(sim, degree)) return true;
+            if(attemptInfection(sim, degree, clusterID)) return true;
         }
         return false;
     }
@@ -481,11 +481,13 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
     public void discoverHIV(HIVMicroSim sim){
         //breaking this out so that it's easier to find and adjust later. -Thank you self
         int mono, longevity;
-        double libido,condom;
+        double libido,condom, seroRoll, seroKnown;
         mono = sim.knownHIVMonogamous;
         longevity = sim.knownHIVCoitalLongevity;
         libido = sim.knownHIVLibido;
         condom = sim.knownHIVCondom;
+        seroRoll = sim.random.nextDouble();
+        seroKnown = sim.knownHIVSeroSort;
         //determine if the values are stratified
         if(sim.knownHIVStratify){
             //need to set the std because making it (Max -(-Max))/6 makes the stratification too large. Should be within
@@ -504,7 +506,10 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
             condom = sim.nextGaussianRangeDouble(-Personality.condomMax, 
                     Personality.condomMax, true, condom,
                     (Personality.condomMax-Personality.condomMin)/6, 0);
+            seroKnown = sim.nextGaussianRangeDouble(Personality.knownSeroSortMin, Personality.knownSeroSortMax, sim.knownHIVSeroSort, false);
         }
+        //if the roll is less than the population level, they serosort
+        if(seroRoll < seroKnown) pp.seroSort();
         //change personality. int mono, int commit, double lib, double condom, 
               //double testing (not currently using this, but it's there for the future)
         pp.changePersonality(mono, longevity, libido, condom, 0);
@@ -512,24 +517,10 @@ public abstract class Agent extends OvalPortrayal2D implements Steppable{
         sim.logger.insertDiscovery(ID, hiv.getStage(), hiv.getDuration());
     }
     public boolean wantsConnection(HIVMicroSim sim){
-        if(networkLevel == 0)return true;
-        //are their current needs met?
-        if(networkLevel >= pp.libido) return false;
-        //handle those at the extreme of polygamy. 
-        if(pp.monogamous == Personality.monogamousMin) return true;
-        //extremes of monogamy- they will not be with more than 1 person at the same time.
-        if(pp.monogamous == Personality.monogamousMax) return false;
-        //failing all else we roll their monogamy score on the same scale as commitment with non-monogamy being increasingly
-        //unlikely the higher your score. Note that, like longevity the sheer number of tests make a random number from
-        //0 to 10 a bad idea because in 1 year (52 ticks) a rank 10 will have been rolled approximately 5 times. 
-        //public int nextGaussianRange(int min, int max, boolean reroll, boolean inclusive, double mean, double std, int offset){
-        //Ran some calculations in R. at 2.5 the chances of a level 5 agent engaging after 1 year was around 70%
-        //utilizing 2 ((10-0)/5) you get the probabilities below. 
-        //R:> round(1-(pnorm(c(1,2,3,4,5,6,7,8,9), sd = 2)^52), digits = 4)
-            // [1] 1.0000 0.9999 0.9726 0.6978 0.2767 0.0678 0.0120 0.0016 0.0002
-        int roll = sim.nextGaussianRange(Personality.monogamousMin,
-                Personality.monogamousMax,false, true ,0, 
-                ((Personality.monogamousMax-Personality.monogamousMin)/5), 0);
-        return roll > pp.monogamous;
+        return pp.wantsConnection(sim);
     }
+    public boolean wantsConnection(HIVMicroSim sim, Agent a){
+        return pp.wantsConnection(sim, a);
+    }
+            
 }
