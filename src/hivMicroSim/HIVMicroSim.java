@@ -64,9 +64,9 @@ public class HIVMicroSim extends SimState{
     public boolean allowExtremes = true;
     
     //natural resistance -- replacing genes until further science is available 
-    public double resistanceMax = 6;  //maximum susceptibility
-    public double resistanceMin = 0;  //max resistance
-    public double resistanceAvg = 1;  //average resistance
+    public double susceptibilityMax = 6;  //maximum susceptibility
+    public double susceptibilityMin = 0;  //min susceptibility
+    public double susceptibilityAvg = 1;  //average susceptibility
     
     //population percentages 
     public double percentMsMW = .02;   //0-1 (combined with MsM cannot exceed 1)
@@ -239,6 +239,26 @@ public class HIVMicroSim extends SimState{
     public void setTestingLikelihood(double a){
         if(a >= Personality.testingMin && a <= Personality.testingMax) testingLikelihood = a;
     }
+    
+//Resistance/Susceptibility
+    public double getSusceptibilityMax(){ return susceptibilityMax;}
+    public double getSusceptibilityMin(){ return susceptibilityMin;}
+    public double getSusceptibilityAvg(){ return susceptibilityAvg;}
+    public void setSusceptibilityMax(double a){
+        if(a < susceptibilityMin) return;
+        susceptibilityMax = a;
+        if(susceptibilityAvg >susceptibilityMax)susceptibilityAvg = susceptibilityMax;        
+    }
+    public void setSusceptibilityMin(double a){
+        if(a > susceptibilityMax || a < 0) return;
+        susceptibilityMin = a;
+        if(susceptibilityAvg < susceptibilityMin) susceptibilityAvg = susceptibilityMin;
+    }
+    public void setSusceptibilityAvg(double a){
+        if(susceptibilityAvg > susceptibilityMax || susceptibilityAvg < susceptibilityMin) return;
+        susceptibilityAvg = a;
+    }    
+    
 //    public double treatmentLikelihood = .00481;
 //    public boolean treatAIDS = true;
 //    public double viralSuppressionLikelihood = .26; // rolling below this starts viral suppression

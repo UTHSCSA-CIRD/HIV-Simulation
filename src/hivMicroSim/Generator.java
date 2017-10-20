@@ -36,7 +36,7 @@ public abstract class Generator{
             life = sim.nextGaussianRange(age, (int)(sim.averageLifeSpan * 1.5), sim.averageLifeSpan, true, true);
         }
         personality = generatePersonality(sim, female);
-        hivImmunity = sim.nextGaussianRangeDouble(0, 2, 1, true);
+        hivImmunity = sim.nextGaussianRangeDouble(sim.susceptibilityMin, sim.susceptibilityMax, sim.susceptibilityAvg, true);
         if(female){
             agent = new Female(sim.currentID, personality, hivImmunity, age, life);
         }else{
